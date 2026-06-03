@@ -1119,9 +1119,9 @@ function renderTerms(terms, bookmarkDivider = 0) {
     return `${divider}<div class="term-card ${expandedId === t.id ? 'expanded' : ''}" id="card-${t.id}" style="animation-delay:${Math.min(i,10)*30}ms" onclick="toggleCard(${t.id})">
       <div class="term-header">
         <div class="term-main">
-          <div class="term-korean">${highlight(t.ko, query)}</div>
-          <div class="term-english">${highlight(t.en, query)}</div>
-          ${t.uz ? `<div class="term-uzbek">${highlight(t.uz, query)}</div>` : ''}
+          <div class="term-korean" onclick="copyTermText(event,'${(t.ko||'').replace(/'/g,"\\'")}','한국어')" title="클릭하여 복사" style="cursor:pointer">${highlight(t.ko, query)}</div>
+          <div class="term-english" onclick="copyTermText(event,'${(t.en||'').replace(/'/g,"\\'")}','영어')" title="클릭하여 복사" style="cursor:pointer">${highlight(t.en, query)}</div>
+          ${t.uz ? `<div class="term-uzbek" onclick="copyTermText(event,'${(t.uz||'').replace(/'/g,"\\'")}','우즈베크어')" title="클릭하여 복사" style="cursor:pointer">${highlight(t.uz, query)}</div>` : ''}
         </div>
         <span class="term-category">${t.category}</span>
         ${(() => {
@@ -2947,7 +2947,7 @@ ${term.def_en ? `Definition: ${term.def_en}` : ''}
 ${term.usmle ? `USMLE context: ${term.usmle}` : ''}
 
 Return ONLY a JSON object:
-{"category": "one of: Cardiovascular|Pulmonary|Renal|GI & Hepatobiliary|Endocrine|Neurology|Hematology & Oncology|Infectious Disease|Musculoskeletal|Dermatology|Reproductive|Psychiatry|Immunology|기타"}
+{"category": "one of: Cardiovascular|Pulmonary|Renal|GI & Hepatobiliary|Endocrine|Neurology|Hematology & Oncology|Infectious Disease|Musculoskeletal|Dermatology|Reproductive|Psychiatry|Immunology|Pharmacology|Pathology|기타"}
 Use "기타" ONLY if truly none of the above apply.`;
 
       const text = await callAIText(prompt, 100, 'general');
@@ -3238,6 +3238,55 @@ const QUIZ_STEPS = [
   { label: '② 우즈베크어', question: '영어 용어의 우즈베크어는?',        ansKey: 'uz',     ansLabel: '🇺🇿 O\'zbek' },
   { label: '③ 의미',     question: '이 용어의 뜻을 설명할 수 있나요?',   ansKey: 'def_en', ansLabel: '📖 English Definition' },
 ];
+
+function copyTermText(event, text, lang) {
+  event.stopPropagation(); // 카드 토글 방지
+  if (!text) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      showCopyToast(event, lang);
+    }).catch(() => {
+      fallbackCopy(text, event, lang);
+    });
+  } else {
+    fallbackCopy(text, event, lang);
+  }
+}
+
+function fallbackCopy(text, event, lang) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  showCopyToast(event, lang);
+}
+
+function showCopyToast(event, lang) {
+  // 기존 복사 툴팁 제거
+  document.querySelectorAll('.copy-tooltip').forEach(el => el.remove());
+  const tooltip = document.createElement('div');
+  tooltip.className = 'copy-tooltip';
+  tooltip.textContent = `📋 ${lang} 복사됨`;
+  tooltip.style.cssText = `
+    position:fixed;
+    background:#3fb950;color:#0d1117;
+    font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:8px;
+    z-index:9999;pointer-events:none;
+    font-family:'Noto Sans KR',sans-serif;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  `;
+  document.body.appendChild(tooltip);
+  // 클릭 위치 근처에 표시
+  const x = event.clientX;
+  const y = event.clientY - 32;
+  tooltip.style.left = Math.min(x, window.innerWidth - 120) + 'px';
+  tooltip.style.top = Math.max(y, 8) + 'px';
+  setTimeout(() => tooltip.remove(), 1200);
+}
 
 function speakEnglish(text) {
   if (!text || !window.speechSynthesis) return;
@@ -3683,74 +3732,40 @@ async function fetchRxClass(rxcui) {
   } catch { return null; }
 }
 
-async function showICD11Popup(enTerm, koTerm) {
-  // 기존 팝업 제거
+function showICD11Popup(enTerm, koTerm) {
   const existing = document.getElementById('icd11Popup');
   if (existing) existing.remove();
 
-  // 로딩 팝업
+  const url = `https://icd.who.int/browse/2025-01/mms/en#/?search=${encodeURIComponent(enTerm)}`;
+
   const modal = document.createElement('div');
   modal.id = 'icd11Popup';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(13,17,23,0.88);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;backdrop-filter:blur(8px)';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(13,17,23,0.92);display:flex;align-items:center;justify-content:center;z-index:999;padding:16px;backdrop-filter:blur(8px)';
   modal.innerHTML = `
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:18px;padding:24px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div style="font-size:14px;font-weight:700;color:#a78bfa">🏷️ ICD-11 검색</div>
-        <button onclick="document.getElementById('icd11Popup').remove()" style="background:none;border:none;color:#6e7681;font-size:18px;cursor:pointer">✕</button>
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:18px;width:100%;max-width:680px;height:80vh;display:flex;flex-direction:column;overflow:hidden">
+      <!-- 헤더 -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #30363d;flex-shrink:0">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#a78bfa">🏷️ ICD-11 검색</div>
+          <div style="font-size:11px;color:#58a6ff;margin-top:2px">${enTerm}${koTerm ? ' · ' + koTerm : ''}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a href="${url}" target="_blank"
+             style="text-decoration:none;background:rgba(139,92,246,0.15);border:1px solid #5b21b6;border-radius:8px;padding:5px 12px;font-size:11px;color:#a78bfa">
+            새 탭 ↗
+          </a>
+          <button onclick="document.getElementById('icd11Popup').remove()" style="background:none;border:none;color:#6e7681;font-size:20px;cursor:pointer;line-height:1">✕</button>
+        </div>
       </div>
-      <div style="font-size:13px;color:#e6edf3;margin-bottom:6px">${enTerm}</div>
-      ${koTerm ? `<div style="font-size:11px;color:#8b949e;margin-bottom:14px">${koTerm}</div>` : ''}
-      <div id="icd11Results" style="text-align:center;padding:20px;color:#6e7681;font-size:13px">
-        <div style="font-size:24px;margin-bottom:8px">⏳</div>
-        ICD-11 검색 중...
-      </div>
+      <!-- iframe -->
+      <iframe src="${url}"
+        style="flex:1;border:none;width:100%;background:#fff"
+        title="ICD-11 Search"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups">
+      </iframe>
     </div>`;
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-
-  // API 호출
-  try {
-    const res = await fetch(
-      `https://id.who.int/icd/release/11/2025-01/mms/search?q=${encodeURIComponent(enTerm)}&subtreesFilter=&includeKeywordResult=true&useFlexisearch=true&flatResults=true&highlightingEnabled=false`,
-      { headers: { 'Accept': 'application/json', 'Accept-Language': 'en', 'API-Version': 'v2' } }
-    );
-
-    const resultsEl = document.getElementById('icd11Results');
-    if (!resultsEl) return;
-
-    if (!res.ok) throw new Error('API error');
-    const data = await res.json();
-    const items = data.destinationEntities || [];
-
-    if (!items.length) {
-      resultsEl.innerHTML = `<div style="color:#6e7681;font-size:13px;padding:12px;text-align:center">검색 결과가 없습니다</div>`;
-      return;
-    }
-
-    resultsEl.innerHTML = items.slice(0, 8).map(item => `
-      <div style="background:#1c2333;border:1px solid #30363d;border-radius:10px;padding:12px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="flex:1">
-            <div style="font-size:12px;color:#e6edf3;font-weight:600;line-height:1.5">${item.title || ''}</div>
-            ${item.theCode ? `<div style="font-size:11px;color:#a78bfa;margin-top:3px;font-family:monospace">📋 ${item.theCode}</div>` : ''}
-            ${item.chapter ? `<div style="font-size:10px;color:#6e7681;margin-top:2px">${item.chapter}</div>` : ''}
-          </div>
-          <a href="${item['@id'] ? item['@id'].replace('id.who.int/icd','icd.who.int/browse') : 'https://icd.who.int/browse/2025-01/mms/en'}" 
-             target="_blank" 
-             style="text-decoration:none;background:rgba(139,92,246,0.15);border:1px solid #5b21b6;border-radius:6px;padding:4px 8px;font-size:10px;color:#a78bfa;white-space:nowrap;flex-shrink:0">
-            열기 ↗
-          </a>
-        </div>
-      </div>`).join('');
-  } catch(e) {
-    const resultsEl = document.getElementById('icd11Results');
-    if (resultsEl) resultsEl.innerHTML = `
-      <div style="color:#f87171;font-size:12px;text-align:center;padding:12px">
-        API 연결 실패<br>
-        <a href="https://icd.who.int/browse/2025-01/mms/en#/?search=${encodeURIComponent(enTerm)}" 
-           target="_blank" style="color:#a78bfa;font-size:11px">직접 열기 ↗</a>
-      </div>`;
-  }
 }
 
 // ── NEW API 4: WHO ICD-11 — get ICD-11 code ──
@@ -3994,7 +4009,7 @@ Return ONLY a valid JSON object (no markdown, no explanation) with these fields:
   "ko": "Korean term name — generate if not provided above",
   "en": "English term name — generate if not provided above",
   "uz": "Uzbek term name — generate if not provided above",
-  "category": "MUST pick the most specific match from: Cardiovascular|Pulmonary|Renal|GI & Hepatobiliary|Endocrine|Neurology|Hematology & Oncology|Infectious Disease|Musculoskeletal|Dermatology|Reproductive|Psychiatry|Immunology. Use '기타' ONLY if none of the above apply at all.",
+  "category": "MUST pick the most specific match from: Cardiovascular|Pulmonary|Renal|GI & Hepatobiliary|Endocrine|Neurology|Hematology & Oncology|Infectious Disease|Musculoskeletal|Dermatology|Reproductive|Psychiatry|Immunology|Pharmacology|Pathology. Use '기타' ONLY if none of the above apply at all.",
   "ipa": "Cambridge-style IPA for the English term only, e.g. /ˈsep.sɪs/",
   "def_ko": "Korean definition, 1-2 sentences, medical student level, informed by external data above",
   "def_en": "English definition, 1-2 sentences, medical student level, informed by external data above",
