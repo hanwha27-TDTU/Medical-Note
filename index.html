@@ -845,6 +845,9 @@
   <button class="nav-btn" onclick="switchTab('export', this)">
     <span class="nav-icon">📤</span>내보내기
   </button>
+  <button class="nav-btn" onclick="switchTab('guide', this)">
+    <span class="nav-icon">📖</span>가이드
+  </button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1369,6 +1372,7 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
 
   if (tab === 'export')   showExportMenu();
+  else if (tab === 'guide') showGuide();
   else if (tab === 'ai')      showAISettings();
   else if (tab === 'quiz')    showQuizSetup();
   else if (tab === 'add')     { showAddTermForm(); setTimeout(updateAddKeyHint, 0); }
@@ -2436,6 +2440,131 @@ function deleteTerm(id) {
     updateBookmarkCount();
     applyFilters();
   });
+}
+
+function showGuide() {
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+
+  const sections = [
+    {
+      icon: '🔍', title: '검색',
+      color: '#58a6ff',
+      items: [
+        '한국어 · 영어 · 우즈베크어 동시 검색',
+        '카테고리 필터 (13개 + 기타)',
+        '정렬: 기본 / A→Z 영어 / 가→나 한국어 / A→Z 우즈베크',
+        '🏥 NIH UMLS 검색으로 의학 DB에서 직접 용어 추가',
+        '용어 카드 펼치면 3개국어 정의 + USMLE + IPA 표시',
+        '🔗 더 알아보기: PubMed · ICD-11 · MedlinePlus · ClinicalTrials · FDA 링크',
+        '빈 필드 표시 (✗ KO · UZ · USMLE · IPA)',
+      ]
+    },
+    {
+      icon: '⭐', title: '즐겨찾기',
+      color: '#fbbf24',
+      items: [
+        '용어 카드 ☆ 클릭으로 즐겨찾기 등록/해제',
+        '즐겨찾기 전용 필터로 모아보기',
+        '즐겨찾기만 모아 퀴즈 출제 가능',
+      ]
+    },
+    {
+      icon: '➕', title: '용어 추가',
+      color: '#3fb950',
+      items: [
+        '단어 하나: 한국어 · 영어 · 우즈베크어 입력 후 저장',
+        'TSV 붙여넣기: 엑셀에서 복사한 데이터 대량 가져오기',
+        '파일 업로드: .xlsx / .tsv 파일 직접 업로드 (636개 지원)',
+        '업로드 모드: 기존 삭제 후 교체 / 기존에 추가',
+        '중복 용어는 영어 기준으로 자동 병합 (빈 칸 채우기)',
+      ]
+    },
+    {
+      icon: '📝', title: '퀴즈',
+      color: '#a78bfa',
+      items: [
+        '출제 범위 선택: 전체 / 즐겨찾기 / 카테고리별',
+        '3단계 순서: ① 한국어 → ② 우즈베크어 → ③ 의미',
+        '🔊 발음 듣기 버튼 (Web Speech API)',
+        '자동 발음 옵션 (문제 나올 때마다 자동 재생)',
+        '자가 채점 (맞음 / 틀림) + 최종 점수 및 등급',
+        '전체 진행률 표시',
+      ]
+    },
+    {
+      icon: '🤖', title: 'AI 설정',
+      color: '#f87171',
+      items: [
+        'AI 제공자: Claude (claude.ai 내장) · Anthropic API · Gemini · OpenAI',
+        '자동 선택: claude.ai 환경에서는 내장 Claude 우선 사용',
+        '529 과부하 시 자동 재시도 (1.5초 / 3초 간격)',
+        'NIH UMLS API 키 등록으로 의학 DB 검색 연동',
+        'Supabase 기기간 동기화 (폰 · PC · 태블릿)',
+        '각 API 키 개별 등록 / 해제 가능',
+      ]
+    },
+    {
+      icon: '📤', title: '내보내기 · 관리',
+      color: '#4ade80',
+      items: [
+        '📥 TSV 백업: 전체 데이터 탭 구분 텍스트로 내보내기',
+        '📊 Excel 내보내기: .xlsx 파일 (헤더: Korean · English · Uzbek...)',
+        '🃏 Anki TSV: Anki 덱 바로 임포트 가능한 포맷',
+        '파일명 자동 날짜 (다운로드 당일 기준)',
+        '🤖 일괄 빈칸 채우기: AI가 비어있는 정의·IPA·USMLE 자동 완성',
+        '🏷️ 기타 카테고리 재분류: AI가 기타 용어를 정확한 카테고리로 분류',
+        '🗑️ 일괄 삭제: 카테고리별 또는 전체 삭제',
+        '중지 기능: AI 작업 중 ⏹ 버튼으로 중지 (지금까지 저장)',
+      ]
+    },
+    {
+      icon: '💡', title: '기타 기능',
+      color: '#74b0ff',
+      items: [
+        '제목 클릭 → 홈(검색) 화면으로 즉시 이동',
+        '탭 상단 고정 + 카테고리 필터 자동 줄바꿈',
+        '다크 테마 전용 UI',
+        '📱 모바일 · PC 반응형 지원',
+        '로컬스토리지 자동 저장 (새로고침해도 데이터 유지)',
+        'Supabase 연동 시 기기 간 동기화',
+        '👨‍💻 개발자: 김부건 (Kim Bugeon) · Tashkent State Medical University',
+      ]
+    },
+  ];
+
+  const html = sections.map(s => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-size:24px">${s.icon}</div>
+        <div style="font-size:15px;font-weight:700;color:${s.color}">${s.title}</div>
+      </div>
+      <ul style="margin:0;padding-left:16px;list-style:none">
+        ${s.items.map(item => `
+          <li style="font-size:12px;color:var(--text2);line-height:1.8;padding:2px 0;padding-left:4px;border-left:2px solid ${s.color}22;margin-bottom:3px">
+            <span style="margin-left:6px">${item}</span>
+          </li>`).join('')}
+      </ul>
+    </div>`).join('');
+
+  main.innerHTML = `
+    <div style="padding:16px 0 80px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:40px;margin-bottom:8px">📖</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text)">Bugeon Medical Terms</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px">Ver 1.0 · 기능 가이드</div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+          <span style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:10px;padding:3px 10px;font-size:10px;color:#74b0ff">USMLE Step 1·2</span>
+          <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:10px;padding:3px 10px;font-size:10px;color:#4ade80">3개국어 (KO·EN·UZ)</span>
+          <span style="background:rgba(167,139,250,0.1);border:1px solid #5b21b6;border-radius:10px;padding:3px 10px;font-size:10px;color:#a78bfa">Anki 연동</span>
+          <span style="background:rgba(251,191,36,0.1);border:1px solid #92400e;border-radius:10px;padding:3px 10px;font-size:10px;color:#fbbf24">AI 자동완성</span>
+        </div>
+      </div>
+      ${html}
+      <button onclick="switchTab('search', document.querySelector('.nav-btn'))" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:4px">
+        ← 돌아가기
+      </button>
+    </div>`;
 }
 
 function showExportMenu() {
