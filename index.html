@@ -260,20 +260,20 @@
 
   .term-korean {
     font-family: 'Noto Serif KR', serif;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 3px;
+    margin-bottom: 2px;
   }
 
   .term-uzbek {
-    font-size: 11px;
+    font-size: 13px;
     color: #fbbf24;
     margin-top: 1px;
     line-height: 1.3;
   }
   .term-english {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--accent);
     letter-spacing: 0.2px;
   }
@@ -779,6 +779,8 @@
   <button class="filter-btn" onclick="setFilter('Reproductive', this)">🧬 Reproductive</button>
   <button class="filter-btn" onclick="setFilter('Psychiatry', this)">💬 Psychiatry</button>
   <button class="filter-btn" onclick="setFilter('Immunology', this)">🛡️ Immunology</button>
+  <button class="filter-btn" onclick="setFilter('Pharmacology', this)">💊 Pharmacology</button>
+  <button class="filter-btn" onclick="setFilter('Pathology', this)">🔬 Pathology</button>
   <button class="filter-btn" onclick="setFilter('기타', this)">📁 기타</button>
   <button class="filter-btn" onclick="setFilter('즐겨찾기', this)">⭐ 즐겨찾기</button>
 </div>
@@ -1089,7 +1091,7 @@ let currentSort = 'default'; // 'default' | 'en_asc' | 'ko_asc' | 'uz_asc'
 let aiStopRequested = false; // AI 중지 플래그
 const VALID_CATS = ['Cardiovascular','Pulmonary','Renal','GI & Hepatobiliary','Endocrine',
   'Neurology','Hematology & Oncology','Infectious Disease','Musculoskeletal',
-  'Dermatology','Reproductive','Psychiatry','Immunology'];
+  'Dermatology','Reproductive','Psychiatry','Immunology','Pharmacology','Pathology'];
 
 let bookmarks = new Set(JSON.parse(localStorage.getItem('kma_bookmarks') || '[]'));
 let expandedId = null;
@@ -1184,7 +1186,7 @@ function renderTerms(terms, bookmarkDivider = 0) {
           <div class="lang-badge" style="background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border)">🔗 더 알아보기</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
             <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(63,185,80,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">📚 PubMed</a>
-            <a href="https://www.icd11.who.int/browse/2024-01/mms/en#/?search=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(139,92,246,0.08);border:1px solid #5b21b6;border-radius:8px;padding:4px 10px;font-size:11px;color:#a78bfa">🏷️ ICD-11</a>
+            <a href="https://icd.who.int/browse/2025-01/mms/en#/?search=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(139,92,246,0.08);border:1px solid #5b21b6;border-radius:8px;padding:4px 10px;font-size:11px;color:#a78bfa">🏷️ ICD-11</a>
             <a href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(88,166,255,0.08);border:1px solid #1d4ed8;border-radius:8px;padding:4px 10px;font-size:11px;color:#74b0ff">💊 MedlinePlus</a>
             <a href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(34,197,94,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">🔬 ClinicalTrials</a>
             <a href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(248,81,73,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#f87171">⚠️ FDA</a>
@@ -2115,25 +2117,17 @@ async function importTsvPaste() {
   const btn = document.getElementById('tsvImportBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 가져오는 중...'; }
 
-  // 덮어쓰기 처리: 빈 칸만 채우기 (기능1 — 이미 있는 필드는 유지)
+  // 덮어쓰기 처리: 완전 덮어쓰기 (새 데이터로 전부 교체, 기존 id 유지)
   let overwriteCount = 0;
   overwriteRows.forEach(({ t, existIdx }) => {
     const existing = TERMS[existIdx];
-    let changed = false;
-    const updated = { ...existing };
-    // 빈 필드만 채움
-    ['ko','uz','def_ko','def_en','def_uz','usmle','ipa'].forEach(f => {
-      if (!existing[f] && t[f]) { updated[f] = t[f]; changed = true; }
+    TERMS[existIdx] = normalizeTermForStorage({
+      ...t,
+      id: existing.id, // 기존 id 유지
+      updatedAt: new Date().toISOString()
     });
-    if (!existing.category || existing.category === '기타') {
-      if (t.category && t.category !== '기타') { updated.category = t.category; changed = true; }
-    }
-    if (changed) {
-      updated.updatedAt = new Date().toISOString();
-      TERMS[existIdx] = normalizeTermForStorage(updated);
-      saveTermToCloud(TERMS[existIdx]);
-      overwriteCount++;
-    }
+    saveTermToCloud(TERMS[existIdx]);
+    overwriteCount++;
   });
   if (overwriteCount > 0) { saveTermsToLocalStorage(); applyFilters(); }
 
@@ -2147,7 +2141,7 @@ async function importTsvPaste() {
   saveTermsToLocalStorage();
   const addedCount = newRows.length;
   const msg = [
-    overwriteCount > 0 ? `✏️ ${overwriteCount}개 덮어쓰기` : '',
+    overwriteCount > 0 ? `✏️ ${overwriteCount}개 완전 덮어쓰기` : '',
     addedCount > 0     ? `➕ ${addedCount}개 신규 추가` : '',
   ].filter(Boolean).join(', ');
   showToast(`✅ ${msg || '처리 완료'}`);
@@ -2657,6 +2651,29 @@ function showExportMenu() {
         </div>
       </div>
 
+      <!-- 중복 정리 -->
+      ${(() => {
+        const dupCount = (() => {
+          const seen = new Set(); let c = 0;
+          TERMS.forEach(t => { const k=(t.en||t.ko||'').toLowerCase().trim(); if(seen.has(k))c++; else seen.add(k); });
+          return c;
+        })();
+        return dupCount > 0
+          ? `<div style="background:var(--surface);border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:16px;margin-top:10px">
+              <div style="font-size:13px;color:#fbbf24;font-weight:600;margin-bottom:4px">⚠️ 중복 용어 정리</div>
+              <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">
+                현재 <span style="color:#fbbf24;font-weight:700">${dupCount}개</span>의 중복 용어가 감지됐습니다.<br>
+                각 중복 쌍에서 유지할 용어를 직접 선택할 수 있습니다.
+              </div>
+              <button onclick="showDuplicateManager()" style="width:100%;background:rgba(251,191,36,0.12);border:1px solid #fbbf24;border-radius:8px;padding:11px;color:#fbbf24;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
+                🔍 중복 용어 확인 및 정리
+              </button>
+            </div>`
+          : `<div style="background:var(--surface);border:1px solid rgba(63,185,80,0.3);border-radius:12px;padding:12px;margin-top:10px;text-align:center">
+              <span style="font-size:12px;color:#4ade80">✅ 중복 용어 없음</span>
+            </div>`;
+      })()}
+
       <!-- 일괄 삭제 -->
       <div style="background:var(--surface);border:1px solid rgba(248,81,73,0.35);border-radius:12px;padding:16px;margin-top:10px">
         <div style="font-size:13px;color:#f85149;font-weight:600;margin-bottom:4px">🗑️ 용어 일괄 삭제</div>
@@ -2706,6 +2723,143 @@ function showDevInfo() {
     </div>`;
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
+}
+
+function showDuplicateManager() {
+  // 중복 그룹 찾기 (영어 기준)
+  const groups = {};
+  TERMS.forEach((t, idx) => {
+    const key = (t.en || t.ko || '').toLowerCase().trim();
+    if (!key) return;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ t, idx });
+  });
+  const dupGroups = Object.values(groups).filter(g => g.length > 1);
+
+  if (!dupGroups.length) { showToast('✅ 중복 용어가 없습니다'); showExportMenu(); return; }
+
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+
+  const renderGroup = (g, gi) => {
+    const cards = g.map(({ t, idx }, ci) => `
+      <div id="dupCard_${gi}_${ci}" onclick="selectDupCard(${gi},${ci},${g.length})"
+        style="border:2px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;margin-bottom:8px;background:var(--surface2);transition:border-color 0.2s">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">${t.ko || '—'}</div>
+            <div style="font-size:12px;color:#58a6ff">${t.en || '—'}</div>
+            ${t.uz ? `<div style="font-size:11px;color:#fbbf24">${t.uz}</div>` : ''}
+          </div>
+          <span style="font-size:10px;color:var(--text3);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 8px">${t.category||'기타'}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text3);line-height:1.5">
+          ${t.def_ko ? `<div>📖 ${t.def_ko.slice(0,60)}...</div>` : '<div style="color:#6e7681">정의 없음</div>'}
+          ${t.usmle ? `<div>🏥 USMLE: ${t.usmle.slice(0,50)}...</div>` : ''}
+          ${t.ipa ? `<div>🔊 ${t.ipa}</div>` : ''}
+        </div>
+        <div id="dupBadge_${gi}_${ci}" style="display:none;margin-top:8px;text-align:center;font-size:12px;font-weight:700;color:#3fb950">✅ 유지 선택됨</div>
+      </div>`).join('');
+
+    return `
+      <div style="background:var(--surface);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;color:#fbbf24;margin-bottom:8px;font-weight:600">
+          ⚠️ 중복 ${gi+1}/${dupGroups.length}: "${g[0].t.en || g[0].t.ko}" (${g.length}개)
+        </div>
+        <div id="dupGroup_${gi}">${cards}</div>
+        <div id="dupGroupStatus_${gi}" style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center">유지할 용어를 선택하세요</div>
+      </div>`;
+  };
+
+  // 선택 상태 저장
+  window._dupGroups = dupGroups;
+  window._dupSelections = new Array(dupGroups.length).fill(null);
+
+  main.innerHTML = `
+    <div style="padding:16px 0 80px">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+        <div style="font-size:18px;font-weight:700;color:#fbbf24">중복 용어 정리</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">${dupGroups.length}개 중복 그룹 발견 · 유지할 용어를 선택하세요</div>
+      </div>
+      <div id="dupGroupList">
+        ${dupGroups.map((g,gi) => renderGroup(g,gi)).join('')}
+      </div>
+      <div style="position:sticky;bottom:60px;background:var(--bg);padding:8px 0;border-top:1px solid var(--border)">
+        <div id="dupSummary" style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:8px">0 / ${dupGroups.length} 선택 완료</div>
+        <button id="dupApplyBtn" onclick="applyDuplicateCleanup()" disabled
+          style="width:100%;background:rgba(251,191,36,0.15);border:1px solid #fbbf24;border-radius:10px;padding:13px;color:#fbbf24;font-size:14px;font-weight:700;cursor:not-allowed;opacity:0.5;font-family:'Noto Sans KR',sans-serif">
+          🗑️ 선택한 용어만 유지 (나머지 삭제)
+        </button>
+        <button onclick="switchTab('export', document.querySelectorAll('.nav-btn')[5])" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:8px">
+          ← 취소
+        </button>
+      </div>
+    </div>`;
+}
+
+function selectDupCard(gi, ci, groupLen) {
+  // 같은 그룹 내 모든 카드 스타일 초기화
+  for (let i = 0; i < groupLen; i++) {
+    const card = document.getElementById(`dupCard_${gi}_${i}`);
+    const badge = document.getElementById(`dupBadge_${gi}_${i}`);
+    if (card) card.style.borderColor = 'var(--border)';
+    if (badge) badge.style.display = 'none';
+  }
+  // 선택한 카드 하이라이트
+  const selCard = document.getElementById(`dupCard_${gi}_${ci}`);
+  const selBadge = document.getElementById(`dupBadge_${gi}_${ci}`);
+  if (selCard) selCard.style.borderColor = '#3fb950';
+  if (selBadge) selBadge.style.display = 'block';
+
+  const statusEl = document.getElementById(`dupGroupStatus_${gi}`);
+  if (statusEl) statusEl.textContent = '✅ 선택 완료';
+
+  window._dupSelections[gi] = ci;
+
+  // 전체 진행률 업데이트
+  const done = window._dupSelections.filter(s => s !== null).length;
+  const total = window._dupGroups.length;
+  const summary = document.getElementById('dupSummary');
+  const applyBtn = document.getElementById('dupApplyBtn');
+  if (summary) summary.textContent = `${done} / ${total} 선택 완료`;
+  if (applyBtn) {
+    if (done === total) {
+      applyBtn.disabled = false;
+      applyBtn.style.cursor = 'pointer';
+      applyBtn.style.opacity = '1';
+    }
+  }
+}
+
+function applyDuplicateCleanup() {
+  const groups = window._dupGroups;
+  const selections = window._dupSelections;
+  if (!groups || selections.some(s => s === null)) {
+    showToast('⚠️ 모든 중복 그룹에서 유지할 용어를 선택해주세요'); return;
+  }
+
+  // 삭제할 인덱스 수집
+  const indicesToDelete = new Set();
+  groups.forEach((g, gi) => {
+    const keepCi = selections[gi];
+    g.forEach(({ idx }, ci) => {
+      if (ci !== keepCi) indicesToDelete.add(idx);
+    });
+  });
+
+  // 역순으로 삭제 (인덱스 밀림 방지)
+  const sortedIndices = [...indicesToDelete].sort((a, b) => b - a);
+  sortedIndices.forEach(idx => {
+    const term = TERMS[idx];
+    if (term) deleteTermFromCloud(term.id);
+    TERMS.splice(idx, 1);
+  });
+
+  saveTermsToLocalStorage();
+  applyFilters();
+  showToast(`✅ ${indicesToDelete.size}개 중복 용어 삭제 완료`);
+  switchTab('export', document.querySelectorAll('.nav-btn')[5]);
 }
 
 async function bulkDeleteTerms() {
@@ -3871,16 +4025,30 @@ async function handleFileUpload(e, mode = 'replace') {
     rows = rows.map((t, i) => ({ ...t, id: startId + i, updatedAt: new Date().toISOString() }));
 
     if (mode === 'append') {
-      // 영어 기준 중복 체크 (영어 없으면 한국어 기준)
-      const seen = new Set(TERMS.map(t => (t.en || t.ko || '').toLowerCase().trim()));
-      rows = rows.filter(t => {
+      // 영어 기준 중복: 완전 덮어쓰기 (기존 용어를 새 데이터로 교체)
+      let overwriteCount = 0;
+      const newRows = [];
+      const seenInBatch = new Set();
+      rows.forEach(t => {
         const key = (t.en || t.ko || '').toLowerCase().trim();
-        if (!key) return false;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
+        if (!key || seenInBatch.has(key)) return;
+        seenInBatch.add(key);
+        const existIdx = TERMS.findIndex(x => (x.en || x.ko || '').toLowerCase().trim() === key);
+        if (existIdx !== -1) {
+          // 완전 덮어쓰기 (기존 id 유지)
+          TERMS[existIdx] = normalizeTermForStorage({ ...t, id: TERMS[existIdx].id, updatedAt: new Date().toISOString() });
+          saveTermToCloud(TERMS[existIdx]);
+          overwriteCount++;
+        } else {
+          newRows.push(t);
+        }
       });
-      if (rows.length === 0) { showToast('⚠️ 추가할 새 용어가 없습니다 (전부 중복)'); return; }
+      if (overwriteCount > 0) { saveTermsToLocalStorage(); }
+      rows = newRows; // 신규만 아래에서 push
+      if (overwriteCount > 0 && rows.length === 0) {
+        saveTermsToLocalStorage(); applyFilters(); updateBookmarkCount();
+        showToast(`✅ ${overwriteCount}개 완전 덮어쓰기 완료`); return;
+      }
     }
 
     // 업로드 시 AI 자동완성 없이 전부 즉시 저장
