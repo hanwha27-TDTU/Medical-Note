@@ -739,7 +739,7 @@
   <div class="header-top">
     <div class="logo-badge">🩺</div>
     <div class="header-titles">
-      <h1>Dr. Bugeon의 의학용어</h1>
+      <h1 onclick="switchTab('search', document.querySelector('.nav-btn'))" style="cursor:pointer" title="홈으로">Dr. Bugeon의 의학용어</h1>
       <p>Medical Terminology · Tibbiy terminologiya</p>
     </div>
     <div class="update-badge">
@@ -806,16 +806,12 @@
   <div class="upload-card">
     <div class="icon">🤖</div>
     <h3>AI 자동완성 업로드</h3>
-    <p>한국어 · 영어 · 우즈베크어만 입력하면<br>8개 API + AI가 자동으로 모든 정보를 채웁니다</p>
+    <p>한국어 · 영어 · 우즈베크어만 입력하면<br>AI가 정의 · USMLE · IPA를 자동으로 채웁니다</p>
     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">PubMed</span>
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">MedlinePlus</span>
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">RxNorm</span>
-      <span style="background:rgba(139,92,246,0.12);border:1px solid #5b21b6;border-radius:12px;padding:3px 10px;font-size:11px;color:#a78bfa">ICD-11</span>
-      <span style="background:rgba(248,81,73,0.1);border:1px solid #991b1b;border-radius:12px;padding:3px 10px;font-size:11px;color:#f87171">OpenFDA</span>
-      <span style="background:rgba(251,191,36,0.1);border:1px solid #92400e;border-radius:12px;padding:3px 10px;font-size:11px;color:#fbbf24">RxClass</span>
-      <span style="background:rgba(34,197,94,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">ClinicalTrials</span>
-      <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">NLM 자동완성 ✨</span>
+      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">🏥 NIH UMLS</span>
+      <span style="background:rgba(139,92,246,0.12);border:1px solid #5b21b6;border-radius:12px;padding:3px 10px;font-size:11px;color:#a78bfa">🤖 Claude AI</span>
+      <span style="background:rgba(251,191,36,0.1);border:1px solid #92400e;border-radius:12px;padding:3px 10px;font-size:11px;color:#fbbf24">🟡 Gemini</span>
+      <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">🔍 OpenAI</span>
     </div>
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 파일 업로드 (TSV / Excel)</button>
     <input type="file" id="fileInput" accept=".tsv,.csv,.txt,.xlsx,.xls" style="display:none" onchange="confirmUpload(event)">
@@ -1181,35 +1177,16 @@ function renderTerms(terms, bookmarkDivider = 0) {
           <div class="lang-badge" style="background:rgba(88,166,255,0.15);color:#58a6ff;border:1px solid #1d3a5e">📋 USMLE High-Yield</div>
           <div class="detail-text" style="font-family:monospace;font-size:12px;color:#8b949e">${t.usmle}</div>
         </div>
-        ${(t.icd11 || t.fdaDrug || t.rxclassATC || t.trials) ? `
-        <div class="detail-section" style="background:rgba(0,0,0,0.15)">
-          <div class="lang-badge" style="background:rgba(255,255,255,0.05);color:var(--text2);border:1px solid var(--border)">🌐 외부 데이터베이스</div>
-          <div class="api-badge-row">
-            ${t.icd11?.code ? `<span class="api-tag icd11">🏷️ ICD-11: ${t.icd11.code}</span>` : ''}
-            ${t.fdaDrug?.hasBoxedWarning ? `<span class="api-tag fda">⚠️ FDA Boxed Warning</span>` : (t.fdaDrug?.brandName ? `<span class="api-tag fda">💊 FDA: ${t.fdaDrug.brandName}</span>` : '')}
-            ${t.rxclassATC?.length ? `<span class="api-tag rxclass">🔬 ATC: ${t.rxclassATC[0].name}</span>` : ''}
-            ${t.trials?.count > 0 ? `<a class="trials-link" href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" onclick="event.stopPropagation()">🔬 ${t.trials.count} 활성 임상시험 ↗</a>` : ''}
+        <div class="detail-section" style="background:rgba(0,0,0,0.1)">
+          <div class="lang-badge" style="background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border)">🔗 더 알아보기</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(63,185,80,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">📚 PubMed</a>
+            <a href="https://www.icd11.who.int/browse/2024-01/mms/en#/?search=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(139,92,246,0.08);border:1px solid #5b21b6;border-radius:8px;padding:4px 10px;font-size:11px;color:#a78bfa">🏷️ ICD-11</a>
+            <a href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(88,166,255,0.08);border:1px solid #1d4ed8;border-radius:8px;padding:4px 10px;font-size:11px;color:#74b0ff">💊 MedlinePlus</a>
+            <a href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(34,197,94,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">🔬 ClinicalTrials</a>
+            <a href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(248,81,73,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#f87171">⚠️ FDA</a>
           </div>
-          ${t.fdaDrug?.warnings ? `
-          <div class="fda-panel" style="margin-top:8px">
-            <div class="fda-title">${t.fdaDrug.hasBoxedWarning ? '⚠️ Boxed Warning' : '⚠️ FDA Warning'}</div>
-            <div class="fda-text">${t.fdaDrug.warnings}</div>
-          </div>` : ''}
-          ${t.fdaDrug?.drugClass ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">약물 분류: <span style="color:var(--text2)">${t.fdaDrug.drugClass}</span></div>` : ''}
-          ${t.icd11?.title ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">ICD-11: <span style="color:#a78bfa">${t.icd11.title}</span></div>` : ''}
-        </div>` : ''}
-        ${t.refs && t.refs.length > 0 ? `
-        <div class="detail-section" style="background:rgba(63,185,80,0.03)">
-          <div class="lang-badge" style="background:rgba(63,185,80,0.12);color:#4ade80;border:1px solid #166534">📄 PubMed 참고문헌</div>
-          ${t.refs.map(r => `
-            <a href="${r.url}" target="_blank" onclick="event.stopPropagation()" style="display:block;margin-top:7px;text-decoration:none">
-              <div style="font-size:11px;color:#58a6ff;line-height:1.5;border-left:2px solid #1d4ed8;padding-left:8px">
-                <span style="color:#e6edf3;font-weight:500">${r.title}</span><br>
-                <span style="color:#8b949e">${r.authors} · ${r.journal} · ${r.year}</span><br>
-                <span style="color:#3fb950;font-size:10px">PMID: ${r.pmid} → PubMed 열기 ↗</span>
-              </div>
-            </a>`).join('')}
-        </div>` : ''}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1361,16 +1338,12 @@ const HOME_HTML = `
   <div class="upload-card">
     <div class="icon">🤖</div>
     <h3>AI 자동완성 업로드</h3>
-    <p>한국어 · 영어 · 우즈베크어만 입력하면<br>8개 API + AI가 자동으로 모든 정보를 채웁니다</p>
+    <p>한국어 · 영어 · 우즈베크어만 입력하면<br>AI가 정의 · USMLE · IPA를 자동으로 채웁니다</p>
     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">PubMed</span>
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">MedlinePlus</span>
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">RxNorm</span>
-      <span style="background:rgba(139,92,246,0.12);border:1px solid #5b21b6;border-radius:12px;padding:3px 10px;font-size:11px;color:#a78bfa">ICD-11</span>
-      <span style="background:rgba(248,81,73,0.1);border:1px solid #991b1b;border-radius:12px;padding:3px 10px;font-size:11px;color:#f87171">OpenFDA</span>
-      <span style="background:rgba(251,191,36,0.1);border:1px solid #92400e;border-radius:12px;padding:3px 10px;font-size:11px;color:#fbbf24">RxClass</span>
-      <span style="background:rgba(34,197,94,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">ClinicalTrials</span>
-      <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">NLM 자동완성 ✨</span>
+      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">🏥 NIH UMLS</span>
+      <span style="background:rgba(139,92,246,0.12);border:1px solid #5b21b6;border-radius:12px;padding:3px 10px;font-size:11px;color:#a78bfa">🤖 Claude AI</span>
+      <span style="background:rgba(251,191,36,0.1);border:1px solid #92400e;border-radius:12px;padding:3px 10px;font-size:11px;color:#fbbf24">🟡 Gemini</span>
+      <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">🔍 OpenAI</span>
     </div>
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 파일 업로드 (TSV / Excel)</button>
     <input type="file" id="fileInput" accept=".tsv,.csv,.txt,.xlsx,.xls" style="display:none" onchange="confirmUpload(event)">
@@ -1397,7 +1370,7 @@ function switchTab(tab, btn) {
 
   if (tab === 'export')   showExportMenu();
   else if (tab === 'ai')      showAISettings();
-  else if (tab === 'quiz')    startQuiz();
+  else if (tab === 'quiz')    showQuizSetup();
   else if (tab === 'add')     { showAddTermForm(); setTimeout(updateAddKeyHint, 0); }
   else if (tab === 'bookmark') {
     restoreHomeTab();
@@ -1435,7 +1408,7 @@ const AI_ROUTE_LABELS = {
   openai: 'OpenAI만 사용',
   anthropic: 'Anthropic만 사용',
   gemini: 'Gemini만 사용',
-  auto: '자동 선택 (등록된 키 순서: Anthropic → Gemini → OpenAI)'
+  auto: '자동 선택 (등록된 키 있는 쪽 우선 · claude.ai는 내장 Claude 사용)'
 };
 
 function renderModelPresetOptions(presets, currentValue) {
@@ -1572,7 +1545,7 @@ function showAISettings() {
         <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:12px">호출 방식</div>
         <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">AI Route</label>
         <select id="ai_route" style="${inputStyle()}" onchange="onAIRouteChange()">
-          <option value="auto" ${(!cfg.route || cfg.route === 'auto') ? 'selected' : ''}>자동 선택 (등록된 키 우선)</option>
+          <option value="auto" ${(!cfg.route || cfg.route === 'auto') ? 'selected' : ''}>자동 선택</option>
           <option value="openai" ${cfg.route === 'openai' ? 'selected' : ''}>OpenAI만 사용</option>
           <option value="anthropic" ${cfg.route === 'anthropic' ? 'selected' : ''}>Anthropic만 사용</option>
           <option value="gemini" ${cfg.route === 'gemini' ? 'selected' : ''}>Gemini만 사용</option>
@@ -2983,6 +2956,97 @@ const QUIZ_STEPS = [
   { label: '③ 의미',     question: '이 용어의 뜻을 설명할 수 있나요?',   ansKey: 'def_en', ansLabel: '📖 English Definition' },
 ];
 
+function speakEnglish(text) {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'en-US';
+  utt.rate = 0.85;
+  window.speechSynthesis.speak(utt);
+}
+
+function showQuizSetup() {
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+
+  const catCounts = {};
+  TERMS.forEach(t => { catCounts[t.category] = (catCounts[t.category]||0)+1; });
+  const bookmarkCount = TERMS.filter(t => bookmarks.has(t.id)).length;
+
+  const catOptions = VALID_CATS.map(c =>
+    catCounts[c] ? `<option value="${c}">${c} (${catCounts[c]}개)</option>` : ''
+  ).join('');
+
+  main.innerHTML = `
+    <div style="padding:16px 0 80px;max-width:480px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;margin-bottom:8px">🧠</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text)">퀴즈 설정</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">출제 범위를 선택하세요</div>
+      </div>
+
+      <!-- 출제 범위 -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px;font-weight:600">📚 출제 범위</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2)">
+            <input type="radio" name="quizScope" value="all" checked style="accent-color:var(--accent)">
+            <span style="font-size:13px;color:var(--text)">📖 전체 (${TERMS.length}개)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2)">
+            <input type="radio" name="quizScope" value="bookmarks" style="accent-color:var(--accent)">
+            <span style="font-size:13px;color:var(--text)">⭐ 즐겨찾기 (${bookmarkCount}개)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2)">
+            <input type="radio" name="quizScope" value="category" style="accent-color:var(--accent)" onchange="document.getElementById('catSelect').style.display='block'">
+            <span style="font-size:13px;color:var(--text)">🏷️ 카테고리 선택</span>
+          </label>
+          <select id="catSelect" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none">
+            ${catOptions}
+          </select>
+        </div>
+      </div>
+
+      <!-- 발음 설정 -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;font-weight:600">🔊 발음</div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="quizAutoSpeak" style="accent-color:var(--accent);width:16px;height:16px">
+          <span style="font-size:13px;color:var(--text)">문제 나올 때 영어 자동 발음</span>
+        </label>
+      </div>
+
+      <button onclick="startQuizFromSetup()" style="width:100%;background:var(--accent);border:none;border-radius:12px;padding:14px;color:#0d1117;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px">
+        🚀 퀴즈 시작
+      </button>
+      <button onclick="switchTab('search', document.querySelector('.nav-btn'))" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
+        ← 돌아가기
+      </button>
+    </div>`;
+}
+
+function startQuizFromSetup() {
+  const scope = document.querySelector('input[name="quizScope"]:checked')?.value || 'all';
+  const cat   = document.getElementById('catSelect')?.value;
+  quizAutoSpeak = document.getElementById('quizAutoSpeak')?.checked || false;
+
+  let pool = [];
+  if (scope === 'all')       pool = [...TERMS];
+  else if (scope === 'bookmarks') pool = TERMS.filter(t => bookmarks.has(t.id));
+  else if (scope === 'category')  pool = TERMS.filter(t => t.category === cat);
+
+  if (!pool.length) { showToast('선택한 범위에 용어가 없습니다'); return; }
+
+  quizPool  = pool.sort(() => Math.random() - 0.5);
+  quizIdx   = 0;
+  quizScore = { correct: 0, total: 0 };
+  quizTerm  = quizPool[0];
+  quizStep  = 0;
+  renderQuizStep();
+}
+
+let quizAutoSpeak = false;
+
 function startQuiz() {
   const available = currentFilter === '즐겨찾기'
     ? TERMS.filter(t => bookmarks.has(t.id))
@@ -3004,6 +3068,7 @@ function renderQuizStep() {
   if (!main) return;
   const t    = quizTerm;
   const step = QUIZ_STEPS[quizStep];
+  if (quizAutoSpeak) setTimeout(() => speakEnglish(t.en), 300);
   const totalCards = quizPool.length * 3;
   const doneCards  = quizIdx * 3 + quizStep;
   const pct = Math.round(doneCards / totalCards * 100);
@@ -3039,6 +3104,7 @@ function renderQuizStep() {
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${t.category}</div>
         <div style="font-size:28px;font-family:'Playfair Display',serif;color:var(--accent);margin:8px 0 4px">${t.en}</div>
         ${t.ipa ? `<div style="font-size:13px;color:var(--accent3);margin-bottom:4px">${t.ipa}</div>` : ''}
+        <button onclick="event.stopPropagation();speakEnglish('${t.en.replace(/'/g,"\\'")}');" style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:8px;padding:4px 14px;color:#74b0ff;font-size:12px;cursor:pointer;margin:6px 0">🔊 발음 듣기</button>
         <div style="font-size:11px;color:var(--text3);margin-top:6px">${step.question}</div>
       </div>
 
