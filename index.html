@@ -1585,6 +1585,13 @@ function getAIConfig() {
   };
 }
 
+function hasConfiguredAIKey(cfg = getAIConfig()) {
+  if (cfg.route === 'openai') return !!cfg.openaiKey;
+  if (cfg.route === 'anthropic') return !!cfg.anthropicKey;
+  if (cfg.route === 'gemini') return !!cfg.geminiKey;
+  return !!(cfg.openaiKey || cfg.anthropicKey || cfg.geminiKey);
+}
+
 function saveAIConfigFromForm(silent = false) {
   const route = document.getElementById('ai_route')?.value || 'auto';
   const openaiKey = document.getElementById('ai_openai_key')?.value.trim() || '';
@@ -1838,9 +1845,11 @@ function chooseAIProvider(task = 'general') {
   const cfg = getAIConfig();
   if (cfg.route === 'openai') return 'openai';
   if (cfg.route === 'anthropic') return 'anthropic';
-  // Auto route: long enrichment JSON goes to Anthropic; short field generation/test goes to OpenAI.
+  if (cfg.route === 'gemini') return 'gemini';
+  // Auto route: long enrichment JSON goes to Anthropic; short field generation/test goes to OpenAI/Gemini.
   if (task === 'enrich' && cfg.anthropicKey) return 'anthropic';
   if (cfg.openaiKey) return 'openai';
+  if (cfg.geminiKey) return 'gemini';
   if (cfg.anthropicKey) return 'anthropic';
   return 'openai';
 }
@@ -1848,7 +1857,14 @@ function chooseAIProvider(task = 'general') {
 async function testAIConnection() {
   if (!saveAIConfigFromForm(true)) return;
   const cfg = getAIConfig();
-  const providers = cfg.route === 'auto' ? ['openai', 'anthropic'] : [chooseAIProvider('test')];
+  const providers = cfg.route === 'auto'
+    ? [
+        cfg.openaiKey ? 'openai' : null,
+        cfg.anthropicKey ? 'anthropic' : null,
+        cfg.geminiKey ? 'gemini' : null,
+      ].filter(Boolean)
+    : [chooseAIProvider('test')];
+  if (!providers.length) { showToast('⚠️ 테스트할 API 키가 없습니다'); return; }
   try {
     for (const p of providers) await callAIText('Return exactly: OK', 20, 'test', p);
     showToast('✅ AI 연결 성공');
@@ -2278,9 +2294,7 @@ function updateAddKeyHint() {
     return;
   }
   const cfg = getAIConfig();
-  const hasKey = cfg.route === 'openai' ? !!cfg.openaiKey
-               : cfg.route === 'anthropic' ? !!cfg.anthropicKey
-               : !!(cfg.openaiKey || cfg.anthropicKey);
+  const hasKey = hasConfiguredAIKey(cfg);
   el.innerHTML = hasKey
     ? '🤖 AI 자동완성 활성화됨 ✅'
     : '⚠️ API 키 없음 — 기본 저장만 됩니다. <a onclick="switchTab(&quot;ai&quot;,document.querySelectorAll(&quot;.nav-btn&quot;)[4])" style="color:var(--accent);cursor:pointer;text-decoration:underline">AI탭에서 키 등록</a>';
@@ -2338,9 +2352,7 @@ async function submitAddTerm() {
 
   const btn = document.getElementById('addSubmitBtn');
   const cfg = getAIConfig();
-  const hasKey = cfg.route === 'openai' ? !!cfg.openaiKey
-               : cfg.route === 'anthropic' ? !!cfg.anthropicKey
-               : !!(cfg.openaiKey || cfg.anthropicKey);
+  const hasKey = hasConfiguredAIKey(cfg);
 
   const newTerm = {
     id:       Date.now(),
@@ -2483,28 +2495,49 @@ const FIELD_PROMPTS = {
 
 async function regenField(id, field) {
   const t = TERMS.find(x => x.id === id);
-  if (!t) return;
+  if (!t) { showToast('⚠️ 용어를 찾을 수 없습니다'); return; }
+  if (!FIELD_PROMPTS[field]) { showToast('⚠️ 이 항목은 AI 재생성을 지원하지 않습니다'); return; }
+  if (!isClaudeAiEnv() && !hasConfiguredAIKey()) {
+    showToast('⚠️ AI 탭에서 API 키를 먼저 저장하세요');
+    return;
+  }
 
   const inputEl = document.getElementById(`edit_${field}`);
-  if (!inputEl) return;
+  if (!inputEl) { showToast('⚠️ 편집 칸을 찾을 수 없습니다'); return; }
 
   // Visual loading state
   const btn = inputEl.closest('div').querySelector('button');
-  const prev = btn.textContent;
-  btn.textContent = '⏳';
-  btn.disabled = true;
+  const prev = btn?.textContent || '🔄';
+  if (btn) {
+    btn.textContent = '⏳';
+    btn.disabled = true;
+  }
   inputEl.style.opacity = '0.4';
+  showToast('🤖 AI 재생성 중...');
 
   try {
-    const result = (await callAIText(FIELD_PROMPTS[field](t), 300)).trim().replace(/^["']|["']$/g, '');
+    const current = {
+      ...t,
+      ko: document.getElementById('edit_ko')?.value.trim() || t.ko,
+      en: document.getElementById('edit_en')?.value.trim() || t.en,
+      uz: document.getElementById('edit_uz')?.value.trim() || t.uz,
+      ipa: document.getElementById('edit_ipa')?.value.trim() || t.ipa,
+      def_ko: document.getElementById('edit_def_ko')?.value.trim() || t.def_ko,
+      def_en: document.getElementById('edit_def_en')?.value.trim() || t.def_en,
+      def_uz: document.getElementById('edit_def_uz')?.value.trim() || t.def_uz,
+      usmle: document.getElementById('edit_usmle')?.value.trim() || t.usmle,
+    };
+    const result = (await callAIText(FIELD_PROMPTS[field](current), 300, 'field')).trim().replace(/^["']|["']$/g, '');
     if (result) inputEl.value = result;
     showToast(`✅ ${field} 재생성 완료`);
   } catch (err) {
     console.error(err);
-    showToast('⚠️ 재생성 실패: AI 탭에서 API 설정 확인');
+    showToast(`⚠️ 재생성 실패: ${err.message || 'AI 설정 확인'}`);
   } finally {
-    btn.textContent = prev;
-    btn.disabled = false;
+    if (btn) {
+      btn.textContent = prev;
+      btn.disabled = false;
+    }
     inputEl.style.opacity = '1';
   }
 }
