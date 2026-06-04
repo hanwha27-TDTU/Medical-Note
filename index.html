@@ -1188,6 +1188,8 @@ function renderTerms(terms, bookmarkDivider = 0) {
           <div class="lang-badge" style="background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border)">🔗 더 알아보기</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
             <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(63,185,80,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">📚 PubMed</a>
+            <a href="${youtubeSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="YouTube에서 이 의학용어가 사용된 영상을 검색" style="text-decoration:none;background:rgba(255,0,0,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#fca5a5">▶️ YouTube</a>
+            <a href="${googleUsageSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Google에서 실제 사용례 검색" style="text-decoration:none;background:rgba(251,191,36,0.08);border:1px solid #92400e;border-radius:8px;padding:4px 10px;font-size:11px;color:#fbbf24">🔎 Google 사용례</a>
             <button onclick="event.stopPropagation();showICD11Popup('${t.en.replace(/'/g,"\\'")}','${(t.ko||'').replace(/'/g,"\\'")}');" style="background:rgba(139,92,246,0.08);border:1px solid #5b21b6;border-radius:8px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🏷️ ICD-11</button>
             <a href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(88,166,255,0.08);border:1px solid #1d4ed8;border-radius:8px;padding:4px 10px;font-size:11px;color:#74b0ff">💊 MedlinePlus</a>
             <a href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(34,197,94,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">🔬 ClinicalTrials</a>
@@ -1213,6 +1215,22 @@ function escapeHtml(str) {
 
 function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function termSearchText(t) {
+  return (t?.en || t?.ko || t?.uz || '').trim();
+}
+
+function youtubeSearchUrl(t) {
+  const q = termSearchText(t);
+  const query = q ? `${q} medical terminology explanation` : 'medical terminology explanation';
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+}
+
+function googleUsageSearchUrl(t) {
+  const q = termSearchText(t);
+  const query = q ? `"${q}" medical usage examples` : 'medical terminology usage examples';
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 }
 
 function highlight(text, query) {
