@@ -4082,6 +4082,23 @@ async function searchUMLS(query) {
     const data = await res.json();
     const results = data.result?.results || [];
     if (!results.length) { showToast('검색 결과 없음'); return; }
+
+    // 2. 각 CUI의 정의를 병렬로 fetch
+    showToast('📖 정의 불러오는 중...');
+    await Promise.all(results.map(async r => {
+      try {
+        const defRes = await fetch(`https://uts-ws.nlm.nih.gov/rest/content/current/CUI/${r.ui}/definitions?apiKey=${umlsKey}&pageSize=3`);
+        if (defRes.ok) {
+          const defData = await defRes.json();
+          const defs = defData.result || [];
+          // MSH(Medical Subject Headings) 우선, 없으면 첫 번째
+          const preferred = defs.find(d => d.rootSource === 'MSH') || defs[0];
+          r.definition = preferred?.value || '';
+          r.defSource  = preferred?.rootSource || '';
+        }
+      } catch { r.definition = ''; r.defSource = ''; }
+    }));
+
     showUMLSResults(results, query, umlsKey);
   } catch(e) {
     console.error(e);
@@ -4093,28 +4110,80 @@ function showUMLSResults(results, query, umlsKey) {
   const existing = document.getElementById('umlsModal');
   if (existing) existing.remove();
 
+  // umlsKey를 모달 dataset에 안전하게 보관
+  // (onclick 인라인 삽입 시 특수문자로 인해 버튼이 작동하지 않는 버그 수정)
   const modal = document.createElement('div');
   modal.id = 'umlsModal';
+  modal.dataset.umlsKey = umlsKey;
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(13,17,23,0.92);display:flex;align-items:flex-start;justify-content:center;z-index:999;overflow-y:auto;padding:16px;backdrop-filter:blur(8px)';
-  modal.innerHTML = `
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:20px;width:100%;max-width:560px;margin:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div style="font-size:14px;font-weight:700;color:#e6edf3">🔍 UMLS 검색: "${escapeHtml(query)}"</div>
-        <button onclick="document.getElementById('umlsModal').remove()" style="background:none;border:none;color:#6e7681;font-size:22px;cursor:pointer">×</button>
-      </div>
-      <div id="umlsResultList">
-        ${results.map(r => `
-          <div style="background:#1c2333;border:1px solid #30363d;border-radius:10px;padding:12px;margin-bottom:8px">
-            <div style="font-size:13px;color:#e6edf3;font-weight:600;margin-bottom:2px">${escapeHtml(r.name)}</div>
-            <div style="font-size:11px;color:#6e7681;margin-bottom:8px">CUI: ${r.ui} · ${r.rootSource || ''}</div>
-            <button onclick="addUMLSTerm('${r.ui}','${r.name.replace(/'/g,"\\'")}','${umlsKey}')" 
-              style="background:#238636;border:none;border-radius:6px;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">
-              ➕ 용어에 추가
-            </button>
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
+
+  const inner = document.createElement('div');
+  inner.style.cssText = 'background:#161b22;border:1px solid #30363d;border-radius:16px;padding:20px;width:100%;max-width:560px;margin:auto';
+
+  // 헤더
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px';
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:14px;font-weight:700;color:#e6edf3';
+  title.textContent = '🔍 UMLS 검색: "' + query + '"';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.style.cssText = 'background:none;border:none;color:#6e7681;font-size:22px;cursor:pointer';
+  closeBtn.onclick = () => modal.remove();
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+  inner.appendChild(header);
+
+  // 결과 목록 — 버튼마다 dataset으로 cui/name 저장 (특수문자 안전)
+  const list = document.createElement('div');
+  list.id = 'umlsResultList';
+  results.forEach(r => {
+    const item = document.createElement('div');
+    item.style.cssText = 'background:#1c2333;border:1px solid #30363d;border-radius:10px;padding:12px;margin-bottom:8px';
+
+    const nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:13px;color:#e6edf3;font-weight:600;margin-bottom:4px';
+    nameEl.textContent = r.name;
+
+    const cuiEl = document.createElement('div');
+    cuiEl.style.cssText = 'font-size:11px;color:#6e7681;margin-bottom:6px';
+    cuiEl.textContent = 'CUI: ' + r.ui + ' · ' + (r.rootSource || '');
+
+    // 정의 표시 (있을 때만)
+    if (r.definition) {
+      const defEl = document.createElement('div');
+      defEl.style.cssText = 'font-size:12px;color:#8b949e;line-height:1.5;background:rgba(88,166,255,0.05);border-left:2px solid #1d3a5e;padding:6px 10px;border-radius:0 6px 6px 0;margin-bottom:10px';
+      defEl.textContent = r.definition;
+      if (r.defSource) {
+        const srcEl = document.createElement('span');
+        srcEl.style.cssText = 'display:block;font-size:10px;color:#3d5a7a;margin-top:3px';
+        srcEl.textContent = '출처: ' + r.defSource;
+        defEl.appendChild(srcEl);
+      }
+      item.appendChild(nameEl);
+      item.appendChild(cuiEl);
+      item.appendChild(defEl);
+    } else {
+      item.appendChild(nameEl);
+      item.appendChild(cuiEl);
+    }
+
+    const btn = document.createElement('button');
+    btn.textContent = '➕ 용어에 추가';
+    btn.style.cssText = 'background:#238636;border:none;border-radius:6px;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:"Noto Sans KR",sans-serif';
+    btn.dataset.cui  = r.ui;
+    btn.dataset.name = r.name;
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const key = document.getElementById('umlsModal')?.dataset.umlsKey || '';
+      addUMLSTerm(btn.dataset.cui, btn.dataset.name, key);
+    };
+
+    item.appendChild(btn);
+    list.appendChild(item);
+  });
+  inner.appendChild(list);
+  modal.appendChild(inner);
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
@@ -4147,12 +4216,17 @@ async function addUMLSTerm(cui, name, umlsKey) {
       usmle: '', ipa: '', refs: [], icd11: null, fdaDrug: null, rxclassATC: null, trials: null,
     };
 
-    // AI로 나머지 채우기
+    // AI로 나머지 채우기 (실패해도 기본 데이터로 저장)
     const canAI = isClaudeAiEnv() || !!(getAIConfig().openaiKey || getAIConfig().anthropicKey || getAIConfig().geminiKey);
     if (canAI) {
       showToast('🤖 AI 자동완성 중...');
-      const enriched = await enrichTermWithAI(newTerm);
-      Object.keys(enriched).forEach(k => { if (!newTerm[k] && enriched[k]) newTerm[k] = enriched[k]; });
+      try {
+        const enriched = await enrichTermWithAI(newTerm);
+        Object.keys(enriched).forEach(k => { if (!newTerm[k] && enriched[k]) newTerm[k] = enriched[k]; });
+      } catch(aiErr) {
+        console.warn('AI enrichment failed, saving with basic data:', aiErr.message);
+        showToast('⚠️ AI 자동완성 실패 — 기본 정보로 저장합니다');
+      }
     }
 
     TERMS.push(normalizeTermForStorage(newTerm));
@@ -4163,7 +4237,7 @@ async function addUMLSTerm(cui, name, umlsKey) {
     showToast(`✅ "${en}" 추가 완료!`);
   } catch(e) {
     console.error(e);
-    showToast('⚠️ UMLS 용어 추가 실패');
+    showToast(`⚠️ UMLS 용어 추가 실패: ${e.message}`);
   }
 }
 
