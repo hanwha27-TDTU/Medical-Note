@@ -826,7 +826,7 @@
   <button class="filter-btn" onclick="setFilter('Pharmacology', this)">💊 Pharmacology</button>
   <button class="filter-btn" onclick="setFilter('Pathology', this)">🔬 Pathology</button>
   <button class="filter-btn" onclick="setFilter('기타', this)">📁 기타</button>
-  <button class="filter-btn" onclick="setFilter('즐겨찾기', this)">⭐ 즐겨찾기</button>
+  <button id="filterBookmarkBtn" class="filter-btn" onclick="setFilter('즐겨찾기', this)">⭐ 즐겨찾기</button>
 </div>
 
 <div class="stats-bar">
@@ -1224,7 +1224,7 @@ const VALID_CATS = ['Cardiovascular','Pulmonary','Renal','GI & Hepatobiliary','E
   'Neurology','Hematology & Oncology','Infectious Disease','Musculoskeletal',
   'Dermatology','Reproductive','Psychiatry','Immunology','Pharmacology','Pathology'];
 
-let bookmarks = new Set(JSON.parse(localStorage.getItem('kma_bookmarks') || '[]'));
+let bookmarks = new Set(JSON.parse(localStorage.getItem('kma_bookmarks') || '[]').map(Number));
 let expandedId = null;
 let currentTab = 'search';
 
@@ -1300,8 +1300,8 @@ function renderTerms(terms, bookmarkDivider = 0) {
           </button>
           <div class="tts-speed-row">
             <span class="tts-speed-label">🐢 속도</span>
-            <input class="tts-speed-slider" type="range" min="0.5" max="1.5" step="0.1" value="0.9" oninput="ttsSpeed=parseFloat(this.value);document.querySelectorAll('.tts-speed-val').forEach(el=>el.textContent=ttsSpeed.toFixed(1)+'×')">
-            <span class="tts-speed-val">0.9×</span>
+            <input class="tts-speed-slider" type="range" min="0.5" max="1.5" step="0.1" value="${ttsSpeed}" oninput="ttsSpeed=parseFloat(this.value);document.querySelectorAll('.tts-speed-val').forEach(el=>el.textContent=ttsSpeed.toFixed(1)+'×')">
+            <span class="tts-speed-val">${ttsSpeed.toFixed(1)}×</span>
           </div>
         </div>
         <div class="detail-section">
@@ -1548,7 +1548,7 @@ function switchTab(tab, btn) {
   else if (tab === 'add')     { showAddTermForm(); setTimeout(updateAddKeyHint, 0); }
   else if (tab === 'bookmark') {
     restoreHomeTab();
-    setFilter('즐겨찾기', document.querySelector('.filter-btn:last-child'));
+    setFilter('즐겨찾기', document.getElementById('filterBookmarkBtn'));
   } else {
     restoreHomeTab();
     setFilter('all', document.querySelector('.filter-btn.active') || document.querySelector('.filter-btn'));
@@ -2394,8 +2394,8 @@ async function submitAddTerm() {
 
   if (TERMS.some(t =>
     (en && t.en.toLowerCase() === en.toLowerCase()) ||
-    (ko && t.ko === ko) ||
-    (uz && t.uz === uz)
+    (ko && t.ko.toLowerCase() === ko.toLowerCase()) ||
+    (uz && t.uz.toLowerCase() === uz.toLowerCase())
   )) {
     showToast('⚠️ 이미 존재하는 용어입니다'); return;
   }
@@ -3566,12 +3566,22 @@ function startQuizFromSetup() {
   const cat   = document.getElementById('catSelect')?.value;
   quizAutoSpeak = document.getElementById('quizAutoSpeak')?.checked || false;
 
+  if (scope === 'category' && !cat) {
+    showToast('⚠️ 카테고리를 선택해주세요');
+    return;
+  }
+
   let pool = [];
   if (scope === 'all')       pool = [...TERMS];
   else if (scope === 'bookmarks') pool = TERMS.filter(t => bookmarks.has(t.id));
   else if (scope === 'category')  pool = TERMS.filter(t => t.category === cat);
 
-  if (!pool.length) { showToast('선택한 범위에 용어가 없습니다'); return; }
+  if (!pool.length) {
+    if (scope === 'bookmarks') showToast('⚠️ 즐겨찾기한 용어가 없습니다');
+    else if (scope === 'category') showToast(`⚠️ "${cat}" 카테고리에 용어가 없습니다`);
+    else showToast('⚠️ 용어가 없습니다. 먼저 용어를 추가해주세요');
+    return;
+  }
 
   quizPool  = pool.sort(() => Math.random() - 0.5);
   quizIdx   = 0;
