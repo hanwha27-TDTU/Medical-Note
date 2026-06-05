@@ -4087,12 +4087,16 @@ async function searchUMLS(query) {
     showToast('📖 정의 불러오는 중...');
     await Promise.all(results.map(async r => {
       try {
-        const defRes = await fetch(`https://uts-ws.nlm.nih.gov/rest/content/current/CUI/${r.ui}/definitions?apiKey=${umlsKey}&pageSize=3`);
+        const defRes = await fetch(`https://uts-ws.nlm.nih.gov/rest/content/current/CUI/${r.ui}/definitions?apiKey=${umlsKey}&pageSize=10`);
         if (defRes.ok) {
           const defData = await defRes.json();
           const defs = defData.result || [];
-          // MSH(Medical Subject Headings) 우선, 없으면 첫 번째
-          const preferred = defs.find(d => d.rootSource === 'MSH') || defs[0];
+          // 영어 소스 우선순위: MSH > NCI > SNOMEDCT_US > HPO > MEDLINEPLUS > 그 외 영어
+          const EN_SOURCES = ['MSH','NCI','SNOMEDCT_US','HPO','MEDLINEPLUS','CSP','PDQ','ICF'];
+          const preferred =
+            EN_SOURCES.reduce((found, src) => found || defs.find(d => d.rootSource === src), null)
+            || defs.find(d => /^[A-Za-z]/.test(d.value))  // 영문자로 시작하는 것
+            || defs[0];
           r.definition = preferred?.value || '';
           r.defSource  = preferred?.rootSource || '';
         }
@@ -4192,12 +4196,18 @@ async function addUMLSTerm(cui, name, umlsKey) {
   showToast('⏳ UMLS에서 정보 가져오는 중...');
   try {
     // Definition 가져오기
-    const defRes = await fetch(`https://uts-ws.nlm.nih.gov/rest/content/current/CUI/${cui}/definitions?apiKey=${umlsKey}&pageSize=3`);
+    const defRes = await fetch(`https://uts-ws.nlm.nih.gov/rest/content/current/CUI/${cui}/definitions?apiKey=${umlsKey}&pageSize=10`);
     let def_en = '';
     if (defRes.ok) {
       const defData = await defRes.json();
       const defs = defData.result || [];
-      def_en = defs[0]?.value || '';
+      // 영어 소스 우선순위: MSH > NCI > SNOMEDCT_US > HPO > MEDLINEPLUS > 그 외 영어
+      const EN_SOURCES = ['MSH','NCI','SNOMEDCT_US','HPO','MEDLINEPLUS','CSP','PDQ','ICF'];
+      const preferred =
+        EN_SOURCES.reduce((found, src) => found || defs.find(d => d.rootSource === src), null)
+        || defs.find(d => /^[A-Za-z]/.test(d.value))
+        || defs[0];
+      def_en = preferred?.value || '';
     }
 
     // Atoms(영어 명칭) 가져오기
