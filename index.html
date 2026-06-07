@@ -395,6 +395,116 @@ document.addEventListener('keydown', e => {
     .developer-grid { grid-template-columns: 1fr; }
   }
 
+  .data-manager {
+    padding: 8px 0 84px;
+  }
+
+  .data-manager-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
+  .data-manager-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .data-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 16px;
+  }
+
+  .data-card.import-card { border-color: rgba(88,166,255,0.35); }
+  .data-card.sync-card { border-color: rgba(63,185,80,0.38); }
+  .data-card.danger-card { border-color: rgba(248,81,73,0.4); }
+
+  .data-card-title {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 5px;
+  }
+
+  .data-card-desc {
+    color: var(--text3);
+    font-size: 11px;
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+
+  .data-action-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .data-action-btn {
+    width: 100%;
+    min-height: 38px;
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.15s;
+  }
+
+  .data-action-btn:hover { filter: brightness(1.12); }
+  .data-action-btn:active { transform: translateY(1px); }
+  .data-action-btn.primary { color:#07111f;background:#58a6ff;border:1px solid #58a6ff; }
+  .data-action-btn.green { color:#07110a;background:#3fb950;border:1px solid #3fb950; }
+  .data-action-btn.outline { color:#74b0ff;background:rgba(88,166,255,0.08);border:1px solid #1d4ed8; }
+  .data-action-btn.purple { color:#c4b5fd;background:rgba(167,139,250,0.1);border:1px solid #5b21b6; }
+  .data-action-btn.red { color:#f87171;background:rgba(248,81,73,0.1);border:1px solid #b91c1c; }
+
+  .data-select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    color: var(--text);
+    font-size: 11px;
+    font-family: 'Noto Sans KR', sans-serif;
+    outline: none;
+    margin-bottom: 8px;
+  }
+
+  .data-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+
+  .data-status-box {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 9px 10px;
+  }
+
+  .data-status-label { color:#6e7681;font-size:9px;margin-bottom:3px; }
+  .data-status-value { color:#c9d1d9;font-size:11px;overflow-wrap:anywhere; }
+
+  .import-preview {
+    margin-top: 10px;
+    padding: 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 9px;
+  }
+
+  @media (max-width: 780px) {
+    .data-manager-grid { grid-template-columns: 1fr; }
+  }
+
   .logo-badge {
     background: linear-gradient(135deg, #1d4ed8, #0284c7);
     border-radius: 10px;
@@ -1492,7 +1602,7 @@ document.addEventListener('keydown', e => {
     <span class="nav-icon">🤖</span>AI
   </button>
   <button class="nav-btn" onclick="switchTab('export', this)">
-    <span class="nav-icon">📤</span>내보내기
+    <span class="nav-icon">📁</span>데이터
   </button>
   <button class="nav-btn" onclick="switchTab('guide', this)">
     <span class="nav-icon">📖</span>가이드
@@ -3671,7 +3781,7 @@ function showGuide() {
     </div>`;
 }
 
-function showExportMenu() {
+function showLegacyExportMenu() {
   const main = document.getElementById('mainContent');
   const userTerms = TERMS.filter(t => t.id >= 1000);
   const total = TERMS.length;
@@ -3813,22 +3923,574 @@ function showExportMenu() {
   `;
 }
 
+// v3.1 data manager. This later declaration intentionally replaces the legacy export page.
+function showExportMenu() {
+  const main = document.getElementById('mainContent');
+  const learning = getLearningStateMap();
+  const tombstones = loadLocalTombstones();
+  const localMeta = getLocalSyncMeta();
+  const categories = [...new Set(TERMS.map(t => t.category || '기타'))].sort();
+  const reviewed = Object.values(learning).filter(s => s.lastReviewedAt).length;
+  const due = Object.values(learning).filter(s => s.dueAt && new Date(s.dueAt) <= new Date()).length;
+
+  main.innerHTML = `
+    <div class="data-manager">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px">
+        <div>
+          <div style="font-size:17px;font-weight:800;color:var(--text)">📁 데이터 관리</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">가져오기 · 백업 · 동기화 · 선택 내보내기 · 삭제 데이터 관리</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);text-align:right;line-height:1.6">
+          용어 ${TERMS.length}개<br>학습기록 ${reviewed}개
+        </div>
+      </div>
+
+      <div class="data-manager-grid">
+        <div class="data-manager-column">
+          <section class="data-card import-card">
+            <div class="data-card-title">📥 가져오기</div>
+            <div class="data-card-desc">
+              파일을 먼저 분석해 추가·수정·삭제 예상 건수를 보여준 뒤 적용합니다.
+              JSON 전체 백업에는 용어·학습상태·삭제기록이 포함됩니다.
+            </div>
+            <div class="data-action-stack">
+              <button class="data-action-btn outline" onclick="document.getElementById('dataJsonImport').click()">전체 백업 JSON 선택</button>
+              <button class="data-action-btn outline" onclick="document.getElementById('dataTableImport').click()">Excel · CSV · TSV 선택</button>
+            </div>
+            <input id="dataJsonImport" type="file" accept=".json,application/json" hidden onchange="previewDataImport(event,'json')">
+            <input id="dataTableImport" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt" hidden onchange="previewDataImport(event,'table')">
+            <div id="dataImportPreview"></div>
+          </section>
+
+          <section class="data-card sync-card">
+            <div class="data-card-title">☁️ 동기화 관리</div>
+            <div class="data-card-desc">양방향 병합과 최종본 지정은 서로 다른 작업입니다.</div>
+            <div class="data-status-grid">
+              <div class="data-status-box"><div class="data-status-label">연결 상태</div><div class="data-status-value">${getSupabaseConfig() ? '연결 설정됨' : '미설정'}</div></div>
+              <div class="data-status-box"><div class="data-status-label">로컬 용어</div><div class="data-status-value">${TERMS.length}개</div></div>
+              <div class="data-status-box"><div class="data-status-label">canonical_version</div><div class="data-status-value">${escapeHtml(localMeta.canonicalVersion || '아직 없음')}</div></div>
+              <div class="data-status-box"><div class="data-status-label">마지막 로컬 기록</div><div class="data-status-value">${formatDataDate(localMeta.savedAt)}</div></div>
+            </div>
+            <div class="data-action-stack">
+              <button class="data-action-btn green" onclick="runManualSync()">일반 양방향 동기화</button>
+              <button class="data-action-btn outline" onclick="confirmPushLocalToCloud()">이 기기를 최종본으로 지정</button>
+              <button class="data-action-btn purple" onclick="confirmCloudReplaceLocal()">클라우드 최종본으로 이 기기 교체</button>
+            </div>
+          </section>
+
+          <section class="data-card">
+            <div class="data-card-title">🗑️ 휴지통 · 데이터 정리</div>
+            <div class="data-card-desc">
+              삭제 기록 ${tombstones.length}개 · 중복과 미완성 데이터를 검토할 수 있습니다.
+            </div>
+            <div class="data-action-stack">
+              <button class="data-action-btn outline" onclick="showTrashManager()">삭제된 용어 보기 · 복원</button>
+              <button class="data-action-btn outline" onclick="showDuplicateManager()">중복 용어 검토</button>
+              <button class="data-action-btn outline" onclick="bulkFillBlanks('all')">미완성 용어 AI 보강 (${TERMS.filter(t=>!t.def_ko||!t.def_en||!t.def_uz||!t.usmle||!t.ipa).length}개)</button>
+              <button class="data-action-btn red" onclick="confirmEmptyTrash()">휴지통 완전히 비우기</button>
+            </div>
+          </section>
+
+          <section class="data-card danger-card">
+            <div class="data-card-title" style="color:#f87171">⚠️ 위험 작업</div>
+            <div class="data-card-desc">실행 전에 자동 JSON 백업을 내려받고 확인 문구를 입력합니다.</div>
+            <select id="bulkDeleteCategory" class="data-select">
+              <option value="__all__">전체 용어 (${TERMS.length}개)</option>
+              ${categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)} (${TERMS.filter(t => (t.category || '기타') === cat).length}개)</option>`).join('')}
+            </select>
+            <button class="data-action-btn red" onclick="confirmDangerousDelete()">선택 범위 삭제</button>
+          </section>
+        </div>
+
+        <div class="data-manager-column">
+          <section class="data-card">
+            <div class="data-card-title">💾 전체 백업</div>
+            <div class="data-card-desc">API 키와 Supabase 인증정보는 백업에 포함하지 않습니다.</div>
+            <div class="data-action-stack">
+              <button class="data-action-btn green" onclick="exportCompleteJsonBackup()">전체 백업 JSON</button>
+              <button class="data-action-btn primary" onclick="exportTermsByScope('all','xlsx')">전체 Excel</button>
+              <button class="data-action-btn primary" onclick="exportTermsByScope('all','csv')">전체 CSV</button>
+              <button class="data-action-btn purple" onclick="exportTermsByScope('all','anki')">전체 Anki TSV</button>
+            </div>
+          </section>
+
+          <section class="data-card">
+            <div class="data-card-title">🎯 선택 내보내기</div>
+            <div class="data-card-desc">학습상태 또는 현재 검색 결과만 골라 내보냅니다.</div>
+            <select id="dataScopeSelect" class="data-select" onchange="updateDataScopeCount()">
+              <option value="visible">현재 검색·필터 결과</option>
+              <option value="bookmarks">즐겨찾기</option>
+              <option value="learning">학습 중</option>
+              <option value="due">복습 예정 (${due}개)</option>
+              <option value="mastered">숙달</option>
+              <option value="incomplete">빈칸 · 검토 필요</option>
+            </select>
+            <div id="dataScopeCount" style="font-size:10px;color:#74b0ff;margin:-2px 0 9px"></div>
+            <div class="data-action-stack">
+              <button class="data-action-btn primary" onclick="exportSelectedScope('xlsx')">선택 범위 Excel</button>
+              <button class="data-action-btn primary" onclick="exportSelectedScope('csv')">선택 범위 CSV</button>
+              <button class="data-action-btn purple" onclick="exportSelectedScope('anki')">선택 범위 Anki TSV</button>
+            </div>
+          </section>
+
+          <section class="data-card">
+            <div class="data-card-title">🏷️ 의학 분야별 내보내기</div>
+            <div class="data-card-desc">한 분야를 선택해 별도 학습 자료로 저장합니다.</div>
+            <select id="dataCategorySelect" class="data-select">
+              ${categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)} (${TERMS.filter(t => (t.category || '기타') === cat).length}개)</option>`).join('')}
+            </select>
+            <div class="data-action-stack">
+              <button class="data-action-btn primary" onclick="exportCategoryScope('xlsx')">분야 Excel</button>
+              <button class="data-action-btn primary" onclick="exportCategoryScope('csv')">분야 CSV</button>
+              <button class="data-action-btn purple" onclick="exportCategoryScope('anki')">분야 Anki TSV</button>
+            </div>
+          </section>
+
+          <section class="data-card">
+            <div class="data-card-title">🤖 데이터 품질 관리</div>
+            <div class="data-card-desc">내보내기 전 분류와 빈 필드를 정리합니다.</div>
+            <div class="data-action-stack">
+              <button class="data-action-btn outline" onclick="bulkReclassify()">기타 카테고리 AI 재분류</button>
+              <button class="data-action-btn outline" onclick="saveTermsToLocalStorage();showToast('✅ 브라우저 저장 완료')">브라우저에 즉시 저장</button>
+              <button class="data-action-btn outline" onclick="showDeveloperInfo()">개발자 정보 · 업데이트 내역</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>`;
+  updateDataScopeCount();
+}
+
+function formatDataDate(value) {
+  if (!value) return '기록 없음';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '기록 없음' : date.toLocaleString('ko-KR');
+}
+
+function safeFilePart(value) {
+  return String(value || '전체').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '_');
+}
+
+function dataFilePrefix(label) {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const time = [now.getHours(), now.getMinutes(), now.getSeconds()].map(v => String(v).padStart(2, '0')).join('-');
+  return `${date}_${time}_Dr_Bugeon_의학용어_${safeFilePart(label)}`;
+}
+
+function downloadBlobFile(content, filename, mime = 'application/octet-stream') {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function createCompleteBackupObject() {
+  return {
+    schemaVersion: 3,
+    app: APP_INFO.name,
+    appVersion: APP_INFO.version,
+    exportedAt: new Date().toISOString(),
+    terms: dedupeTermsById(TERMS),
+    learningStates: getLearningStateMap(),
+    tombstones: loadLocalTombstones(),
+    syncMeta: getLocalSyncMeta(),
+  };
+}
+
+function exportCompleteJsonBackup() {
+  const backup = createCompleteBackupObject();
+  downloadBlobFile(JSON.stringify(backup, null, 2), `${dataFilePrefix('전체백업')}.json`, 'application/json;charset=utf-8');
+  showToast(`💾 전체 백업 완료 · 용어 ${backup.terms.length}개`);
+}
+
+function getTermsByScope(scope) {
+  const learning = getLearningStateMap();
+  const now = Date.now();
+  if (scope === 'visible') return Array.isArray(_lastFilteredTerms) ? [..._lastFilteredTerms] : [...TERMS];
+  if (scope === 'bookmarks') return TERMS.filter(t => bookmarks.has(t.id));
+  if (scope === 'learning') return TERMS.filter(t => ['learning', 'review'].includes(learning[String(t.id)]?.studyStatus));
+  if (scope === 'due') return TERMS.filter(t => {
+    const dueAt = learning[String(t.id)]?.dueAt;
+    return dueAt && Date.parse(dueAt) <= now;
+  });
+  if (scope === 'mastered') return TERMS.filter(t => learning[String(t.id)]?.studyStatus === 'mastered');
+  if (scope === 'incomplete') return TERMS.filter(t => !t.ko || !t.en || !t.uz || !t.def_ko || !t.def_en || !t.def_uz || !t.usmle || !t.ipa);
+  return [...TERMS];
+}
+
+function updateDataScopeCount() {
+  const select = document.getElementById('dataScopeSelect');
+  const output = document.getElementById('dataScopeCount');
+  if (!select || !output) return;
+  output.textContent = `내보낼 용어 ${getTermsByScope(select.value).length}개`;
+}
+
+function exportSelectedScope(format) {
+  const scope = document.getElementById('dataScopeSelect')?.value || 'visible';
+  const label = document.getElementById('dataScopeSelect')?.selectedOptions?.[0]?.textContent || scope;
+  exportTermCollection(getTermsByScope(scope), label, format);
+}
+
+function exportCategoryScope(format) {
+  const category = document.getElementById('dataCategorySelect')?.value || '';
+  exportTermCollection(TERMS.filter(t => (t.category || '기타') === category), category, format);
+}
+
+function exportTermsByScope(scope, format) {
+  exportTermCollection(getTermsByScope(scope), scope === 'all' ? '전체' : scope, format);
+}
+
+function termExportRows(terms) {
+  return terms.map(t => ({
+    id: t.id,
+    Korean: t.ko || '',
+    English: t.en || '',
+    Uzbek: t.uz || '',
+    Category: t.category || '기타',
+    Def_ko: t.def_ko || '',
+    Def_en: t.def_en || '',
+    Def_uz: t.def_uz || '',
+    USMLE: t.usmle || '',
+    IPA: t.ipa || '',
+    Created_at: t.createdAt || '',
+    Updated_at: t.updatedAt || '',
+  }));
+}
+
+function csvCell(value) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function exportTermCollection(terms, label, format) {
+  if (!terms.length) { showToast('⚠️ 선택한 범위에 용어가 없습니다'); return; }
+  const prefix = dataFilePrefix(label);
+  if (format === 'xlsx') {
+    if (!window.XLSX) { showToast('⚠️ Excel 모듈을 불러오지 못했습니다'); return; }
+    const worksheet = XLSX.utils.json_to_sheet(termExportRows(terms));
+    worksheet['!cols'] = [16,14,20,20,18,38,38,38,48,16,24,24].map(wch => ({ wch }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Medical Terms');
+    XLSX.writeFile(workbook, `${prefix}.xlsx`);
+  } else if (format === 'csv') {
+    const rows = termExportRows(terms);
+    const headers = Object.keys(rows[0]);
+    const csv = [headers.join(','), ...rows.map(row => headers.map(key => csvCell(row[key])).join(','))].join('\r\n');
+    downloadBlobFile('\uFEFF' + csv, `${prefix}.csv`, 'text/csv;charset=utf-8');
+  } else {
+    const header = '#separator:tab\n#html:true\n#columns:Front\tBack\tTags';
+    const rows = terms.map(t => {
+      const front = `<b>${cleanAnkiHtml(t.en)}</b>${t.ipa ? `<br>${cleanAnkiHtml(t.ipa)}` : ''}`;
+      const back = [
+        t.ko ? `<b>한국어</b>: ${cleanAnkiHtml(t.ko)}` : '',
+        t.uz ? `<b>O'zbek</b>: ${cleanAnkiHtml(t.uz)}` : '',
+        t.def_ko ? `<br><b>정의</b>: ${cleanAnkiHtml(t.def_ko)}` : '',
+        t.usmle ? `<br><b>USMLE</b>: ${cleanAnkiHtml(t.usmle)}` : '',
+      ].filter(Boolean).join('<br>');
+      return [front, back, ankiTags(t)].join('\t');
+    });
+    downloadBlobFile('\uFEFF' + [header, ...rows].join('\n'), `${prefix}_Anki.tsv`, 'text/tab-separated-values;charset=utf-8');
+  }
+  showToast(`✅ ${label} ${terms.length}개 내보내기 완료`);
+}
+
+async function runManualSync() {
+  try {
+    await syncWithCloud();
+    showExportMenu();
+  } catch (e) {
+    console.error(e);
+    showToast('⚠️ 동기화에 실패했습니다');
+  }
+}
+
+function confirmCloudReplaceLocal() {
+  showConfirm(
+    '이 기기의 로컬 전용 변경을 버리고<br><b style="color:#d29922">클라우드 최종본으로 교체</b>할까요?',
+    async () => {
+      await pullFromCloud();
+      showExportMenu();
+    }
+  );
+}
+
+let pendingDataImport = null;
+
+function normalizeImportedTableRows(rows) {
+  let generatedId = nextTermId();
+  return (Array.isArray(rows) ? rows : []).map(row => normalizeTermForStorage({
+    id: Number(row.id || row.ID) || generatedId++,
+    ko: String(row.ko ?? row.Korean ?? row['한국어'] ?? '').trim(),
+    en: String(row.en ?? row.English ?? row['영어'] ?? '').trim(),
+    uz: String(row.uz ?? row.Uzbek ?? row['우즈베크'] ?? '').trim(),
+    category: String(row.category ?? row.Category ?? row['분류'] ?? '기타').trim() || '기타',
+    def_ko: String(row.def_ko ?? row.Def_ko ?? '').trim(),
+    def_en: String(row.def_en ?? row.Def_en ?? '').trim(),
+    def_uz: String(row.def_uz ?? row.Def_uz ?? '').trim(),
+    usmle: String(row.usmle ?? row.USMLE ?? '').trim(),
+    ipa: String(row.ipa ?? row.IPA ?? '').trim(),
+    createdAt: row.createdAt || row.Created_at || new Date().toISOString(),
+    updatedAt: row.updatedAt || row.Updated_at || new Date().toISOString(),
+  })).filter(t => t.ko || t.en || t.uz);
+}
+
+async function readDataImportFile(file, kind) {
+  if (kind === 'json') {
+    const parsed = JSON.parse(await file.text());
+    if (!parsed || !Array.isArray(parsed.terms)) throw new Error('지원되는 전체 백업 JSON이 아닙니다.');
+    return {
+      kind,
+      fileName: file.name,
+      terms: dedupeTermsById(parsed.terms),
+      learningStates: parsed.learningStates || {},
+      tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : [],
+      syncMeta: parsed.syncMeta || {},
+    };
+  }
+
+  let rows;
+  if (/\.xlsx?$/i.test(file.name)) {
+    const workbook = XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' });
+    rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+  } else {
+    const text = await file.text();
+    const workbook = XLSX.read(text, { type: 'string' });
+    rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+  }
+  return { kind, fileName: file.name, terms: normalizeImportedTableRows(rows), learningStates: {}, tombstones: [] };
+}
+
+function calculateImportPreview(importData) {
+  const existingById = new Map(TERMS.map(t => [String(t.id), t]));
+  const existingByName = new Map(TERMS.map(t => [termIdentityKey(t), t]));
+  let added = 0;
+  let updated = 0;
+  importData.terms.forEach(term => {
+    const existing = importData.kind === 'json' ? existingById.get(String(term.id)) : existingByName.get(termIdentityKey(term));
+    if (existing) updated++;
+    else added++;
+  });
+  const incomingIds = new Set(importData.terms.map(t => String(t.id)));
+  const replaced = importData.kind === 'json' ? TERMS.filter(t => !incomingIds.has(String(t.id))).length : Math.max(0, TERMS.length - updated);
+  return { added, updated, replaced };
+}
+
+async function previewDataImport(event, kind) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    pendingDataImport = await readDataImportFile(file, kind);
+    const preview = calculateImportPreview(pendingDataImport);
+    const target = document.getElementById('dataImportPreview');
+    target.innerHTML = `
+      <div class="import-preview">
+        <div style="font-size:11px;font-weight:700;color:var(--text);overflow-wrap:anywhere">${escapeHtml(file.name)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:9px 0">
+          <span style="font-size:10px;color:#4ade80">추가 ${preview.added}</span>
+          <span style="font-size:10px;color:#74b0ff">갱신 ${preview.updated}</span>
+          <span style="font-size:10px;color:#f87171">교체 시 제거 ${preview.replaced}</span>
+        </div>
+        <select id="dataImportMode" class="data-select">
+          <option value="merge">최신 항목 병합</option>
+          <option value="append">새 항목만 추가</option>
+          <option value="replace">현재 데이터 교체</option>
+        </select>
+        <button class="data-action-btn green" onclick="applyPendingDataImport()">미리보기대로 적용</button>
+      </div>`;
+  } catch (e) {
+    console.error(e);
+    pendingDataImport = null;
+    showToast(`⚠️ 파일 분석 실패: ${e.message}`);
+  }
+}
+
+async function applyPendingDataImport() {
+  if (!pendingDataImport) return;
+  const mode = document.getElementById('dataImportMode')?.value || 'merge';
+  const incoming = dedupeTermsById(pendingDataImport.terms);
+
+  if (mode === 'replace') {
+    exportCompleteJsonBackup();
+    const incomingIds = new Set(incoming.map(t => String(t.id)));
+    const removed = TERMS.filter(t => !incomingIds.has(String(t.id))).map(recordLocalTombstone);
+    TERMS.length = 0;
+    TERMS.push(...incoming.filter(t => !t.deletedAt));
+    if (pendingDataImport.kind === 'json') {
+      saveLearningStateMap(pendingDataImport.learningStates);
+      saveLocalTombstones(pendingDataImport.tombstones);
+      if (pendingDataImport.syncMeta?.canonicalVersion) saveLocalSyncMeta(pendingDataImport.syncMeta);
+    } else {
+      saveLocalTombstones([...loadLocalTombstones(), ...removed]);
+    }
+  } else {
+    const byId = new Map(TERMS.map(t => [String(t.id), t]));
+    const byName = new Map(TERMS.map(t => [termIdentityKey(t), t]));
+    incoming.forEach(term => {
+      const existing = pendingDataImport.kind === 'json' ? byId.get(String(term.id)) : byName.get(termIdentityKey(term));
+      if (!existing) {
+        TERMS.push(term);
+      } else if (mode === 'merge' && (Date.parse(term.updatedAt) || Date.now()) >= (Date.parse(existing.updatedAt) || 0)) {
+        const index = TERMS.findIndex(t => String(t.id) === String(existing.id));
+        TERMS[index] = normalizeTermForStorage({ ...term, id: existing.id });
+      }
+    });
+    if (pendingDataImport.kind === 'json' && mode === 'merge') {
+      applyLearningStates(Object.values(pendingDataImport.learningStates || {}), false);
+      saveLocalTombstones([...loadLocalTombstones(), ...(pendingDataImport.tombstones || [])]);
+    }
+  }
+
+  saveTermsToLocalStorage();
+  updateBookmarkCount();
+  pendingDataImport = null;
+  showToast(`✅ 가져오기 완료 · 현재 ${TERMS.length}개`);
+  showExportMenu();
+}
+
+function showTrashManager() {
+  const rows = loadLocalTombstones().sort((a, b) => (Date.parse(b.deletedAt) || 0) - (Date.parse(a.deletedAt) || 0));
+  document.getElementById('trashManagerModal')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'trashManagerModal';
+  overlay.className = 'developer-modal-overlay';
+  overlay.innerHTML = `
+    <section class="developer-modal" role="dialog" aria-modal="true">
+      <div class="developer-modal-head">
+        <div style="font-size:17px;font-weight:800;color:var(--text)">🗑️ 삭제된 용어</div>
+        <button onclick="document.getElementById('trashManagerModal').remove()" style="width:38px;height:38px;border-radius:10px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:16px 20px 22px">
+        ${rows.length ? rows.map(term => `
+          <div style="display:flex;align-items:center;gap:10px;background:#0d1117;border:1px solid #30363d;border-radius:9px;padding:11px;margin-bottom:7px">
+            <div style="min-width:0;flex:1">
+              <div style="font-size:12px;color:var(--text);font-weight:700">${escapeHtml(term.en || term.ko || term.uz || '이름 없음')}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(term.ko || '')} · ${formatDataDate(term.deletedAt)}</div>
+            </div>
+            <button onclick="restoreTrashTerm(${Number(term.id)})" style="background:rgba(63,185,80,0.1);border:1px solid #238636;border-radius:7px;padding:7px 10px;color:#4ade80;font-size:10px;font-weight:700;cursor:pointer">복원</button>
+          </div>`).join('') : '<div style="padding:30px;text-align:center;color:var(--text3);font-size:12px">휴지통이 비어 있습니다.</div>'}
+      </div>
+    </section>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+async function restoreTrashTerm(id) {
+  const rows = loadLocalTombstones();
+  const term = rows.find(t => String(t.id) === String(id));
+  if (!term) return;
+  const restored = normalizeTermForStorage({
+    ...term,
+    deletedAt: null,
+    updatedAt: new Date().toISOString(),
+  });
+  const existingIndex = TERMS.findIndex(t => String(t.id) === String(id));
+  if (existingIndex === -1) TERMS.push(restored);
+  else TERMS[existingIndex] = restored;
+  saveLocalTombstones(rows.filter(t => String(t.id) !== String(id)));
+  saveTermsToLocalStorage();
+  if (getSupabaseConfig()) await sbUpsertTerm(restored);
+  showToast(`✅ ${restored.en || restored.ko} 복원 완료`);
+  showTrashManager();
+}
+
+async function sbHardDeleteTerm(id) {
+  const cfg = getSupabaseConfig();
+  if (!cfg) return true;
+  const res = await fetch(`${cfg.url}/rest/v1/medical_terms?id=eq.${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: sbHeaders()
+  });
+  if (!res.ok) throw new Error(`hard delete failed: ${res.status}`);
+  return true;
+}
+
+function confirmEmptyTrash() {
+  const count = loadLocalTombstones().length;
+  if (!count) { showToast('✅ 휴지통이 비어 있습니다'); return; }
+  showConfirm(`삭제 기록 ${count}개를 완전히 비울까요?<br><span style="font-size:11px;color:#f87171">이 작업 후 앱에서 복원할 수 없습니다.</span>`, async () => {
+    try {
+      for (const term of loadLocalTombstones()) await sbHardDeleteTerm(term.id);
+      saveLocalTombstones([]);
+      showToast('🗑️ 휴지통 비우기 완료');
+      showExportMenu();
+    } catch (e) {
+      console.error(e);
+      showToast('⚠️ 클라우드 휴지통 비우기에 실패했습니다');
+    }
+  });
+}
+
+async function confirmDangerousDelete() {
+  const category = document.getElementById('bulkDeleteCategory')?.value || '__all__';
+  const targets = category === '__all__' ? [...TERMS] : TERMS.filter(t => (t.category || '기타') === category);
+  if (!targets.length) { showToast('⚠️ 삭제할 용어가 없습니다'); return; }
+  exportCompleteJsonBackup();
+  const typed = window.prompt(`자동 백업을 내려받았습니다.\n${targets.length}개 용어를 삭제하려면 "삭제"를 입력하세요.`);
+  if (typed !== '삭제') { showToast('삭제가 취소되었습니다'); return; }
+
+  const targetIds = new Set(targets.map(t => String(t.id)));
+  const tombstones = targets.map(recordLocalTombstone).filter(Boolean);
+  for (let i = TERMS.length - 1; i >= 0; i--) {
+    if (targetIds.has(String(TERMS[i].id))) TERMS.splice(i, 1);
+  }
+  const learning = getLearningStateMap();
+  targetIds.forEach(id => {
+    delete learning[id];
+    bookmarks.delete(Number(id));
+  });
+  saveLearningStateMap(learning);
+  localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+  saveTermsToLocalStorage();
+  updateBookmarkCount();
+
+  if (getSupabaseConfig()) {
+    try {
+      for (const tombstone of tombstones) await sbDeleteTerm(tombstone.id, tombstone.deletedAt);
+    } catch (e) {
+      console.error(e);
+      showToast('⚠️ 로컬 삭제 완료 · 클라우드 반영은 다음 동기화에서 재시도됩니다');
+      showExportMenu();
+      return;
+    }
+  }
+  showToast(`🗑️ ${targets.length}개 삭제 완료`);
+  showExportMenu();
+}
+
 function showDevInfo() {
   showDeveloperInfo();
 }
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.0',
+  version: '3.1',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 8일 04:19:08',
+  updatedAt: '2026년 6월 8일 04:42:14',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 안전한 최종본 동기화 및 학습상태 통합',
+    title: '최신 · 데이터 관리 페이지 전면 개편',
+    items: [
+      '가져오기 · 백업 · 동기화 · 휴지통 · 위험 작업을 카드형 2열 화면으로 통합',
+      '전체 JSON 백업에 용어 · 학습상태 · tombstone · 동기화 메타 포함',
+      '가져오기 전에 추가 · 갱신 · 교체 예상 건수를 미리보기',
+      '현재 검색결과 · 즐겨찾기 · 학습 중 · 복습 예정 · 숙달 · 미완성 범위 내보내기',
+      '의학 분야별 Excel · CSV · Anki TSV 내보내기',
+      '휴지통 항목별 복원과 완전 비우기 기능 추가',
+      '위험 삭제 전 자동 JSON 백업과 확인 문구 입력 적용',
+    ]
+  },
+  {
+    title: 'v3.0 · 안전한 최종본 동기화 및 학습상태 통합',
     items: [
       'canonical_version으로 일반 양방향 동기화와 이 기기 최종본 지정을 분리',
       'created_at · updated_at · deleted_at 기반 충돌 판정과 삭제 tombstone 적용',
@@ -5595,7 +6257,7 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 
 // Update date
-const APP_UPDATE = '2026-06-08'; // v3.0 — canonical sync and learning state
+const APP_UPDATE = '2026-06-08'; // v3.1 — data manager redesign
 const d = new Date(APP_UPDATE);
 document.getElementById('updateDate').textContent =
   `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
