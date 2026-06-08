@@ -310,8 +310,26 @@ document.addEventListener('keydown', e => {
     background: rgba(167,139,250,0.16);
   }
 
-  .settings-header-btn {
+  .upload-header-btn {
     margin-left: auto;
+    background: rgba(88,166,255,0.08);
+    border: 1px solid rgba(88,166,255,0.5);
+    border-radius: 9px;
+    padding: 8px 12px;
+    color: #74b0ff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    white-space: nowrap;
+  }
+
+  .upload-header-btn:hover {
+    background: rgba(88,166,255,0.16);
+  }
+
+  .settings-header-btn {
+    margin-left: 0;
     background: rgba(88,166,255,0.08);
     border: 1px solid rgba(88,166,255,0.5);
     border-radius: 9px;
@@ -409,8 +427,11 @@ document.addEventListener('keydown', e => {
 
   @media (max-width: 600px) {
     .update-badge { display: none; }
+    .upload-header-btn { padding: 7px 9px; }
     .settings-header-btn { padding: 7px 9px; }
     .developer-header-btn { padding: 7px 9px; }
+    .wide-label { display: none; }
+    .mobile-label { display: inline !important; }
     .developer-grid { grid-template-columns: 1fr; }
   }
 
@@ -1037,32 +1058,6 @@ document.addEventListener('keydown', e => {
   .nav-btn .nav-icon { font-size: 20px; }
   .nav-btn.active { color: var(--accent); }
 
-  /* Upload prompt */
-  .upload-card {
-    background: linear-gradient(135deg, rgba(88,166,255,0.08), rgba(63,185,80,0.05));
-    border: 1px dashed #3d6b9e;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .upload-card .icon { font-size: 28px; margin-bottom: 8px; }
-  .upload-card h3 { font-size: 14px; color: var(--text); margin-bottom: 5px; }
-  .upload-card p { font-size: 12px; color: var(--text3); line-height: 1.5; margin-bottom: 12px; }
-
-  .upload-btn {
-    background: var(--accent);
-    border: none;
-    border-radius: 8px;
-    padding: 8px 20px;
-    color: #0d1117;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Noto Sans KR', sans-serif;
-  }
-
   /* Toast */
   .toast {
     position: fixed;
@@ -1516,8 +1511,10 @@ document.addEventListener('keydown', e => {
       <span>개발일자</span>
       <span id="updateDate"></span>
     </div>
+    <button class="upload-header-btn" onclick="document.getElementById('fileInput').click()" title="TSV, CSV, Excel 파일 업로드">📂 <span class="wide-label">파일 업로드</span><span class="mobile-label" style="display:none">업로드</span></button>
     <button class="settings-header-btn" onclick="showAISettings()" title="AI와 Supabase 설정">⚙️ 설정</button>
     <button class="developer-header-btn" onclick="showDeveloperInfo()" title="개발자 정보와 업데이트 내역 보기">👨‍💻 개발자</button>
+    <input type="file" id="fileInput" accept=".tsv,.csv,.txt,.xlsx,.xls" style="display:none" onchange="confirmUpload(event)">
   </div>
   <div class="search-wrap autocomplete-wrap">
     <span class="search-icon">🔍</span>
@@ -1582,26 +1579,12 @@ document.addEventListener('keydown', e => {
 </div>
 
 <main id="mainContent">
-  <div class="upload-card">
-    <div class="icon">🤖</div>
-    <h3>AI 자동완성 업로드</h3>
-    <p>한국어 · 영어 · 우즈베크어만 입력하면<br>AI가 정의 · USMLE · IPA를 자동으로 채웁니다</p>
-    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">🏥 NIH UMLS</span>
-      <span style="background:rgba(139,92,246,0.12);border:1px solid #5b21b6;border-radius:12px;padding:3px 10px;font-size:11px;color:#a78bfa">🤖 Claude AI</span>
-      <span style="background:rgba(251,191,36,0.1);border:1px solid #92400e;border-radius:12px;padding:3px 10px;font-size:11px;color:#fbbf24">🟡 Gemini</span>
-      <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">🔍 OpenAI</span>
-    </div>
-    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 파일 업로드 (TSV / Excel)</button>
-    <input type="file" id="fileInput" accept=".tsv,.csv,.txt,.xlsx,.xls" style="display:none" onchange="confirmUpload(event)">
-  </div>
-
   <div class="section-label" id="sectionLabel"></div>
   <div id="termList"></div>
   <div id="emptyState" class="empty-state" style="display:none">
-    <div class="icon">🔍</div>
-    <h3>결과 없음</h3>
-    <p>다른 검색어를 입력하거나<br>필터를 변경해 보세요</p>
+    <div class="icon">📂</div>
+    <h3>용어 데이터가 없습니다</h3>
+    <p>우측 상단 파일 업로드로 TSV·Excel을 올리거나<br>데이터 탭에서 백업을 복원하세요</p>
   </div>
 </main>
 
@@ -2180,6 +2163,15 @@ function renderTerms(terms, bookmarkDivider = 0) {
 
   if (terms.length === 0) {
     list.innerHTML = '';
+    empty.innerHTML = TERMS.length === 0 ? `
+      <div class="icon">📂</div>
+      <h3>용어 데이터가 없습니다</h3>
+      <p>우측 상단 파일 업로드로 TSV·Excel을 올리거나<br>데이터 탭에서 백업을 복원하세요</p>
+    ` : `
+      <div class="icon">🔍</div>
+      <h3>결과 없음</h3>
+      <p>다른 검색어를 입력하거나<br>필터를 변경해 보세요</p>
+    `;
     empty.style.display = 'block';
     return;
   }
@@ -2430,7 +2422,7 @@ function renderHome() {
       <div class="empty-state">
         <div class="icon">📂</div>
         <h3>용어 데이터가 없습니다</h3>
-        <p>위 업로드 버튼으로 TSV 파일을 올리거나<br>즐겨찾기한 용어가 여기에 표시됩니다</p>
+        <p>우측 상단 파일 업로드로 TSV·Excel을 올리거나<br>데이터 탭에서 백업을 복원하세요</p>
       </div>`;
   }
 }
@@ -2474,25 +2466,12 @@ function updateBookmarkCount() {
 
 // ─── Saved home HTML for tab restoration ───
 const HOME_HTML = `
-  <div class="upload-card">
-    <div class="icon">🤖</div>
-    <h3>AI 자동완성 업로드</h3>
-    <p>한국어 · 영어 · 우즈베크어만 입력하면<br>AI가 정의 · USMLE · IPA를 자동으로 채웁니다</p>
-    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
-      <span style="background:rgba(88,166,255,0.12);border:1px solid #1d4ed8;border-radius:12px;padding:3px 10px;font-size:11px;color:#74b0ff">🏥 NIH UMLS</span>
-      <span style="background:rgba(139,92,246,0.12);border:1px solid #5b21b6;border-radius:12px;padding:3px 10px;font-size:11px;color:#a78bfa">🤖 Claude AI</span>
-      <span style="background:rgba(251,191,36,0.1);border:1px solid #92400e;border-radius:12px;padding:3px 10px;font-size:11px;color:#fbbf24">🟡 Gemini</span>
-      <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:12px;padding:3px 10px;font-size:11px;color:#4ade80">🔍 OpenAI</span>
-    </div>
-    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 파일 업로드 (TSV / Excel)</button>
-    <input type="file" id="fileInput" accept=".tsv,.csv,.txt,.xlsx,.xls" style="display:none" onchange="confirmUpload(event)">
-  </div>
   <div class="section-label" id="sectionLabel"></div>
   <div id="termList"></div>
   <div id="emptyState" class="empty-state" style="display:none">
-    <div class="icon">🔍</div>
-    <h3>결과 없음</h3>
-    <p>다른 검색어를 입력하거나<br>필터를 변경해 보세요</p>
+    <div class="icon">📂</div>
+    <h3>용어 데이터가 없습니다</h3>
+    <p>우측 상단 파일 업로드로 TSV·Excel을 올리거나<br>데이터 탭에서 백업을 복원하세요</p>
   </div>`;
 
 function restoreHomeTab() {
@@ -4518,16 +4497,25 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.2',
+  version: '3.3',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 8일 07:37:22',
+  updatedAt: '2026년 6월 8일 07:53:12',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 설정 모달과 하단 탭 정리',
+    title: '최신 · 파일 업로드 상단 이동과 홈 정리',
+    items: [
+      '큰 AI 자동완성 업로드 카드를 제거하고 홈 화면을 검색 · 목록 중심으로 정리',
+      '파일 업로드를 설정 · 개발자 정보 옆 우측 상단 빠른 버튼으로 이동',
+      '모바일 화면에서는 파일 업로드 버튼 라벨을 짧게 표시하도록 조정',
+      '빈 데이터 안내를 상단 업로드와 데이터 탭 백업 복원 기준으로 수정',
+    ]
+  },
+  {
+    title: 'v3.2 · 설정 모달과 하단 탭 정리',
     items: [
       '하단 AI 탭을 제거하고 우측 상단 설정 버튼으로 이동',
       'AI · Supabase 설정을 별도 모달 창에서 관리하도록 변경',
@@ -6316,7 +6304,7 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 
 // Update date
-const APP_UPDATE = '2026-06-08'; // v3.1 — data manager redesign
+const APP_UPDATE = '2026-06-08'; // v3.3 — upload moved to header
 const d = new Date(APP_UPDATE);
 document.getElementById('updateDate').textContent =
   `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
