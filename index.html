@@ -103,6 +103,7 @@ function drawerOpenEdit() {
 }
 
 function _renderDrawerContent(t) {
+  const termId = Number(t.id) || 0;
   // 헤더 업데이트
   document.getElementById('drawerTitleKo').textContent = t.ko || t.en || '—';
   document.getElementById('drawerTitleEn').textContent = t.en || '';
@@ -127,13 +128,13 @@ function _renderDrawerContent(t) {
   // 링크 버튼들
   const linksHtml = `
     <div class="drawer-links">
-      <a class="drawer-link-btn" href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" style="background:rgba(63,185,80,0.08);border-color:#166534;color:#4ade80">📚 PubMed</a>
+      <a class="drawer-link-btn" href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" style="background:rgba(63,185,80,0.08);border-color:#166534;color:#4ade80">📚 PubMed</a>
       <a class="drawer-link-btn" href="${youtubeSearchUrl(t)}" target="_blank" rel="noopener noreferrer" style="background:rgba(255,0,0,0.08);border-color:#991b1b;color:#fca5a5">▶️ YouTube</a>
       <a class="drawer-link-btn" href="${googleUsageSearchUrl(t)}" target="_blank" rel="noopener noreferrer" style="background:rgba(251,191,36,0.08);border-color:#92400e;color:#fbbf24">🔎 Google 사용례</a>
-      <button class="drawer-link-btn" onclick="showICD11Popup('${escapeJsString(t.en)}','${escapeJsString(t.ko)}');" style="background:rgba(139,92,246,0.08);border-color:#5b21b6;color:#a78bfa;font-family:'Noto Sans KR',sans-serif">🏷️ ICD-11</button>
-      <a class="drawer-link-btn" href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" style="background:rgba(88,166,255,0.08);border-color:#1d4ed8;color:#74b0ff">💊 MedlinePlus</a>
-      <a class="drawer-link-btn" href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" style="background:rgba(34,197,94,0.08);border-color:#166534;color:#4ade80">🔬 ClinicalTrials</a>
-      <a class="drawer-link-btn" href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" style="background:rgba(248,81,73,0.08);border-color:#991b1b;color:#f87171">⚠️ FDA</a>
+      <button class="drawer-link-btn" onclick="showICD11ForTerm(${termId});" style="background:rgba(139,92,246,0.08);border-color:#5b21b6;color:#a78bfa;font-family:'Noto Sans KR',sans-serif">🏷️ ICD-11</button>
+      <a class="drawer-link-btn" href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" style="background:rgba(88,166,255,0.08);border-color:#1d4ed8;color:#74b0ff">💊 MedlinePlus</a>
+      <a class="drawer-link-btn" href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" rel="noopener noreferrer" style="background:rgba(34,197,94,0.08);border-color:#166534;color:#4ade80">🔬 ClinicalTrials</a>
+      <a class="drawer-link-btn" href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" style="background:rgba(248,81,73,0.08);border-color:#991b1b;color:#f87171">⚠️ FDA</a>
     </div>`;
 
   document.getElementById('drawerBody').innerHTML = `
@@ -158,7 +159,7 @@ function _renderDrawerContent(t) {
     <div class="drawer-section">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
         <div class="drawer-lang-badge" style="background:var(--tag-en);color:#4ade80;border:1px solid #166534;margin-bottom:0">🇺🇸 English</div>
-        <button class="speak-btn" id="drawer-speak-term" onclick="speakText(event,'${escapeJsString(t.en)}','term',${t.id})">
+        <button class="speak-btn" id="drawer-speak-term" onclick="speakTermField(event,${termId},'en','term')">
           <div class="wave"><span></span><span></span><span></span><span></span></div>
           발음 듣기
         </button>
@@ -176,7 +177,7 @@ function _renderDrawerContent(t) {
         ? `<div class="drawer-term-def" style="margin-top:6px">${escapeHtml(t.def_en)}</div>`
         : `<div class="drawer-missing">영어 정의 없음</div>`}
       <div class="drawer-speak-row">
-        <button class="speak-btn" id="drawer-speak-def" onclick="speakText(event,'${escapeJsString(t.def_en)}','def',${t.id})" style="font-size:11px;padding:4px 10px">
+        <button class="speak-btn" id="drawer-speak-def" onclick="speakTermField(event,${termId},'def_en','def')" style="font-size:11px;padding:4px 10px">
           <div class="wave"><span></span><span></span><span></span><span></span></div>
           정의 읽기
         </button>
@@ -1901,19 +1902,23 @@ function capitalizeFirst(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function cleanTermString(value) {
+  return String(value || '').trim();
+}
+
 function normalizeTermForStorage(t) {
   const now = new Date().toISOString();
   return {
-    id: Number(t.id) || Date.now(),
-    ko: capitalizeFirst(t.ko || ''),
-    en: capitalizeFirst(t.en || ''),
-    uz: capitalizeFirst(t.uz || ''),
-    category: t.category || '기타',
-    def_ko: t.def_ko || '',
-    def_en: t.def_en || '',
-    def_uz: t.def_uz || '',
-    usmle: t.usmle || '',
-    ipa: t.ipa || '',
+    id: Number(t.id) || nextTermId(),
+    ko: cleanTermString(t.ko),
+    en: cleanTermString(t.en),
+    uz: cleanTermString(t.uz),
+    category: cleanTermString(t.category) || '기타',
+    def_ko: cleanTermString(t.def_ko),
+    def_en: cleanTermString(t.def_en),
+    def_uz: cleanTermString(t.def_uz),
+    usmle: cleanTermString(t.usmle),
+    ipa: cleanTermString(t.ipa),
     refs: Array.isArray(t.refs) ? t.refs : [],
     icd11: t.icd11 || null,
     fdaDrug: t.fdaDrug || null,
@@ -1950,7 +1955,13 @@ function termIdentityKey(t) {
   if (en) return `en:${en}`;
   if (ko) return `ko:${ko}`;
   if (uz) return `uz:${uz}`;
-  return `id:${Number(t.id) || Date.now()}`;
+  return `id:${Number(t.id) || 'empty'}`;
+}
+
+function findTermIndexByIdentity(term) {
+  const key = termIdentityKey(term);
+  if (!key || key.startsWith('id:')) return -1;
+  return TERMS.findIndex(existing => termIdentityKey(existing) === key);
 }
 
 function isEmptyTermValue(value) {
@@ -2153,7 +2164,8 @@ function clearTermsLocalStorage() {
 
 function nextTermId() {
   const maxId = TERMS.reduce((max, t) => Math.max(max, Number(t.id) || 0), 999);
-  return Math.max(Date.now(), maxId + 1);
+  _idCounter = Math.max(_idCounter, Date.now(), maxId);
+  return ++_idCounter;
 }
 
 function getStorageStatusText() {
@@ -2166,7 +2178,7 @@ function getStorageStatusText() {
 let currentFilter = 'all';
 let currentSort = 'default'; // 'default' | 'en_asc' | 'ko_asc' | 'uz_asc'
 let _idCounter = Date.now();
-function makeId() { return ++_idCounter; }
+function makeId() { return nextTermId(); }
 let aiStopRequested = false; // AI 중지 플래그
 const VALID_CATS = ['Cardiovascular','Pulmonary','Renal','GI & Hepatobiliary','Endocrine',
   'Neurology','Hematology & Oncology','Infectious Disease','Musculoskeletal',
@@ -2191,7 +2203,7 @@ const CATEGORY_META = {
   '기타': { icon: '📁', label: '기타' },
 };
 
-let bookmarks = new Set(JSON.parse(localStorage.getItem('kma_bookmarks') || '[]').map(Number));
+let bookmarks = new Set((safeJsonParse(localStorage.getItem('kma_bookmarks'), []) || []).map(Number).filter(Number.isFinite));
 let expandedId = null;
 let _lastFilteredTerms = [];
 let currentTab = 'search';
@@ -2214,6 +2226,7 @@ function renderTerms(terms, bookmarkDivider = 0) {
       <p>다른 검색어를 입력하거나<br>필터를 변경해 보세요</p>
     `;
     empty.style.display = 'block';
+    updateCounts(0);
     return;
   }
 
@@ -2221,15 +2234,16 @@ function renderTerms(terms, bookmarkDivider = 0) {
   const query = document.getElementById('searchInput').value.toLowerCase();
 
   list.innerHTML = terms.map((t, i) => {
+    const termId = Number(t.id) || 0;
     const divider = (bookmarkDivider > 0 && i === bookmarkDivider)
       ? `<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;padding:14px 0 6px;font-weight:500">전체 용어</div>`
       : '';
-    return `${divider}<div class="term-card ${expandedId === t.id ? 'expanded' : ''}" id="card-${t.id}" style="animation-delay:${Math.min(i,10)*30}ms" onclick="toggleCard(${t.id})">
+    return `${divider}<div class="term-card ${expandedId === t.id ? 'expanded' : ''}" id="card-${termId}" style="animation-delay:${Math.min(i,10)*30}ms" onclick="toggleCard(${termId})">
       <div class="term-header">
         <div class="term-main">
-          <div class="term-korean"><span onclick="copyTermText(event,'${(t.ko||'').replace(/'/g,"\\'")}','한국어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background=''">${highlight(t.ko, query)}</span></div>
-          <div class="term-english"><span onclick="copyTermText(event,'${(t.en||'').replace(/'/g,"\\'")}','영어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(88,166,255,0.12)'" onmouseleave="this.style.background=''">${highlight(t.en, query)}</span></div>
-          ${t.uz ? `<div class="term-uzbek"><span onclick="copyTermText(event,'${(t.uz||'').replace(/'/g,"\\'")}','우즈베크어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(251,191,36,0.12)'" onmouseleave="this.style.background=''"> ${highlight(t.uz, query)}</span></div>` : ''}
+          <div class="term-korean"><span onclick="copyTermField(event,${termId},'ko','한국어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background=''">${highlight(t.ko, query)}</span></div>
+          <div class="term-english"><span onclick="copyTermField(event,${termId},'en','영어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(88,166,255,0.12)'" onmouseleave="this.style.background=''">${highlight(t.en, query)}</span></div>
+          ${t.uz ? `<div class="term-uzbek"><span onclick="copyTermField(event,${termId},'uz','우즈베크어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(251,191,36,0.12)'" onmouseleave="this.style.background=''"> ${highlight(t.uz, query)}</span></div>` : ''}
         </div>
         <span class="term-category">${escapeHtml(t.category)}</span>
         ${(() => {
@@ -2245,8 +2259,8 @@ function renderTerms(terms, bookmarkDivider = 0) {
             ? `<span title="${missing.join(', ')} 빈칸" style="font-size:10px;color:#f85149;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:6px;padding:2px 6px;margin-right:4px;cursor:default;white-space:nowrap">✗ ${missing.join(' · ')}</span>`
             : `<span title="모든 필드 완성" style="font-size:10px;color:#3fb950;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:2px 6px;margin-right:4px;cursor:default">✓</span>`;
         })()}
-        <button class="bookmark-btn ${bookmarks.has(t.id) ? 'saved' : ''}" onclick="toggleBookmark(event, ${t.id})">${bookmarks.has(t.id) ? '⭐' : '☆'}</button>
-        <button class="bookmark-btn" onclick="openEditModal(event, ${t.id})" title="편집" style="font-size:14px">✏️</button>
+        <button class="bookmark-btn ${bookmarks.has(t.id) ? 'saved' : ''}" onclick="toggleBookmark(event, ${termId})">${bookmarks.has(t.id) ? '⭐' : '☆'}</button>
+        <button class="bookmark-btn" onclick="openEditModal(event, ${termId})" title="편집" style="font-size:14px">✏️</button>
         <span class="chevron">▼</span>
       </div>
       <div class="term-detail">
@@ -2258,7 +2272,7 @@ function renderTerms(terms, bookmarkDivider = 0) {
         <div class="detail-section">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
             <div class="lang-badge en">🇺🇸 English</div>
-            <button class="speak-btn" id="speak-term-${t.id}" onclick="speakText(event, '${t.en.replace(/'/g,"\\'")}', 'term', ${t.id})">
+            <button class="speak-btn" id="speak-term-${termId}" onclick="speakTermField(event,${termId},'en','term')">
               <div class="wave"><span></span><span></span><span></span><span></span></div>
               발음 듣기
             </button>
@@ -2271,7 +2285,7 @@ function renderTerms(terms, bookmarkDivider = 0) {
           </div>
           <div class="ipa-tip">Cambridge 방식 · 강세: ˈ(1차) ˌ(2차) · 장모음: ː</div>` : ''}
           <div class="detail-text">${escapeHtml(t.def_en)}</div>
-          <button class="speak-btn" id="speak-def-${t.id}" onclick="speakText(event, '${t.def_en.replace(/'/g,"\\'")}', 'def', ${t.id})" style="font-size:11px;padding:4px 10px">
+          <button class="speak-btn" id="speak-def-${termId}" onclick="speakTermField(event,${termId},'def_en','def')" style="font-size:11px;padding:4px 10px">
             <div class="wave"><span></span><span></span><span></span><span></span></div>
             정의 읽기
           </button>
@@ -2293,13 +2307,13 @@ function renderTerms(terms, bookmarkDivider = 0) {
         <div class="detail-section" style="background:rgba(0,0,0,0.1)">
           <div class="lang-badge" style="background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border)">🔗 더 알아보기</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-            <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(63,185,80,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">📚 PubMed</a>
+            <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(63,185,80,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">📚 PubMed</a>
             <a href="${youtubeSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="YouTube에서 이 의학용어가 사용된 영상을 검색" style="text-decoration:none;background:rgba(255,0,0,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#fca5a5">▶️ YouTube</a>
             <a href="${googleUsageSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Google에서 실제 사용례 검색" style="text-decoration:none;background:rgba(251,191,36,0.08);border:1px solid #92400e;border-radius:8px;padding:4px 10px;font-size:11px;color:#fbbf24">🔎 Google 사용례</a>
-            <button onclick="event.stopPropagation();showICD11Popup('${t.en.replace(/'/g,"\\'")}','${(t.ko||'').replace(/'/g,"\\'")}');" style="background:rgba(139,92,246,0.08);border:1px solid #5b21b6;border-radius:8px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🏷️ ICD-11</button>
-            <a href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(88,166,255,0.08);border:1px solid #1d4ed8;border-radius:8px;padding:4px 10px;font-size:11px;color:#74b0ff">💊 MedlinePlus</a>
-            <a href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(34,197,94,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">🔬 ClinicalTrials</a>
-            <a href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(248,81,73,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#f87171">⚠️ FDA</a>
+            <button onclick="event.stopPropagation();showICD11ForTerm(${termId});" style="background:rgba(139,92,246,0.08);border:1px solid #5b21b6;border-radius:8px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🏷️ ICD-11</button>
+            <a href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(88,166,255,0.08);border:1px solid #1d4ed8;border-radius:8px;padding:4px 10px;font-size:11px;color:#74b0ff">💊 MedlinePlus</a>
+            <a href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(34,197,94,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">🔬 ClinicalTrials</a>
+            <a href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(248,81,73,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#f87171">⚠️ FDA</a>
           </div>
         </div>
       </div>
@@ -2322,6 +2336,7 @@ function escapeHtml(str) {
 function escapeJsString(value) {
   return String(value || '')
     .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\x22')
     .replace(/'/g, "\\'")
     .replace(/\r/g, '\\r')
     .replace(/\n/g, '\\n')
@@ -2335,6 +2350,29 @@ function escapeRegExp(str) {
 
 function termSearchText(t) {
   return (t?.en || t?.ko || t?.uz || '').trim();
+}
+
+function termText(t, field) {
+  return String(t?.[field] || '');
+}
+
+function findTermById(id) {
+  return TERMS.find(t => String(t.id) === String(id)) || null;
+}
+
+function copyTermField(event, id, field, lang) {
+  const text = termText(findTermById(id), field);
+  copyTermText(event, text, lang);
+}
+
+function speakTermField(event, id, field, type) {
+  const text = termText(findTermById(id), field);
+  speakText(event, text, type, id);
+}
+
+function showICD11ForTerm(id) {
+  const term = findTermById(id);
+  showICD11Popup(termText(term, 'en'), termText(term, 'ko'));
 }
 
 const TERM_COMPLETION_FIELDS = ['ko', 'en', 'uz', 'def_ko', 'def_en', 'def_uz', 'usmle', 'ipa'];
@@ -2359,15 +2397,23 @@ function sortByCompletionThenEnglish(a, b) {
 function sortTermsForCurrentMode(terms) {
   const rows = [...terms];
   if (currentSort === 'ko_asc') {
-    return rows.sort((a, b) => String(a?.ko || '').localeCompare(String(b?.ko || ''), 'ko', { sensitivity: 'base', numeric: true }));
+    return rows.sort((a, b) => compareTextWithEmptyLast(a?.ko, b?.ko, 'ko'));
   }
   if (currentSort === 'uz_asc') {
-    return rows.sort((a, b) => String(a?.uz || '').localeCompare(String(b?.uz || ''), 'uz', { sensitivity: 'base', numeric: true }));
+    return rows.sort((a, b) => compareTextWithEmptyLast(a?.uz, b?.uz, 'uz'));
   }
   if (currentSort === 'en_asc') {
-    return rows.sort((a, b) => String(a?.en || '').localeCompare(String(b?.en || ''), 'en', { sensitivity: 'base', numeric: true }));
+    return rows.sort((a, b) => compareTextWithEmptyLast(a?.en, b?.en, 'en'));
   }
   return rows.sort(sortByCompletionThenEnglish);
+}
+
+function compareTextWithEmptyLast(a, b, locale) {
+  const left = String(a || '').trim();
+  const right = String(b || '').trim();
+  if (!left && right) return 1;
+  if (left && !right) return -1;
+  return left.localeCompare(right, locale, { sensitivity: 'base', numeric: true });
 }
 
 function youtubeSearchUrl(t) {
@@ -2439,11 +2485,11 @@ function applyFilters() {
 
   if (query) {
     results = results.filter(t =>
-      t.ko.toLowerCase().includes(query) ||
-      t.en.toLowerCase().includes(query) ||
-      t.uz.toLowerCase().includes(query) ||
-      t.def_ko.toLowerCase().includes(query) ||
-      t.def_en.toLowerCase().includes(query)
+      termText(t, 'ko').toLowerCase().includes(query) ||
+      termText(t, 'en').toLowerCase().includes(query) ||
+      termText(t, 'uz').toLowerCase().includes(query) ||
+      termText(t, 'def_ko').toLowerCase().includes(query) ||
+      termText(t, 'def_en').toLowerCase().includes(query)
     );
   }
 
@@ -2832,7 +2878,7 @@ function showAISettings() {
         </div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.6">
           의학용어 검색 시 NIH UMLS 데이터베이스 활용.<br>
-          <a href="https://uts.nlm.nih.gov/uts/signup-login" target="_blank" style="color:var(--accent)">uts.nlm.nih.gov</a>에서 무료 발급
+          <a href="https://uts.nlm.nih.gov/uts/signup-login" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">uts.nlm.nih.gov</a>에서 무료 발급
         </div>
         <input id="ai_umls_key" type="password" value="${esc(cfg.umlsKey||localStorage.getItem('kma_umls_key')||'')}" placeholder="UMLS API Key" style="${inputStyle()}">
       </div>
@@ -3137,9 +3183,12 @@ async function callAIText(prompt, maxTokens = 800, task = 'general', forceProvid
   if (provider === 'gemini') {
     if (!cfg.geminiKey) throw new Error('Gemini API key is not configured.');
     const model = cfg.modelGemini || 'gemini-2.0-flash';
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.geminiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': cfg.geminiKey
+      },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens } })
     });
     if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
@@ -3373,20 +3422,18 @@ async function importTsvPaste() {
   const rows = parseTsvPaste(raw);
   if (!rows.length) { showToast('⚠️ 파싱할 데이터가 없습니다'); return; }
 
-  // 영어 기준으로 중복 분류: 덮어쓰기 vs 신규
+  // 영어 → 한국어 → 우즈베크어 순서로 중복 분류: 덮어쓰기 vs 신규
   const overwriteRows = [];  // 기존 용어 덮어쓰기
   const newRows = [];        // 신규 추가
   const seenInBatch = new Set(); // 같은 배치 내 중복 방지
 
   rows.forEach(t => {
-    const enKey = (t.en || '').toLowerCase().trim();
-    if (!enKey && !t.ko) return; // 빈 행 스킵
-    if (seenInBatch.has(enKey)) return;
-    seenInBatch.add(enKey);
+    if (!t.en && !t.ko && !t.uz) return; // 빈 행 스킵
+    const key = termIdentityKey(t);
+    if (seenInBatch.has(key)) return;
+    seenInBatch.add(key);
 
-    const existIdx = enKey
-      ? TERMS.findIndex(x => (x.en || '').toLowerCase().trim() === enKey)
-      : -1;
+    const existIdx = findTermIndexByIdentity(t);
 
     if (existIdx !== -1) {
       overwriteRows.push({ t, existIdx });
@@ -3471,9 +3518,9 @@ function addFormAcSearch(query) {
     if (!results.length) { list.style.display = 'none'; return; }
     list.style.display = 'block';
     list.innerHTML = results.map(r => `
-      <div onclick="selectAddAc(${JSON.stringify(r.name).replace(/"/g,'&quot;')})" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;color:var(--text)" onmouseover="this.style.background='rgba(88,166,255,0.08)'" onmouseout="this.style.background='none'">
+      <div onclick="selectAddAc('${escapeJsString(r.name)}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;color:var(--text)" onmouseover="this.style.background='rgba(88,166,255,0.08)'" onmouseout="this.style.background='none'">
         <span style="color:var(--text);font-weight:500">${escapeHtml(r.name)}</span>
-        ${r.icd10 ? `<span style="color:var(--text3);font-size:10px;margin-left:6px">ICD-10: ${r.icd10}</span>` : ''}
+        ${r.icd10 ? `<span style="color:var(--text3);font-size:10px;margin-left:6px">ICD-10: ${escapeHtml(r.icd10)}</span>` : ''}
       </div>`).join('');
   }, 260);
 }
@@ -3493,9 +3540,9 @@ async function submitAddTerm() {
   if (!ko && !en && !uz) { showToast('⚠️ 하나 이상 입력해주세요'); return; }
 
   if (TERMS.some(t =>
-    (en && t.en.toLowerCase() === en.toLowerCase()) ||
-    (ko && t.ko.toLowerCase() === ko.toLowerCase()) ||
-    (uz && t.uz.toLowerCase() === uz.toLowerCase())
+    (en && termText(t, 'en').toLowerCase() === en.toLowerCase()) ||
+    (ko && termText(t, 'ko').toLowerCase() === ko.toLowerCase()) ||
+    (uz && termText(t, 'uz').toLowerCase() === uz.toLowerCase())
   )) {
     showToast('⚠️ 이미 존재하는 용어입니다'); return;
   }
@@ -3505,7 +3552,7 @@ async function submitAddTerm() {
   const hasKey = hasConfiguredAIKey(cfg);
 
   const newTerm = {
-    id:       Date.now(),
+    id:       nextTermId(),
     ko, en, uz,
     category: document.getElementById('add_category')?.value || '기타',
     def_ko:   document.getElementById('add_def_ko')?.value.trim() || '',
@@ -3609,7 +3656,7 @@ function openEditModal(e, id) {
       <div style="${ROW}"><input id="edit_ipa" value="${esc(t.ipa)}" placeholder="IPA (예: /ˈsep.sɪs/)" style="${IS}"><button style="${RB}" onclick="regenField(${id},'ipa')" title="AI 재생성">🔄</button></div>
       <div style="margin-bottom:10px">
         <select id="edit_category" style="${IS}">
-          ${cats.map(c => `<option value="${c}" ${t.category===c?'selected':''}>${c}</option>`).join('')}
+          ${cats.map(c => `<option value="${escapeHtml(c)}" ${t.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}
         </select>
       </div>
 
@@ -3730,7 +3777,7 @@ function saveEdit(id) {
 function deleteTerm(id) {
   const t = TERMS.find(x => x.id === id);
   const label = t?.ko || t?.en || '이 용어';
-  showConfirm(`"${label}"을 삭제할까요?`, () => {
+  showConfirm(`"${escapeHtml(label)}"을 삭제할까요?`, () => {
     const idx = TERMS.findIndex(x => x.id === id);
     if (idx !== -1) TERMS.splice(idx, 1);
     const tombstone = recordLocalTombstone(t);
@@ -3989,7 +4036,7 @@ function showLegacyExportMenu() {
           <select id="bulkDeleteCategory" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none">
             <option value="__all__">⚠️ 전체 용어 (${total}개)</option>
             ${[...new Set(TERMS.map(t => t.category).filter(Boolean))].sort().map(cat =>
-              `<option value="${cat}">${cat} (${TERMS.filter(t => t.category === cat).length}개)</option>`
+              `<option value="${escapeHtml(cat)}">${escapeHtml(cat)} (${TERMS.filter(t => t.category === cat).length}개)</option>`
             ).join('')}
           </select>
         </div>
@@ -4545,16 +4592,25 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.8',
+  version: '3.9',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 8일 08:59:59',
+  updatedAt: '2026년 6월 8일 17:01:49',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 기본 정렬 원칙 개선',
+    title: '최신 · 보안과 데이터 정합성 보강',
+    items: [
+      '용어 문자열을 인라인 onclick에 직접 넣던 복사 · 발음 · ICD 버튼을 id 기반 호출로 변경',
+      'TSV 붙여넣기와 파일 업로드의 중복 판정을 영어 → 한국어 → 우즈베크어 기준으로 통일해 ko 전용 행 유실 방지',
+      'Gemini API 키를 URL 쿼리 대신 x-goog-api-key 헤더로 전송하도록 변경',
+      '빈 값 검색/렌더링 오류, 손상된 즐겨찾기 저장값, 외부 새 탭 링크 보안 속성을 보강',
+    ]
+  },
+  {
+    title: 'v3.8 · 기본 정렬 원칙 개선',
     items: [
       '전체 목록의 기본 정렬을 완성된 용어 우선 · 영어 A-Z 순서로 변경',
       '기존 즐겨찾기 자동 우선 배치를 제거하고 즐겨찾기는 별도 필터 버튼에서 확인하도록 정리',
@@ -4867,12 +4923,12 @@ function showDuplicateManager() {
             <div style="font-size:12px;color:#58a6ff">${escapeHtml(t.en || '—')}</div>
             ${t.uz ? `<div style="font-size:11px;color:#fbbf24">${escapeHtml(t.uz)}</div>` : ''}
           </div>
-          <span style="font-size:10px;color:var(--text3);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 8px">${t.category||'기타'}</span>
+          <span style="font-size:10px;color:var(--text3);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 8px">${escapeHtml(t.category || '기타')}</span>
         </div>
         <div style="font-size:10px;color:var(--text3);line-height:1.5">
           ${t.def_ko ? `<div>📖 ${escapeHtml(t.def_ko.slice(0,60))}...</div>` : '<div style="color:#6e7681">정의 없음</div>'}
-          ${t.usmle ? `<div>🏥 USMLE: ${t.usmle.slice(0,50)}...</div>` : ''}
-          ${t.ipa ? `<div>🔊 ${t.ipa}</div>` : ''}
+          ${t.usmle ? `<div>🏥 USMLE: ${escapeHtml(t.usmle.slice(0,50))}...</div>` : ''}
+          ${t.ipa ? `<div>🔊 ${escapeHtml(t.ipa)}</div>` : ''}
         </div>
         <div id="dupBadge_${gi}_${ci}" style="display:none;margin-top:8px;text-align:center;font-size:12px;font-weight:700;color:#3fb950">✅ 유지 선택됨</div>
       </div>`).join('');
@@ -4880,7 +4936,7 @@ function showDuplicateManager() {
     return `
       <div style="background:var(--surface);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:14px;margin-bottom:12px">
         <div style="font-size:11px;color:#fbbf24;margin-bottom:8px;font-weight:600">
-          ⚠️ 중복 ${gi+1}/${dupGroups.length}: "${g[0].t.en || g[0].t.ko}" (${g.length}개)
+          ⚠️ 중복 ${gi+1}/${dupGroups.length}: "${escapeHtml(g[0].t.en || g[0].t.ko)}" (${g.length}개)
         </div>
         <div id="dupGroup_${gi}">${cards}</div>
         <div id="dupGroupStatus_${gi}" style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center">유지할 용어를 선택하세요</div>
@@ -4984,7 +5040,7 @@ async function bulkDeleteTerms() {
   const targets = sel === '__all__' ? [...TERMS] : TERMS.filter(t => t.category === sel);
   if (targets.length === 0) { showToast('⚠️ 삭제할 용어가 없습니다'); return; }
 
-  const label = sel === '__all__' ? `전체 ${targets.length}개 용어` : `${sel} 카테고리 ${targets.length}개 용어`;
+  const label = sel === '__all__' ? `전체 ${targets.length}개 용어` : `${escapeHtml(sel)} 카테고리 ${targets.length}개 용어`;
   const hasCloud = !!getSupabaseConfig();
   const cloudNote = hasCloud ? '<br><span style="font-size:11px;color:#f87171">☁️ 클라우드에서도 삭제됩니다</span>' : '';
 
@@ -5254,7 +5310,7 @@ function showExportViewer(text, filename) {
       </div>
 
       <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;max-height:55vh;overflow-y:auto">
-        <textarea id="evTextarea" readonly style="width:100%;background:transparent;border:none;color:#8b949e;font-size:11px;font-family:monospace;resize:none;outline:none;line-height:1.6;min-height:200px" spellcheck="false">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+        <textarea id="evTextarea" readonly style="width:100%;background:transparent;border:none;color:#8b949e;font-size:11px;font-family:monospace;resize:none;outline:none;line-height:1.6;min-height:200px" spellcheck="false">${escapeHtml(text)}</textarea>
       </div>
 
       <div style="font-size:11px;color:#6e7681;margin-top:10px;line-height:1.6;text-align:center">
@@ -5414,6 +5470,11 @@ function speakEnglish(text) {
   window.speechSynthesis.speak(utt);
 }
 
+function speakEnglishForTerm(event, id) {
+  event.stopPropagation();
+  speakEnglish(termText(findTermById(id), 'en'));
+}
+
 function showQuizSetup() {
   const main = document.getElementById('mainContent');
   if (!main) return;
@@ -5561,9 +5622,9 @@ function renderQuizStep() {
       <!-- Term card -->
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:center;margin-bottom:12px">
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${escapeHtml(t.category)}</div>
-        <div style="font-size:28px;font-family:'Playfair Display',serif;color:var(--accent);margin:8px 0 4px">${t.en}</div>
+        <div style="font-size:28px;font-family:'Playfair Display',serif;color:var(--accent);margin:8px 0 4px">${escapeHtml(t.en)}</div>
         ${t.ipa ? `<div style="font-size:13px;color:var(--accent3);margin-bottom:4px">${escapeHtml(t.ipa)}</div>` : ''}
-        <button onclick="event.stopPropagation();speakEnglish('${t.en.replace(/'/g,"\\'")}');" style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:8px;padding:4px 14px;color:#74b0ff;font-size:12px;cursor:pointer;margin:6px 0">🔊 발음 듣기</button>
+        <button onclick="speakEnglishForTerm(event,${Number(t.id) || 0})" style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:8px;padding:4px 14px;color:#74b0ff;font-size:12px;cursor:pointer;margin:6px 0">🔊 발음 듣기</button>
         <div style="font-size:11px;color:var(--text3);margin-top:6px">${step.question}</div>
       </div>
 
@@ -5888,10 +5949,10 @@ function showICD11Popup(enTerm, koTerm) {
       <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #30363d;flex-shrink:0">
         <div>
           <div style="font-size:14px;font-weight:700;color:#a78bfa">🏷️ ICD-11 검색</div>
-          <div style="font-size:11px;color:#58a6ff;margin-top:2px">${enTerm}${koTerm ? ' · ' + koTerm : ''}</div>
+          <div style="font-size:11px;color:#58a6ff;margin-top:2px">${escapeHtml(enTerm)}${koTerm ? ' · ' + escapeHtml(koTerm) : ''}</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <a href="${url}" target="_blank"
+          <a href="${url}" target="_blank" rel="noopener noreferrer"
              style="text-decoration:none;background:rgba(139,92,246,0.15);border:1px solid #5b21b6;border-radius:8px;padding:5px 12px;font-size:11px;color:#a78bfa">
             새 탭 ↗
           </a>
@@ -5970,7 +6031,7 @@ function renderAcList(results) {
   if (!results || results.length === 0) { list.innerHTML = ''; return; }
 
   list.innerHTML = results.map(r => `
-    <div class="ac-item" onclick="selectAcItem(${JSON.stringify(r.name).replace(/"/g,'&quot;')})">
+    <div class="ac-item" onclick="selectAcItem('${escapeJsString(r.name)}')">
       <span class="ac-source">NLM</span>
       <div class="ac-name">${escapeHtml(r.name)}</div>
       <div class="ac-code">${r.icd10 ? 'ICD-10: ' + escapeHtml(r.icd10) : ''}${r.consumer && r.consumer !== r.name ? ' · ' + escapeHtml(r.consumer) : ''}</div>
@@ -6147,8 +6208,8 @@ async function addUMLSTerm(cui, name, umlsKey) {
     }
 
     const newTerm = {
-      id: Date.now(),
-      ko: '', en: capitalizeFirst(en), uz: '',
+      id: nextTermId(),
+      ko: '', en, uz: '',
       category: '기타', def_ko: '', def_en: def_en, def_uz: '',
       usmle: '', ipa: '', refs: [], icd11: null, fdaDrug: null, rxclassATC: null, trials: null,
     };
@@ -6322,7 +6383,7 @@ async function handleFileUpload(e, mode = 'replace') {
       });
     }
 
-    rows = rows.filter(t => t.ko || t.en); // ko 또는 en 하나만 있어도 허용
+    rows = rows.filter(t => t.ko || t.en || t.uz); // 세 언어 중 하나만 있어도 허용
     if (rows.length === 0) { showToast('⚠️ 유효한 데이터가 없습니다'); return; }
 
     if (mode === 'replace') {
@@ -6331,19 +6392,18 @@ async function handleFileUpload(e, mode = 'replace') {
       localStorage.setItem('kma_bookmarks', JSON.stringify([]));
     }
 
-    const startId = nextTermId();
-    rows = rows.map((t, i) => ({ ...t, id: startId + i, updatedAt: new Date().toISOString() }));
+    rows = rows.map(t => ({ ...t, id: nextTermId(), updatedAt: new Date().toISOString() }));
 
     if (mode === 'append') {
-      // 영어 기준 중복: 완전 덮어쓰기 (기존 용어를 새 데이터로 교체)
+      // 영어 → 한국어 → 우즈베크어 기준 중복: 완전 덮어쓰기 (기존 용어를 새 데이터로 교체)
       let overwriteCount = 0;
       const newRows = [];
       const seenInBatch = new Set();
       rows.forEach(t => {
-        const key = (t.en || t.ko || '').toLowerCase().trim();
+        const key = termIdentityKey(t);
         if (!key || seenInBatch.has(key)) return;
         seenInBatch.add(key);
-        const existIdx = TERMS.findIndex(x => (x.en || x.ko || '').toLowerCase().trim() === key);
+        const existIdx = findTermIndexByIdentity(t);
         if (existIdx !== -1) {
           // 완전 덮어쓰기 (기존 id 유지)
           TERMS[existIdx] = normalizeTermForStorage({ ...t, id: TERMS[existIdx].id, updatedAt: new Date().toISOString() });
@@ -6449,6 +6509,7 @@ let speakingBtn = null;
 function speakText(e, text, type, id) {
   e.stopPropagation();
   if (!window.speechSynthesis) { showToast('⚠️ 이 브라우저는 TTS를 지원하지 않습니다'); return; }
+  if (!String(text || '').trim()) { showToast('⚠️ 읽을 영어 문장이 없습니다'); return; }
 
   const btnId = `speak-${type}-${id}`;
   const btn = document.getElementById(btnId);
@@ -6468,7 +6529,7 @@ function speakText(e, text, type, id) {
     if (prev) prev.classList.remove('speaking');
   }
 
-  const utter = new SpeechSynthesisUtterance(text);
+  const utter = new SpeechSynthesisUtterance(String(text || ''));
   utter.lang = 'en-US';
   utter.rate = ttsSpeed;
   utter.pitch = 1.0;
