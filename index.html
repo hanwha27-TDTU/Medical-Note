@@ -3464,7 +3464,7 @@ async function callClaudeBuiltin(prompt, maxTokens = 800) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }]
     })
@@ -3780,6 +3780,7 @@ function switchAddTab(tab) {
 function parseTsvPaste(raw) {
   const lines = raw.trim().split('\n').filter(l => l.trim());
   if (!lines.length) return [];
+  parseTsvPaste.lastError = '';
   const COLS = ['ko','en','uz','concept_category','category','system_tags','def_ko','def_en','def_uz','usmle','ipa'];
 
   // 헤더 별칭 매핑 (영문 헤더 → 내부 키)
@@ -3822,14 +3823,22 @@ function parseTsvPaste(raw) {
       }).filter(t => t.ko || t.en || t.uz);
   }
 
-  // 헤더 없음 — 순서대로 (Anki TSV #으로 시작하는 줄 제외)
+  // 헤더 없음 — 11열 표준 또는 9열 legacy만 허용
   const LEGACY_COLS = ['ko','en','uz','category','def_ko','def_en','def_uz','usmle','ipa'];
-  return lines
-    .filter(l => !l.startsWith('#'))
-    .map(line => {
+  const dataLines = lines.filter(l => !l.startsWith('#'));
+  const invalidLine = dataLines.find(line => {
+    const count = line.split('\t').length;
+    return !(count >= COLS.length || count === LEGACY_COLS.length);
+  });
+  if (invalidLine) {
+    parseTsvPaste.lastError = '헤더 없는 TSV는 11열 표준 또는 9열 legacy 형식만 지원합니다. 안전을 위해 헤더를 추가해 주세요.';
+    return [];
+  }
+  return dataLines.map(line => {
       const cells = line.split('\t');
       const t = {};
-      LEGACY_COLS.forEach((c, idx) => { t[c] = (cells[idx] || '').trim(); });
+      const schema = cells.length >= COLS.length ? COLS : LEGACY_COLS;
+      schema.forEach((c, idx) => { t[c] = (cells[idx] || '').trim(); });
       t.category = t.category || 'General';
       t.concept_category = t.concept_category || 'Other / Unclassified';
       return t;
@@ -3843,7 +3852,7 @@ function previewTsvPaste() {
   const label   = document.getElementById('tsvPreviewLabel');
   const list    = document.getElementById('tsvPreviewList');
   if (!preview || !label || !list) return;
-  if (!rows.length) { showToast('⚠️ 파싱할 데이터가 없습니다'); return; }
+  if (!rows.length) { showToast(parseTsvPaste.lastError || '⚠️ 파싱할 데이터가 없습니다'); return; }
   label.textContent = `✅ ${rows.length}개 용어 인식됨`;
   list.innerHTML = rows.map(t =>
     `<div style="font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid #21262d;display:flex;gap:8px">
@@ -3859,7 +3868,7 @@ function previewTsvPaste() {
 async function importTsvPaste(mode = 'merge') {
   const raw = document.getElementById('tsvPasteArea')?.value || '';
   const rows = parseTsvPaste(raw);
-  if (!rows.length) { showToast('⚠️ 파싱할 데이터가 없습니다'); return; }
+  if (!rows.length) { showToast(parseTsvPaste.lastError || '⚠️ 파싱할 데이터가 없습니다'); return; }
 
   // 영어 → 한국어 → 우즈베크어 순서로 중복 분류: 덮어쓰기 vs 신규
   const overwriteRows = [];  // 기존 용어 덮어쓰기
@@ -4886,6 +4895,17 @@ function exportTermsByScope(scope, format) {
   exportTermCollection(getTermsByScope(scope), scope === 'all' ? '전체' : scope, format);
 }
 
+function stringifyExportJson(value) {
+  if (value == null || value === '') return '';
+  try { return JSON.stringify(value); } catch { return ''; }
+}
+
+function parseImportJson(value, fallback = null) {
+  if (value == null || value === '') return fallback;
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
 function termExportRows(terms) {
   return terms.map(t => ({
     id: t.id,
@@ -4900,6 +4920,11 @@ function termExportRows(terms) {
     Def_uz: t.def_uz || '',
     USMLE: t.usmle || '',
     IPA: t.ipa || '',
+    Refs_json: stringifyExportJson(t.refs || []),
+    ICD11_json: stringifyExportJson(t.icd11),
+    FDA_json: stringifyExportJson(t.fdaDrug),
+    RxClass_json: stringifyExportJson(t.rxclassATC),
+    Trials_json: stringifyExportJson(t.trials),
     Created_at: t.createdAt || '',
     Updated_at: t.updatedAt || '',
   }));
@@ -4916,7 +4941,7 @@ function exportTermCollection(terms, label, format) {
   if (format === 'xlsx') {
     if (!window.XLSX) { showToast('⚠️ Excel 모듈을 불러오지 못했습니다'); return; }
     const worksheet = XLSX.utils.json_to_sheet(termExportRows(terms));
-    worksheet['!cols'] = [16,14,20,20,18,38,38,38,48,16,24,24].map(wch => ({ wch }));
+    worksheet['!cols'] = [10,16,18,18,20,18,24,38,38,38,48,16,28,28,28,28,28,24,24].map(wch => ({ wch }));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Medical Terms');
     XLSX.writeFile(workbook, `${prefix}.xlsx`);
@@ -4979,6 +5004,11 @@ function normalizeImportedTableRows(rows) {
     def_uz: String(row.def_uz ?? row.Def_uz ?? '').trim(),
     usmle: String(row.usmle ?? row.USMLE ?? '').trim(),
     ipa: String(row.ipa ?? row.IPA ?? '').trim(),
+    refs: parseImportJson(row.refs ?? row.Refs ?? row.Refs_json ?? row.refs_json, []),
+    icd11: parseImportJson(row.icd11 ?? row.ICD11 ?? row.ICD11_json ?? row.icd11_json, null),
+    fdaDrug: parseImportJson(row.fdaDrug ?? row.fda_drug ?? row.FDA_json ?? row.fda_json, null),
+    rxclassATC: parseImportJson(row.rxclassATC ?? row.rxclass_atc ?? row.RxClass_json ?? row.rxclass_json, null),
+    trials: parseImportJson(row.trials ?? row.Trials_json ?? row.trials_json, null),
     createdAt: row.createdAt || row.Created_at || new Date().toISOString(),
     updatedAt: row.updatedAt || row.Updated_at || new Date().toISOString(),
   })).filter(t => t.ko || t.en || t.uz);
@@ -5081,7 +5111,7 @@ async function applyPendingDataImport() {
         TERMS.push(term);
       } else if (mode === 'merge' && (Date.parse(term.updatedAt) || Date.now()) >= (Date.parse(existing.updatedAt) || 0)) {
         const index = TERMS.findIndex(t => String(t.id) === String(existing.id));
-        TERMS[index] = normalizeTermForStorage({ ...term, id: existing.id });
+        TERMS[index] = mergeDuplicateTerms(existing, normalizeTermForStorage({ ...term, id: existing.id }));
       }
     });
     if (pendingDataImport.kind === 'json' && mode === 'merge') {
@@ -5199,16 +5229,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.16',
+  version: '3.17',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 9일 14:23:34',
+  updatedAt: '2026년 6월 9일 15:02:55',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · MECE 개념분류 + 대표 장기계 구조 도입',
+    title: '최신 · 업로드 데이터 손상 방지와 SRS 안정화',
+    items: [
+      '헤더 없는 TSV/CSV는 11열 표준 또는 9열 legacy만 허용해 컬럼 밀림으로 인한 무음 데이터 손상 방지',
+      '파일 교체 업로드 전 전체 JSON 백업을 자동 생성하고 Excel/CSV 병합 시 refs·ICD·FDA·RxClass·임상시험 보강 데이터 보존',
+      '퀴즈 SRS 카운트를 단계별 3회가 아니라 용어 완료 시 1회만 반영하도록 수정하고 ICD-11·Claude 모델 설정 정리',
+    ]
+  },
+  {
+    title: 'v3.16 · MECE 개념분류 + 대표 장기계 구조 도입',
     items: [
       '용어를 개념분류(무엇인가)와 대표 장기계(어디와 관련 있는가)로 분리해 저장하도록 개편',
       'Anatomy · Symptoms & Signs · Diseases · Pharmacology 등 개념분류 필터와 통계 요약 추가',
@@ -6118,6 +6156,7 @@ let quizStep   = 0;   // 0=Korean 1=Uzbek 2=Meaning
 let quizScore  = { correct: 0, total: 0 };
 let quizPool   = [];
 let quizIdx    = 0;
+let quizTermResults = [];
 
 const QUIZ_STEPS = [
   { label: '① 한국어',   question: '영어 용어의 한국어는?',            ansKey: 'ko',     ansLabel: '🇰🇷 한국어' },
@@ -6275,6 +6314,7 @@ function startQuizFromSetup() {
   quizScore = { correct: 0, total: 0 };
   quizTerm  = quizPool[0];
   quizStep  = 0;
+  quizTermResults = [];
   renderQuizStep();
 }
 
@@ -6293,6 +6333,7 @@ function startQuiz() {
   quizScore = { correct: 0, total: 0 };
   quizTerm  = quizPool[0];
   quizStep  = 0;
+  quizTermResults = [];
   renderQuizStep();
 }
 
@@ -6389,20 +6430,7 @@ function revealQuizStep() {
 function quizNext(correct) {
   quizScore.total++;
   if (correct) quizScore.correct++;
-
-  const state = getLearningStateMap()[String(quizTerm.id)] || {};
-  const correctCount = (Number(state.correctCount) || 0) + (correct ? 1 : 0);
-  const wrongCount = (Number(state.wrongCount) || 0) + (correct ? 0 : 1);
-  const intervalDays = correct ? Math.min(30, Math.max(1, Math.pow(2, Math.min(correctCount, 5) - 1))) : 0;
-  const dueAt = new Date(Date.now() + intervalDays * 86400000).toISOString();
-  updateLearningState(quizTerm.id, {
-    correctCount,
-    wrongCount,
-    lastReviewedAt: new Date().toISOString(),
-    dueAt,
-    studyStatus: correctCount >= 5 && wrongCount <= 2 ? 'mastered' : (correct ? 'review' : 'learning'),
-    bookmarked: bookmarks.has(quizTerm.id),
-  });
+  quizTermResults[quizStep] = !!correct;
 
   quizStep++;
   if (quizStep < 3) {
@@ -6411,8 +6439,24 @@ function quizNext(correct) {
     return;
   }
 
+  const termPassed = quizTermResults.length === 3 && quizTermResults.every(Boolean);
+  const state = getLearningStateMap()[String(quizTerm.id)] || {};
+  const correctCount = (Number(state.correctCount) || 0) + (termPassed ? 1 : 0);
+  const wrongCount = (Number(state.wrongCount) || 0) + (termPassed ? 0 : 1);
+  const intervalDays = termPassed ? Math.min(30, Math.max(1, Math.pow(2, Math.min(correctCount, 5) - 1))) : 0;
+  const dueAt = new Date(Date.now() + intervalDays * 86400000).toISOString();
+  updateLearningState(quizTerm.id, {
+    correctCount,
+    wrongCount,
+    lastReviewedAt: new Date().toISOString(),
+    dueAt,
+    studyStatus: correctCount >= 5 && wrongCount <= 2 ? 'mastered' : (termPassed ? 'review' : 'learning'),
+    bookmarked: bookmarks.has(quizTerm.id),
+  });
+
   // Move to next term
   quizStep = 0;
+  quizTermResults = [];
   quizIdx++;
   if (quizIdx >= quizPool.length) {
     showQuizResult();
@@ -6652,11 +6696,13 @@ async function fetchRxClass(rxcui) {
   } catch { return null; }
 }
 
+const ICD11_RELEASE = '2025-01';
+
 function showICD11Popup(enTerm, koTerm) {
   const existing = document.getElementById('icd11Popup');
   if (existing) existing.remove();
 
-  const url = `https://icd.who.int/browse/2025-01/mms/en#/?search=${encodeURIComponent(enTerm)}`;
+  const url = `https://icd.who.int/browse/${ICD11_RELEASE}/mms/en#/?search=${encodeURIComponent(enTerm)}`;
 
   const modal = document.createElement('div');
   modal.id = 'icd11Popup';
@@ -6693,7 +6739,7 @@ function showICD11Popup(enTerm, koTerm) {
 async function fetchICD11(term) {
   try {
     const res = await fetch(
-      `https://id.who.int/icd/release/11/2024-01/mms/search?q=${encodeURIComponent(term)}&subtreesFilter=&includeKeywordResult=true&useFlexisearch=false&flatResults=true&highlightingEnabled=false`,
+      `https://id.who.int/icd/release/11/${ICD11_RELEASE}/mms/search?q=${encodeURIComponent(term)}&subtreesFilter=&includeKeywordResult=true&useFlexisearch=false&flatResults=true&highlightingEnabled=false`,
       { headers: { 'Accept': 'application/json', 'Accept-Language': 'en', 'API-Version': 'v2' } }
     );
     if (!res.ok) return null;
@@ -7069,6 +7115,11 @@ async function handleFileUpload(e, mode = 'replace') {
           def_uz:   String(row['def_uz']   || row['Def_uz']   || '').trim(),
           usmle:    String(row['usmle']    || row['USMLE']    || '').trim(),
           ipa:      String(row['ipa']      || row['IPA']      || '').trim(),
+          refs:     parseImportJson(row['refs'] || row['Refs'] || row['Refs_json'] || row['refs_json'], []),
+          icd11:    parseImportJson(row['icd11'] || row['ICD11'] || row['ICD11_json'] || row['icd11_json'], null),
+          fdaDrug:  parseImportJson(row['fdaDrug'] || row['fda_drug'] || row['FDA_json'] || row['fda_json'], null),
+          rxclassATC: parseImportJson(row['rxclassATC'] || row['rxclass_atc'] || row['RxClass_json'] || row['rxclass_json'], null),
+          trials:   parseImportJson(row['trials'] || row['Trials_json'] || row['trials_json'], null),
         }));
       } catch (err) {
         showToast('⚠️ 엑셀 파일 읽기 실패');
@@ -7086,22 +7137,50 @@ async function handleFileUpload(e, mode = 'replace') {
                        concept:3, concept_category:3, conceptcategory:3,
                        category:4, system:4, system_category:4,
                        system_tags:5, systemtags:5, tags:5,
-                       def_ko:6, def_en:7, def_uz:8, usmle:9, ipa:10 };
+                       def_ko:6, def_en:7, def_uz:8, usmle:9, ipa:10,
+                       refs:11, refs_json:11, icd11:12, icd11_json:12,
+                       fda_json:13, fda_drug:13, rxclass_json:14, rxclass_atc:14,
+                       trials:15, trials_json:15 };
+      if (!headerCols) {
+        const invalidLine = dataLines.find(line => {
+          const count = line.split('\t').length;
+          return !(count >= 11 || count === 9);
+        });
+        if (invalidLine) {
+          showToast('⚠️ 헤더 없는 TSV/CSV는 11열 표준 또는 9열 legacy 형식만 지원합니다. 헤더를 추가해 주세요.');
+          return;
+        }
+      }
       rows = dataLines.filter(l => l.trim() && !l.startsWith('#')).map((line, i) => {
         const cols = line.split('\t');
         if (!headerCols) {
-          return {
-            id: 1000 + i,
-            ko:       cols[0]?.trim() || '',
-            en:       cols[1]?.trim() || '',
-            uz:       cols[2]?.trim() || '',
-            category: cols[3]?.trim() || '',
-            def_ko:   cols[4]?.trim() || '',
-            def_en:   cols[5]?.trim() || '',
-            def_uz:   cols[6]?.trim() || '',
-            usmle:    cols[7]?.trim() || '',
-            ipa:      cols[8]?.trim() || '',
-          };
+          return cols.length >= 11
+            ? {
+                id: 1000 + i,
+                ko:       cols[0]?.trim() || '',
+                en:       cols[1]?.trim() || '',
+                uz:       cols[2]?.trim() || '',
+                concept_category: cols[3]?.trim() || '',
+                category: cols[4]?.trim() || '',
+                system_tags: cols[5]?.trim() || '',
+                def_ko:   cols[6]?.trim() || '',
+                def_en:   cols[7]?.trim() || '',
+                def_uz:   cols[8]?.trim() || '',
+                usmle:    cols[9]?.trim() || '',
+                ipa:      cols[10]?.trim() || '',
+              }
+            : {
+                id: 1000 + i,
+                ko:       cols[0]?.trim() || '',
+                en:       cols[1]?.trim() || '',
+                uz:       cols[2]?.trim() || '',
+                category: cols[3]?.trim() || '',
+                def_ko:   cols[4]?.trim() || '',
+                def_en:   cols[5]?.trim() || '',
+                def_uz:   cols[6]?.trim() || '',
+                usmle:    cols[7]?.trim() || '',
+                ipa:      cols[8]?.trim() || '',
+              };
         }
         const get = (defaultIdx) => {
           const hi = headerCols.findIndex((h, idx) => ALIAS2[h] === defaultIdx);
@@ -7120,6 +7199,11 @@ async function handleFileUpload(e, mode = 'replace') {
           def_uz:   get(8),
           usmle:    get(9),
           ipa:      get(10),
+          refs:     parseImportJson(get(11), []),
+          icd11:    parseImportJson(get(12), null),
+          fdaDrug:  parseImportJson(get(13), null),
+          rxclassATC: parseImportJson(get(14), null),
+          trials:   parseImportJson(get(15), null),
         };
       });
     }
@@ -7128,6 +7212,7 @@ async function handleFileUpload(e, mode = 'replace') {
     if (rows.length === 0) { showToast('⚠️ 유효한 데이터가 없습니다'); return; }
 
     if (mode === 'replace') {
+      exportCompleteJsonBackup();
       TERMS.length = 0;
       bookmarks.clear();
       localStorage.setItem('kma_bookmarks', JSON.stringify([]));
@@ -7146,8 +7231,8 @@ async function handleFileUpload(e, mode = 'replace') {
         seenInBatch.add(key);
         const existIdx = findTermIndexByIdentity(t);
         if (existIdx !== -1 && mode === 'append') {
-          // 완전 덮어쓰기 (기존 id 유지)
-          TERMS[existIdx] = normalizeTermForStorage({ ...t, id: TERMS[existIdx].id, updatedAt: new Date().toISOString() });
+          // 새 파일 값은 반영하되 기존 refs/ICD/FDA/RxClass/Trials 보강 데이터는 보존
+          TERMS[existIdx] = mergeDuplicateTerms(TERMS[existIdx], normalizeTermForStorage({ ...t, id: TERMS[existIdx].id, updatedAt: new Date().toISOString() }));
           saveTermToCloud(TERMS[existIdx]);
           overwriteCount++;
         } else if (existIdx === -1) {
@@ -7159,14 +7244,14 @@ async function handleFileUpload(e, mode = 'replace') {
       if (rows.length === 0) {
         saveTermsToLocalStorage(); applyFilters(); updateBookmarkCount();
         if (mode === 'add_only') showToast('⚠️ 새로 추가할 용어가 없습니다 · 기존 용어는 유지됨');
-        else showToast(`✅ ${overwriteCount}개 완전 덮어쓰기 완료`);
+        else showToast(`✅ ${overwriteCount}개 보존 병합 완료`);
         return;
       }
     }
 
     // 업로드 시 AI 자동완성 없이 전부 즉시 저장
     // (빈 칸 채우기는 내보내기 탭 → '일괄 빈칸 채우기'로 별도 실행)
-    TERMS.push(...rows.map(t => normalizeTermForStorage({ ...t, category: t.category || '기타' })));
+    TERMS.push(...rows.map(t => normalizeTermForStorage({ ...t, category: t.category || 'General' })));
     saveTermsToLocalStorage();
     applyFilters();
     updateBookmarkCount();
