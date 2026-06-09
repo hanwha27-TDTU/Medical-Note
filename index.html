@@ -4182,7 +4182,6 @@ function openEditModal(e, id) {
       </div>
     </div>`;
 
-  modal.addEventListener('click', ev => { if (ev.target === modal) modal.remove(); });
   document.body.appendChild(modal);
 }
 
@@ -5124,16 +5123,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.19',
+  version: '3.20',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 9일 15:54:05',
+  updatedAt: '2026년 6월 9일 15:56:38',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 개념분류와 대표 장기계 필터 분리',
+    title: '최신 · 용어 편집창 바깥 클릭 닫힘 방지',
+    items: [
+      '용어 편집 중 실수로 배경을 클릭해 편집창이 닫히지 않도록 변경',
+      '편집창은 우측 상단 닫기 버튼, 저장, 삭제 동작으로만 종료되도록 정리',
+      '입력 중인 내용이 의도치 않게 사라지는 휴먼에러 가능성 감소',
+    ]
+  },
+  {
+    title: 'v3.19 · 개념분류와 대표 장기계 필터 분리',
     items: [
       '상단 필터를 개념분류(무엇인가)와 대표 장기계(어디와 관련 있는가) 두 줄로 분리',
       'Anatomy · Diseases · Pharmacology 등 개념분류를 드롭다운이 아닌 칩 버튼으로 표시',
