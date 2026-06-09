@@ -4524,149 +4524,6 @@ function showGuide() {
     </div>`;
 }
 
-function showLegacyExportMenu() {
-  const main = document.getElementById('mainContent');
-  const userTerms = TERMS.filter(t => t.id >= 1000);
-  const total = TERMS.length;
-
-  main.innerHTML = `
-    <div style="padding:8px 0">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px">📤 내보내기</div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">
-        <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px">💾 전체 데이터 백업 (TSV)</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
-          현재 앱의 모든 용어를 저장합니다.<br>
-          다음에 업로드하면 <span style="color:var(--accent2)">AI 호출 없이 즉시 복원</span>돼요.
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-          <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:10px;padding:2px 8px;font-size:11px;color:#4ade80">정의 포함</span>
-          <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:10px;padding:2px 8px;font-size:11px;color:#4ade80">IPA 포함</span>
-          <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:10px;padding:2px 8px;font-size:11px;color:#4ade80">USMLE 포함</span>
-          <span style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:10px;padding:2px 8px;font-size:11px;color:#74b0ff">총 ${total}개 용어</span>
-        </div>
-        <button onclick="exportFullBackup()" style="width:100%;background:var(--accent2);border:none;border-radius:8px;padding:11px;color:#0d1117;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
-          💾 전체 데이터 저장 (.tsv)
-        </button>
-      </div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">
-        <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px">📋 Anki 덱 내보내기</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
-          Anki에 바로 import할 수 있는 플래시카드 형식으로 저장합니다.
-        </div>
-        <button onclick="exportAnki()" style="width:100%;background:var(--accent);border:none;border-radius:8px;padding:11px;color:#0d1117;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
-          📋 Anki TSV 내보내기
-        </button>
-      </div>
-
-      <div style="background:var(--surface);border:1px solid rgba(34,197,94,0.3);border-radius:12px;padding:16px;margin-bottom:10px">
-        <div style="font-size:13px;color:#4ade80;font-weight:600;margin-bottom:4px">📊 Excel 내보내기</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
-          모든 용어를 Excel(.xlsx) 파일로 저장합니다.
-        </div>
-        <button onclick="exportExcel()" style="width:100%;background:rgba(34,197,94,0.15);border:1px solid #4ade80;border-radius:8px;padding:11px;color:#4ade80;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
-          📊 Excel (.xlsx) 내보내기
-        </button>
-      </div>
-
-      <div style="background:var(--surface);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:16px;margin-bottom:10px">
-        <div style="font-size:13px;color:#fbbf24;font-weight:600;margin-bottom:4px">🤖 일괄 빈칸 채우기</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
-          정의·IPA·USMLE 등 빈 칸을 AI로 자동으로 채웁니다.<br>
-          <span style="color:var(--accent2)">이미 채워진 칸은 그대로 유지됩니다.</span>
-        </div>
-        <button onclick="bulkFillBlanks('all')" style="width:100%;background:rgba(251,191,36,0.12);border:1px solid #fbbf24;border-radius:8px;padding:11px;color:#fbbf24;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px">
-          🤖 전체 용어 빈칸 채우기 (${TERMS.filter(t=>!t.def_ko||!t.def_en).length}개 미완성)
-        </button>
-        <button onclick="bulkReclassify()" style="width:100%;background:rgba(88,166,255,0.1);border:1px solid #58a6ff;border-radius:8px;padding:11px;color:#74b0ff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
-          🏷️ '기타' 카테고리 재분류 (${TERMS.filter(t=>!t.category||t.category==='기타').length}개)
-        </button>
-      </div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">
-        <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px">🤖 AI API 설정</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
-          현재 AI 상태: <span style="color:var(--accent2)">${maskApiKey(getAIConfig().apiKey)}</span><br>
-          AI 자동완성·재생성을 쓰려면 우측 상단 <span style="color:var(--accent)">설정</span>에서 API 키를 저장하세요.
-        </div>
-        <button onclick="showAISettings()" style="width:100%;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:10px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">설정 열기</button>
-      </div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">
-        <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px">📱 브라우저 자동저장</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
-          업로드·추가·수정·삭제 후 localStorage에 자동 저장됩니다.<br>
-          현재 상태: <span style="color:var(--accent2)">${getStorageStatusText()}</span>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button onclick="saveTermsToLocalStorage();showToast('✅ localStorage 저장 완료')" style="flex:1;background:var(--surface2);border:1px solid var(--accent2);border-radius:8px;padding:10px;color:var(--accent2);font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">수동 저장</button>
-          <button onclick="showConfirm('자동저장 데이터를 삭제할까요?<br>현재 화면의 용어는 유지됩니다.', () => {clearTermsLocalStorage();showToast('🗑️ 자동저장 삭제 완료');showExportMenu();})" style="flex:1;background:var(--surface2);border:1px solid var(--red);border-radius:8px;padding:10px;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">자동저장 삭제</button>
-        </div>
-      </div>
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">
-        <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px">🔄 복원 방법</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.8">
-          1. 앱을 다시 열면 localStorage 데이터가 자동 복원됩니다<br>
-          2. 별도 기기·브라우저로 옮길 때는 <span style="color:var(--accent2)">전체 데이터 백업 TSV</span>를 사용하세요<br>
-          3. Anki에는 <span style="color:var(--accent)">Anki TSV</span> 파일을 import하면 됩니다 ✅
-        </div>
-      </div>
-
-      <!-- 중복 정리 -->
-      ${(() => {
-        const dupCount = (() => {
-          const seen = new Set(); let c = 0;
-          TERMS.forEach(t => { const k=(t.en||t.ko||'').toLowerCase().trim(); if(seen.has(k))c++; else seen.add(k); });
-          return c;
-        })();
-        return dupCount > 0
-          ? `<div style="background:var(--surface);border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:16px;margin-top:10px">
-              <div style="font-size:13px;color:#fbbf24;font-weight:600;margin-bottom:4px">⚠️ 중복 용어 정리</div>
-              <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:10px">
-                현재 <span style="color:#fbbf24;font-weight:700">${dupCount}개</span>의 중복 용어가 감지됐습니다.<br>
-                각 중복 쌍에서 유지할 용어를 직접 선택할 수 있습니다.
-              </div>
-              <button onclick="showDuplicateManager()" style="width:100%;background:rgba(251,191,36,0.12);border:1px solid #fbbf24;border-radius:8px;padding:11px;color:#fbbf24;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
-                🔍 중복 용어 확인 및 정리
-              </button>
-            </div>`
-          : `<div style="background:var(--surface);border:1px solid rgba(63,185,80,0.3);border-radius:12px;padding:12px;margin-top:10px;text-align:center">
-              <span style="font-size:12px;color:#4ade80">✅ 중복 용어 없음</span>
-            </div>`;
-      })()}
-
-      <!-- 일괄 삭제 -->
-      <div style="background:var(--surface);border:1px solid rgba(248,81,73,0.35);border-radius:12px;padding:16px;margin-top:10px">
-        <div style="font-size:13px;color:#f85149;font-weight:600;margin-bottom:4px">🗑️ 용어 일괄 삭제</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">
-          카테고리별 또는 전체 용어를 한 번에 삭제합니다.<br>
-          <span style="color:#f87171">삭제 전 TSV 백업을 권장합니다.</span>
-        </div>
-        <div style="margin-bottom:8px">
-          <select id="bulkDeleteCategory" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none">
-            <option value="__all__">⚠️ 전체 용어 (${total}개)</option>
-            ${[...new Set(TERMS.map(t => t.category).filter(Boolean))].sort().map(cat =>
-              `<option value="${escapeHtml(cat)}">${escapeHtml(cat)} (${TERMS.filter(t => t.category === cat).length}개)</option>`
-            ).join('')}
-          </select>
-        </div>
-        <button onclick="bulkDeleteTerms()" style="width:100%;background:rgba(248,81,73,0.12);border:1px solid #f85149;border-radius:8px;padding:11px;color:#f85149;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">
-          🗑️ 선택한 용어 삭제
-        </button>
-      </div>
-
-
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:10px;text-align:center">
-        <button onclick="showDevInfo()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">👨‍💻 개발자 정보</button>
-      </div>
-      <button onclick="switchTab('search', document.querySelector('.nav-btn'))" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:10px">← 돌아가기</button>
-    </div>
-  `;
-}
-
-// v3.1 data manager. This later declaration intentionally replaces the legacy export page.
 function showExportMenu() {
   const main = document.getElementById('mainContent');
   const learning = getLearningStateMap();
@@ -5229,16 +5086,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.17',
+  version: '3.18',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 9일 15:02:55',
+  updatedAt: '2026년 6월 9일 15:09:03',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 업로드 데이터 손상 방지와 SRS 안정화',
+    title: '최신 · 구버전 내보내기 지뢰 제거와 헤더 감지 보강',
+    items: [
+      '호출되지 않던 구버전 내보내기 메뉴와 구형 9열 TSV 백업·구형 일괄삭제 함수를 제거',
+      '파일 업로드 헤더 감지를 startsWith 방식에서 실제 허용 헤더명 매칭 방식으로 변경',
+      '보존 병합에 필요한 mergeDuplicateTerms는 유지하고 퀴즈 backward-compat 껍데기만 정리',
+    ]
+  },
+  {
+    title: 'v3.17 · 업로드 데이터 손상 방지와 SRS 안정화',
     items: [
       '헤더 없는 TSV/CSV는 11열 표준 또는 9열 legacy만 허용해 컬럼 밀림으로 인한 무음 데이터 손상 방지',
       '파일 교체 업로드 전 전체 JSON 백업을 자동 생성하고 Excel/CSV 병합 시 refs·ICD·FDA·RxClass·임상시험 보강 데이터 보존',
@@ -5767,60 +5632,6 @@ function applyDuplicateCleanup() {
   switchTab('export', getNavButton('export'));
 }
 
-async function bulkDeleteTerms() {
-  const sel = document.getElementById('bulkDeleteCategory')?.value || '__all__';
-  const targets = sel === '__all__' ? [...TERMS] : TERMS.filter(t => t.category === sel);
-  if (targets.length === 0) { showToast('⚠️ 삭제할 용어가 없습니다'); return; }
-
-  const label = sel === '__all__' ? `전체 ${targets.length}개 용어` : `${escapeHtml(sel)} 카테고리 ${targets.length}개 용어`;
-  const hasCloud = !!getSupabaseConfig();
-  const cloudNote = hasCloud ? '<br><span style="font-size:11px;color:#f87171">☁️ 클라우드에서도 삭제됩니다</span>' : '';
-
-  showConfirm(
-    `<b style="color:#f87171">${label}</b>를<br>모두 삭제할까요?<br><span style="font-size:11px;color:#6e7681">삭제 후 복구할 수 없습니다</span>${cloudNote}`,
-    async () => {
-      const deletedIds = targets.map(t => t.id);
-      const tombstones = targets.map(recordLocalTombstone).filter(Boolean);
-
-      if (sel === '__all__') {
-        TERMS.length = 0;
-        bookmarks.clear();
-        localStorage.setItem('kma_bookmarks', JSON.stringify([]));
-      } else {
-        const ids = new Set(deletedIds);
-        for (let i = TERMS.length - 1; i >= 0; i--) {
-          if (ids.has(TERMS[i].id)) TERMS.splice(i, 1);
-        }
-        ids.forEach(id => bookmarks.delete(id));
-        localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
-      }
-
-      if (expandedId && !TERMS.some(t => t.id === expandedId)) expandedId = null;
-      clearTermsLocalStorage();
-      saveTermsToLocalStorage();
-      updateBookmarkCount();
-      applyFilters();
-      showToast(`🗑️ ${label} 삭제 중...`);
-
-      // 클라우드에서도 삭제
-      if (hasCloud) {
-        try {
-          for (const tombstone of tombstones) {
-            const ok = await sbDeleteTerm(tombstone.id, tombstone.deletedAt);
-            if (!ok) throw new Error(`delete sync failed: ${tombstone.id}`);
-          }
-          showToast(`🗑️ ${label} 로컬 + 클라우드 삭제 완료`);
-        } catch(e) {
-          showToast(`⚠️ 로컬 삭제됨, 클라우드 삭제 실패 — 수동으로 동기화하세요`);
-        }
-      } else {
-        showToast(`🗑️ ${label} 삭제 완료`);
-      }
-      showExportMenu();
-    }
-  );
-}
-
 // ─── 일괄 빈칸 채우기 (기능2) ───
 async function bulkReclassify() {
   const canAI = isClaudeAiEnv() || !!(getAIConfig().openaiKey || getAIConfig().anthropicKey || getAIConfig().geminiKey);
@@ -5952,20 +5763,6 @@ async function bulkFillBlanks(scope = 'all') {
   saveTermsToLocalStorage();
   applyFilters();
   showToast(`✅ ${done}개 용어 빈칸 채우기 완료`);
-}
-
-function exportFullBackup() {
-  const header = 'Korean\tEnglish\tUzbek\tCategory\tDef_ko\tDef_en\tDef_uz\tUSMLE\tIPA';
-  const rows = TERMS.map(t => [
-    cleanTsvCell(t.ko), cleanTsvCell(t.en), cleanTsvCell(t.uz || ''), cleanTsvCell(t.category || '기타'),
-    cleanTsvCell(t.def_ko || ''), cleanTsvCell(t.def_en || ''), cleanTsvCell(t.def_uz || ''),
-    cleanTsvCell(t.usmle || ''), cleanTsvCell(t.ipa || '')
-  ].join('\t'));
-  const tsv = [header, ...rows].join('\n');
-
-  downloadTextFile(tsv, `${new Date().toISOString().slice(0,10).replace(/-/g,'.')} Bugeon Medical Terms 백업.tsv`);
-  saveTermsToLocalStorage();
-  showToast('💾 전체 데이터 저장 완료!');
 }
 
 function exportExcel() {
@@ -6494,10 +6291,6 @@ function showQuizResult() {
         </button>
       </div>
     </div>`;
-}
-
-function revealQuiz() {
-  revealQuizStep(); // backward-compat
 }
 
 // ─── Upload confirm modal ───
@@ -7127,12 +6920,6 @@ async function handleFileUpload(e, mode = 'replace') {
       }
     } else {
       const lines = ev.target.result.split('\n').filter(l => l.trim());
-      const firstLine = lines[0].toLowerCase();
-      const hasHeader = firstLine.startsWith('ko') || firstLine.startsWith('korean') ||
-                        firstLine.startsWith('english') || firstLine.startsWith('en\t');
-      const dataLines = hasHeader ? lines.slice(1) : lines;
-      // 헤더가 있으면 컬럼 순서 파악
-      const headerCols = hasHeader ? lines[0].split('\t').map(c => c.trim().toLowerCase()) : null;
       const ALIAS2 = { ko:0,korean:0, en:1,english:1, uz:2,uzbek:2,
                        concept:3, concept_category:3, conceptcategory:3,
                        category:4, system:4, system_category:4,
@@ -7141,6 +6928,11 @@ async function handleFileUpload(e, mode = 'replace') {
                        refs:11, refs_json:11, icd11:12, icd11_json:12,
                        fda_json:13, fda_drug:13, rxclass_json:14, rxclass_atc:14,
                        trials:15, trials_json:15 };
+      const firstCols = (lines[0] || '').split('\t').map(c => c.trim().toLowerCase());
+      const hasHeader = firstCols.some(c => Object.prototype.hasOwnProperty.call(ALIAS2, c));
+      const dataLines = hasHeader ? lines.slice(1) : lines;
+      // 헤더가 있으면 컬럼 순서 파악
+      const headerCols = hasHeader ? firstCols : null;
       if (!headerCols) {
         const invalidLine = dataLines.find(line => {
           const count = line.split('\t').length;
