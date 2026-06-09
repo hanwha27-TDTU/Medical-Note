@@ -4150,7 +4150,7 @@ function openEditModal(e, id) {
       <div style="${ROW}"><input id="edit_uz" value="${esc(t.uz)}" placeholder="O'zbek" style="${IS}"><button style="${RB}" onclick="regenField(${id},'uz')" title="AI 재생성">🔄</button></div>
 
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;margin-top:4px">발음 · 분류</div>
-      <div style="${ROW}"><input id="edit_ipa" value="${esc(t.ipa)}" placeholder="IPA (예: /ˈsep.sɪs/)" style="${IS}"><button style="${RB}" onclick="regenField(${id},'ipa')" title="앱 내부 IPA 생성">🔤</button></div>
+      <div style="${ROW}"><input id="edit_ipa" value="${esc(t.ipa)}" placeholder="IPA (예: /ˈsep.sɪs/)" style="${IS}"><button style="${RB}" onclick="regenField(${id},'ipa')" title="CMU 사전 → 무료 사전 → 내장 규칙 IPA 생성">🔤</button></div>
       <div style="margin-bottom:10px">
         <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:5px">개념분류</label>
         <select id="edit_concept_category" style="${IS}">
@@ -4196,6 +4196,74 @@ const FIELD_PROMPTS = {
   def_uz: (t) => `Write an Uzbek (O'zbek) medical definition for "${t.uz || t.en}" at medical student level. 1-2 sentences. Return ONLY the definition text.`,
   usmle:  (t) => `Give a USMLE Step 1/2 CK high-yield one-liner for "${t.en || t.ko}". Format strictly: ↑X, ↓Y | Tx: Z | Trap: W. Return ONLY that one line, nothing else.`,
 };
+
+const CMU_ARPABET_TO_IPA = Object.freeze({
+  AA: 'ɑː', AE: 'æ', AH: 'ʌ', AO: 'ɔː', AW: 'aʊ', AY: 'aɪ',
+  EH: 'e', ER: 'ɝ', EY: 'eɪ', IH: 'ɪ', IY: 'iː', OW: 'oʊ',
+  OY: 'ɔɪ', UH: 'ʊ', UW: 'uː',
+  B: 'b', CH: 'tʃ', D: 'd', DH: 'ð', F: 'f', G: 'ɡ', HH: 'h',
+  JH: 'dʒ', K: 'k', L: 'l', M: 'm', N: 'n', NG: 'ŋ', P: 'p',
+  R: 'r', S: 's', SH: 'ʃ', T: 't', TH: 'θ', V: 'v', W: 'w',
+  Y: 'j', Z: 'z', ZH: 'ʒ',
+});
+
+const CMU_MEDICAL_ARPABET = Object.freeze({
+  'abdomen': 'AE1 B D AH0 M AH0 N',
+  'abdominal': 'AE0 B D AA1 M AH0 N AH0 L',
+  'abducens': 'AE0 B D UW1 S EH0 N Z',
+  'acceleration': 'AE0 K S EH2 L ER0 EY1 SH AH0 N',
+  'adenosine': 'AH0 D EH1 N AH0 S IY2 N',
+  'appendectomy': 'AE2 P AH0 N D EH1 K T AH0 M IY0',
+  'apoptosis': 'AE2 P AH0 P T OW1 S IH0 S',
+  'arterial': 'AA0 R T IH1 R IY0 AH0 L',
+  'artery': 'AA1 R T ER0 IY0',
+  'aspirin': 'AE1 S P ER0 IH0 N',
+  'asthma': 'AE1 Z M AH0',
+  'biopsy': 'B AY1 AA0 P S IY0',
+  'blood': 'B L AH1 D',
+  'brain': 'B R EY1 N',
+  'cardiac': 'K AA1 R D IY0 AE2 K',
+  'cell': 'S EH1 L',
+  'colonoscopy': 'K OW2 L AH0 N AA1 S K AH0 P IY0',
+  'complete blood count': 'K AH0 M P L IY1 T | B L AH1 D | K AW1 N T',
+  'cyanosis': 'S AY2 AH0 N OW1 S IH0 S',
+  'diabetes': 'D AY2 AH0 B IY1 T IY0 Z',
+  'disease': 'D IH0 Z IY1 Z',
+  'dyspnea': 'D IH0 S P N IY1 AH0',
+  'femur': 'F IY1 M ER0',
+  'fever': 'F IY1 V ER0',
+  'filtration': 'F IH0 L T R EY1 SH AH0 N',
+  'flow': 'F L OW1',
+  'glycolysis': 'G L AY0 K AA1 L AH0 S IH0 S',
+  'halitosis': 'HH AE2 L IH0 T OW1 S IH0 S',
+  'heart': 'HH AA1 R T',
+  'homeostasis': 'HH OW2 M IY0 OW0 S T EY1 S IH0 S',
+  'infection': 'IH2 N F EH1 K SH AH0 N',
+  'inflammation': 'IH2 N F L AH0 M EY1 SH AH0 N',
+  'intestine': 'IH0 N T EH1 S T AH0 N',
+  'intubation': 'IH2 N T UW0 B EY1 SH AH0 N',
+  'kidney': 'K IH1 D N IY0',
+  'liver': 'L IH1 V ER0',
+  'lung': 'L AH1 NG',
+  'mellitus': 'M AH0 L AY1 T AH0 S',
+  'metformin': 'M EH0 T F AO1 R M IH0 N',
+  'muscle': 'M AH1 S AH0 L',
+  'necrosis': 'N AH0 K R OW1 S IH0 S',
+  'nerve': 'N ER1 V',
+  'neuron': 'N UH1 R AA0 N',
+  'output': 'AW1 T P UH2 T',
+  'pain': 'P EY1 N',
+  'recti': 'R EH1 K T AY0',
+  'rectus': 'R EH1 K T AH0 S',
+  'retina': 'R EH1 T AH0 N AH0',
+  'sepsis': 'S EH1 P S IH0 S',
+  'skin': 'S K IH1 N',
+  'stomach': 'S T AH1 M AH0 K',
+  'syndrome': 'S IH1 N D R OW2 M',
+  'tuberculosis': 'T AH0 B ER2 K Y AH0 L OW1 S AH0 S',
+  'ventilation': 'V EH2 N T AH0 L EY1 SH AH0 N',
+  'vein': 'V EY1 N',
+});
 
 const LOCAL_IPA_PHRASES = Object.freeze({
   'halitosis': 'ˌhæl.ɪˈtoʊ.sɪs',
@@ -4263,6 +4331,100 @@ function normalizeIpaLookupTerm(value) {
     .trim();
 }
 
+function formatIpa(value) {
+  const text = String(value || '').trim().replace(/^\/|\/$/g, '');
+  return text ? `/${text}/` : '';
+}
+
+function arpabetToIPA(arpabet) {
+  const tokens = String(arpabet || '').trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return '';
+  return tokens.map(token => {
+    if (token === '|') return ' ';
+    const match = token.match(/^([A-Z]+)([012])?$/);
+    if (!match) return '';
+    const base = match[1];
+    const stress = match[2];
+    const ipa = CMU_ARPABET_TO_IPA[base] || '';
+    if (!ipa) return '';
+    if (stress === '1') return `ˈ${ipa}`;
+    if (stress === '2') return `ˌ${ipa}`;
+    if (base === 'AH' && stress === '0') return 'ə';
+    if (base === 'ER' && stress === '0') return 'ɚ';
+    return ipa;
+  }).join('')
+    .replace(/([pbtdkɡfvθðszʃʒhmnŋlrwj]+)([ˈˌ])(?=[ɑæʌɔəeɪiːoʊuɛɝɚʊ])/g, '$2$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function generateCmuMiniIPA(term) {
+  const normalized = normalizeIpaLookupTerm(term);
+  if (!normalized) return '';
+  if (CMU_MEDICAL_ARPABET[normalized]) return formatIpa(arpabetToIPA(CMU_MEDICAL_ARPABET[normalized]));
+  const words = normalized.split(/[\s-]+/).filter(Boolean);
+  if (!words.length) return '';
+  const parts = words.map(word => CMU_MEDICAL_ARPABET[word] ? arpabetToIPA(CMU_MEDICAL_ARPABET[word]) : '');
+  return parts.every(Boolean) ? formatIpa(parts.join(' ')) : '';
+}
+
+const IPA_API_CACHE = new Map();
+
+function cleanDictionaryIpaText(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const withoutSlashes = text.replace(/^\/|\/$/g, '').trim();
+  if (!withoutSlashes || withoutSlashes.length > 80) return '';
+  return formatIpa(withoutSlashes);
+}
+
+async function fetchDictionaryWordIPA(word) {
+  const clean = String(word || '').toLowerCase().replace(/[^a-z-]/g, '').trim();
+  if (!clean) return '';
+  if (IPA_API_CACHE.has(clean)) return IPA_API_CACHE.get(clean);
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean)}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      IPA_API_CACHE.set(clean, '');
+      return '';
+    }
+    const data = await res.json();
+    const entries = Array.isArray(data) ? data : [];
+    const candidates = [];
+    entries.forEach(entry => {
+      if (entry.phonetic) candidates.push(entry.phonetic);
+      (entry.phonetics || []).forEach(p => { if (p.text) candidates.push(p.text); });
+    });
+    const ipa = candidates.map(cleanDictionaryIpaText).find(Boolean) || '';
+    IPA_API_CACHE.set(clean, ipa);
+    return ipa;
+  } catch {
+    IPA_API_CACHE.set(clean, '');
+    return '';
+  }
+}
+
+async function fetchDictionaryIPA(term) {
+  const normalized = normalizeIpaLookupTerm(term);
+  if (!normalized) return '';
+  const exact = await fetchDictionaryWordIPA(normalized.replace(/\s+/g, '-'));
+  if (exact) return exact;
+  const words = normalized.split(/[\s-]+/).filter(Boolean);
+  if (!words.length || words.length > 5) return '';
+  const parts = [];
+  for (const word of words) {
+    const ipa = await fetchDictionaryWordIPA(word);
+    if (!ipa) return '';
+    parts.push(ipa.replace(/^\/|\/$/g, ''));
+  }
+  return parts.length ? formatIpa(parts.join(' ')) : '';
+}
+
 function roughIpaStem(word) {
   let s = String(word || '').toLowerCase().replace(/[^a-z]/g, '');
   if (!s) return '';
@@ -4320,6 +4482,16 @@ function generateLocalIPA(term) {
   return parts.length ? `/${parts.join(' ')}/` : '';
 }
 
+async function generateBestIPA(term) {
+  const cmuIpa = generateCmuMiniIPA(term);
+  if (cmuIpa) return { ipa: cmuIpa, source: 'CMU mini' };
+  const dictionaryIpa = await fetchDictionaryIPA(term);
+  if (dictionaryIpa) return { ipa: dictionaryIpa, source: 'Free Dictionary' };
+  const localIpa = generateLocalIPA(term);
+  if (localIpa) return { ipa: localIpa, source: '앱 내부 규칙' };
+  return { ipa: '', source: '' };
+}
+
 async function regenField(id, field) {
   const t = TERMS.find(x => x.id === id);
   if (!t) { showToast('⚠️ 용어를 찾을 수 없습니다'); return; }
@@ -4351,10 +4523,10 @@ async function regenField(id, field) {
 
   try {
     if (field === 'ipa') {
-      const localIpa = generateLocalIPA(current.en || current.ko || current.uz);
-      if (localIpa) {
-        inputEl.value = localIpa;
-        showToast('✅ 앱 내부 IPA 자동생성 완료');
+      const generated = await generateBestIPA(current.en || current.ko || current.uz);
+      if (generated.ipa) {
+        inputEl.value = generated.ipa;
+        showToast(`✅ IPA 자동생성 완료 · ${generated.source}`);
         return;
       }
     }
@@ -5123,16 +5295,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.20',
+  version: '3.21',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 9일 15:56:38',
+  updatedAt: '2026년 6월 9일 16:31:23',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 용어 편집창 바깥 클릭 닫힘 방지',
+    title: '최신 · CMU mini 기반 IPA 생성 체계 도입',
+    items: [
+      'IPA 생성 순서를 CMU mini 사전 → Free Dictionary API → 앱 내부 규칙 fallback으로 개편',
+      'ARPABET을 IPA로 변환하는 내장 변환기를 추가해 주요 의학용어 발음 정확도 개선',
+      'IPA 생성 완료 시 CMU mini · Free Dictionary · 앱 내부 규칙 중 어떤 출처를 사용했는지 표시',
+    ]
+  },
+  {
+    title: 'v3.20 · 용어 편집창 바깥 클릭 닫힘 방지',
     items: [
       '용어 편집 중 실수로 배경을 클릭해 편집창이 닫히지 않도록 변경',
       '편집창은 우측 상단 닫기 버튼, 저장, 삭제 동작으로만 종료되도록 정리',
