@@ -2322,8 +2322,10 @@ function filterLocalRowsAfterCanonicalFence(localRows, cloudTerms, canonicalMeta
   const rows = (Array.isArray(localRows) ? localRows : []).filter(row => {
     const id = String(row.id);
     if (cloudIds.has(id)) return true;
-    const localTime = Date.parse(row.updatedAt || row.deletedAt || row.createdAt || '') || 0;
-    return localTime > canonicalTime;
+    if (row.deletedAt) return false;
+    const createdTime = Date.parse(row.createdAt || '') || 0;
+    const updatedTime = Date.parse(row.updatedAt || '') || 0;
+    return createdTime > canonicalTime && updatedTime > canonicalTime;
   });
   return { rows, skipped: (Array.isArray(localRows) ? localRows.length : 0) - rows.length };
 }
@@ -5354,16 +5356,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.23',
+  version: '3.24',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 9일 17:14:59',
+  updatedAt: '2026년 6월 9일 17:30:08',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 태블릿 동기화 시 삭제 항목 부활 방지',
+    title: '최신 · 클라우드 최종본 기준 동기화 잠금 강화',
+    items: [
+      '클라우드 최종본에 없는 태블릿 로컬 항목은 기준본 이후 새로 만든 항목일 때만 추가로 인정',
+      '기준본보다 오래된 태블릿 과거 항목은 나중에 수정되어도 클라우드 최종본으로 다시 올라가지 않도록 차단',
+      '클라우드에 없는 로컬 삭제 기록은 업로드하지 않아 오래된 태블릿 잔재가 동기화 결과에 섞이지 않도록 보강',
+    ]
+  },
+  {
+    title: 'v3.23 · 태블릿 동기화 시 삭제 항목 부활 방지',
     items: [
       'canonical_version을 읽지 못하면 일반 병합을 중단해 태블릿 로컬 항목이 최종본을 덮지 않도록 보강',
       '일반 양방향 동기화에서도 클라우드 삭제 표시가 태블릿의 오래된 로컬 항목보다 우선하도록 충돌 판정 개선',
