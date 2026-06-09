@@ -643,11 +643,31 @@ document.addEventListener('keydown', e => {
   .search-clear.visible { display: flex; }
 
   /* Filter tabs */
+  .filter-group {
+    padding: 10px 24px 0;
+  }
+
+  .filter-group-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-bottom: 7px;
+  }
+
+  .filter-group-title span {
+    color: #6e7681;
+    font-weight: 500;
+  }
+
   .filter-row {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 12px 24px 0;
+    padding: 0;
     overflow-x: visible;
   }
 
@@ -671,6 +691,12 @@ document.addEventListener('keydown', e => {
     background: rgba(88,166,255,0.12);
     border-color: var(--accent);
     color: var(--accent);
+  }
+
+  .filter-btn.concept.active {
+    background: rgba(167,139,250,0.14);
+    border-color: #7c3aed;
+    color: #c4b5fd;
   }
 
   /* Stats bar */
@@ -1646,21 +1672,6 @@ document.addEventListener('keydown', e => {
 
 <div style="display:flex;gap:6px;align-items:center;padding:6px 24px 0;flex-wrap:wrap">
   <button onclick="searchUMLSFromInput()" style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:8px;padding:6px 12px;color:#74b0ff;font-size:11px;font-weight:600;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">🏥 NIH UMLS 검색</button>
-  <select id="conceptFilterSelect" onchange="setConceptFilter(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text2);font-size:11px;font-family:'Noto Sans KR',sans-serif;outline:none;cursor:pointer">
-    <option value="all">개념: 전체</option>
-    <option value="Anatomy">Anatomy</option>
-    <option value="Physiology">Physiology</option>
-    <option value="Symptoms & Signs">Symptoms & Signs</option>
-    <option value="Diseases">Diseases</option>
-    <option value="Diagnostics">Diagnostics</option>
-    <option value="Procedures">Procedures</option>
-    <option value="Pharmacology">Pharmacology</option>
-    <option value="Pathology">Pathology</option>
-    <option value="Microbiology">Microbiology</option>
-    <option value="Biochemistry & Genetics">Biochemistry & Genetics</option>
-    <option value="Public Health">Public Health</option>
-    <option value="Other / Unclassified">Other / Unclassified</option>
-  </select>
   <select id="sortSelect" onchange="setSort(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text2);font-size:11px;font-family:'Noto Sans KR',sans-serif;outline:none;cursor:pointer">
     <option value="default">정렬: 완성 우선 · A→Z</option>
     <option value="en_asc">A→Z (영어만)</option>
@@ -1668,7 +1679,27 @@ document.addEventListener('keydown', e => {
     <option value="uz_asc">A→Z (우즈베크)</option>
   </select>
 </div>
-<div class="filter-row" id="filterRow">
+<div class="filter-group">
+  <div class="filter-group-title">🧭 개념분류 <span>무엇인가?</span></div>
+  <div class="filter-row" id="conceptFilterRow">
+    <button class="filter-btn concept active" onclick="setConceptFilter('all', this)">전체</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Anatomy', this)">🦴 Anatomy</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Physiology', this)">⚙️ Physiology</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Symptoms & Signs', this)">🩺 Symptoms & Signs</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Diseases', this)">📋 Diseases</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Diagnostics', this)">🔎 Diagnostics</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Procedures', this)">🛠️ Procedures</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Pharmacology', this)">💊 Pharmacology</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Pathology', this)">🔬 Pathology</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Microbiology', this)">🦠 Microbiology</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Biochemistry & Genetics', this)">🧬 Biochem & Genetics</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Public Health', this)">📈 Public Health</button>
+    <button class="filter-btn concept" onclick="setConceptFilter('Other / Unclassified', this)">📁 Other</button>
+  </div>
+</div>
+<div class="filter-group">
+  <div class="filter-group-title">🫀 대표 장기계 <span>어디와 관련 있는가?</span></div>
+  <div class="filter-row" id="filterRow">
   <button class="filter-btn active" onclick="setFilter('all', this)">전체</button>
   <button class="filter-btn" onclick="setFilter('General', this)">📌 General</button>
   <button class="filter-btn" onclick="setFilter('Cardiovascular', this)">❤️ Cardiovascular</button>
@@ -1689,6 +1720,7 @@ document.addEventListener('keydown', e => {
   <button class="filter-btn" onclick="setFilter('Immunology', this)">🛡️ Immunology</button>
   <button class="filter-btn" onclick="setFilter('기타', this)">📁 기타</button>
   <button id="filterBookmarkBtn" class="filter-btn" onclick="setFilter('즐겨찾기', this)">⭐ 즐겨찾기</button>
+  </div>
 </div>
 
 <div class="stats-bar">
@@ -2861,10 +2893,16 @@ function setFilter(filter, btn) {
   applyFilters();
 }
 
-function setConceptFilter(filter) {
+function setConceptFilter(filter, btn) {
   currentConceptFilter = filter || 'all';
-  const sel = document.getElementById('conceptFilterSelect');
-  if (sel) sel.value = currentConceptFilter;
+  document.querySelectorAll('#conceptFilterRow .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) {
+    btn.classList.add('active');
+  } else {
+    const targetBtn = [...document.querySelectorAll('#conceptFilterRow .filter-btn')]
+      .find(b => (b.getAttribute('onclick') || '').includes(`'${currentConceptFilter}'`));
+    (targetBtn || document.querySelector('#conceptFilterRow .filter-btn'))?.classList.add('active');
+  }
   applyFilters();
 }
 
@@ -5086,16 +5124,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.18',
+  version: '3.19',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 9일 15:09:03',
+  updatedAt: '2026년 6월 9일 15:54:05',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 구버전 내보내기 지뢰 제거와 헤더 감지 보강',
+    title: '최신 · 개념분류와 대표 장기계 필터 분리',
+    items: [
+      '상단 필터를 개념분류(무엇인가)와 대표 장기계(어디와 관련 있는가) 두 줄로 분리',
+      'Anatomy · Diseases · Pharmacology 등 개념분류를 드롭다운이 아닌 칩 버튼으로 표시',
+      '기존 장기계 필터에는 대표 장기계 제목을 추가해 새 MECE 분류 구조를 화면에서 명확화',
+    ]
+  },
+  {
+    title: 'v3.18 · 구버전 내보내기 지뢰 제거와 헤더 감지 보강',
     items: [
       '호출되지 않던 구버전 내보내기 메뉴와 구형 9열 TSV 백업·구형 일괄삭제 함수를 제거',
       '파일 업로드 헤더 감지를 startsWith 방식에서 실제 허용 헤더명 매칭 방식으로 변경',
