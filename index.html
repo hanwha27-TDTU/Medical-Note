@@ -3907,6 +3907,7 @@ let selectedTermIds = new Set();
 let _lastListSignature = '';
 let currentTab = 'search';
 const pendingDrugApiEnrichment = { add: null, edit: null };
+const drugApiRequestSeq = { add: 0, edit: 0 };
 
 function getActiveDrugs() {
   return dedupeDrugsById(DRUGS).filter(d => !d.deletedAt);
@@ -4153,7 +4154,7 @@ function renderTerms(terms, bookmarkDivider = 0) {
               ? `<span class="term-complete-badge" title="${missing.join(', ')} 빈칸" style="color:#f85149;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);margin-right:4px">✗ ${missing.join(' · ')}</span>`
               : `<span class="term-complete-badge" title="모든 필드 완성" style="color:#3fb950;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);margin-right:4px">✓</span>`;
           })()}
-          <button class="bookmark-btn ${bookmarks.has(t.id) ? 'saved' : ''}" onclick="toggleBookmark(event, ${termId})">${bookmarks.has(t.id) ? '⭐' : '☆'}</button>
+          <button class="bookmark-btn ${bookmarks.has(t.id) ? 'saved' : ''}" data-role="bookmark" onclick="toggleBookmark(event, ${termId})" title="즐겨찾기">${bookmarks.has(t.id) ? '⭐' : '☆'}</button>
           <button class="bookmark-btn" onclick="openEditModal(event, ${termId})" title="편집" style="font-size:14px">✏️</button>
           <span class="chevron">▼</span>
         </div>
@@ -4706,16 +4707,22 @@ async function fetchDrugApiForForm(mode) {
     btn.textContent = '🔎 API 조회 중...';
   }
   if (preview) preview.innerHTML = `<div class="drug-api-source">RxNorm/RxClass 조회 중...</div>`;
+  const requestId = ++drugApiRequestSeq[mode];
   try {
     const rxnorm = await fetchRxNorm(query);
     const rxclass = rxnorm?.rxcui ? await fetchRxClass(rxnorm.rxcui) : null;
+    if (requestId !== drugApiRequestSeq[mode] || !document.body.contains(preview) || drugApiQuery(mode) !== query) {
+      return;
+    }
     const bundle = { query, rxnorm, rxclass: Array.isArray(rxclass) ? rxclass : [] };
     renderDrugApiPreview(mode, bundle);
   } catch (err) {
     console.warn('Drug API enrichment failed:', err);
-    if (preview) preview.innerHTML = `<div class="drug-empty-note">API 조회에 실패했습니다. 네트워크 연결 또는 API 응답을 확인해주세요.</div>`;
+    if (requestId === drugApiRequestSeq[mode] && document.body.contains(preview)) {
+      preview.innerHTML = `<div class="drug-empty-note">API 조회에 실패했습니다. 네트워크 연결 또는 API 응답을 확인해주세요.</div>`;
+    }
   } finally {
-    if (btn) {
+    if (requestId === drugApiRequestSeq[mode] && document.body.contains(btn)) {
       btn.disabled = false;
       btn.textContent = '🔎 무료 API로 보강';
     }
@@ -4949,7 +4956,22 @@ function toggleBookmark(e, id) {
   safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
   updateLearningState(id, { bookmarked: bookmarks.has(id) });
   updateBookmarkCount();
-  applyFilters();
+  if (currentFilter === '즐겨찾기') {
+    applyFilters();
+    return;
+  }
+  refreshTermCardBookmarkState(id);
+  if (_drawerTermId === id) _updateDrawerBookmarkButton();
+}
+
+function refreshTermCardBookmarkState(id) {
+  const termId = Number(id) || id;
+  const card = document.getElementById('card-' + termId);
+  const btn = card?.querySelector('[data-role="bookmark"]');
+  if (!btn) return;
+  const saved = bookmarks.has(termId);
+  btn.classList.toggle('saved', saved);
+  btn.textContent = saved ? '⭐' : '☆';
 }
 
 function toggleTermSelection(event, id) {
@@ -7005,6 +7027,13 @@ async function regenField(id, field) {
 
   const inputEl = document.getElementById(`edit_${field}`);
   if (!inputEl) { showToast('⚠️ 편집 칸을 찾을 수 없습니다'); return; }
+  const editModal = document.getElementById('editModal');
+  const requestStartValue = inputEl.value;
+  const canApplyRegenResult = () => (
+    document.body.contains(inputEl) &&
+    document.getElementById('editModal') === editModal &&
+    inputEl.value === requestStartValue
+  );
   const current = {
     ...t,
     ko: document.getElementById('edit_ko')?.value.trim() || t.ko,
@@ -7031,6 +7060,10 @@ async function regenField(id, field) {
     if (field === 'ipa') {
       const generated = await generateBestIPA(current.en || current.ko || current.uz);
       if (generated.ipa) {
+        if (!canApplyRegenResult()) {
+          if (document.body.contains(inputEl)) showToast('ℹ️ 입력값이 바뀌어 IPA 결과를 적용하지 않았습니다');
+          return;
+        }
         inputEl.value = generated.ipa;
         showToast(`✅ IPA 자동생성 완료 · ${generated.source}`);
         return;
@@ -7043,17 +7076,21 @@ async function regenField(id, field) {
     }
 
     const result = (await callAIText(FIELD_PROMPTS[field](current), 300, 'field')).trim().replace(/^["']|["']$/g, '');
+    if (!canApplyRegenResult()) {
+      if (document.body.contains(inputEl)) showToast('ℹ️ 입력값이 바뀌어 AI 결과를 적용하지 않았습니다');
+      return;
+    }
     if (result) inputEl.value = result;
     showToast(`✅ ${field} 재생성 완료`);
   } catch (err) {
     console.error(err);
     showToast(`⚠️ 재생성 실패: ${err.message || 'AI 설정 확인'}`);
   } finally {
-    if (btn) {
+    if (document.body.contains(inputEl) && document.getElementById('editModal') === editModal && btn) {
       btn.textContent = prev;
       btn.disabled = false;
+      inputEl.style.opacity = '1';
     }
-    inputEl.style.opacity = '1';
   }
 }
 
@@ -8023,16 +8060,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.47',
+  version: '3.48',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 14일 17:46',
+  updatedAt: '2026년 6월 14일 18:03',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · IPA 선택입력 추가',
+    title: '최신 · 부분 렌더링과 비동기 안정화',
+    items: [
+      '즐겨찾기 별표 토글 시 일반 목록에서는 전체 리스트를 다시 그리지 않고 해당 카드 버튼만 갱신하도록 최적화',
+      'AI 필드 재생성 완료 전에 편집 모달이 닫히거나 입력값이 바뀐 경우 늦은 결과가 덮어쓰지 않도록 방어',
+      '약물 무료 API 보강 응답이 늦게 도착했을 때 현재 입력/화면과 맞지 않으면 미리보기에 반영하지 않도록 보강',
+    ]
+  },
+  {
+    title: 'v3.47 · IPA 선택입력 추가',
     items: [
       '일반용어 추가 모달의 선택 입력 영역에 IPA 입력칸 추가',
       '사용자가 직접 입력한 IPA가 저장 및 AI 자동완성 병합 과정에서 유지되도록 보강',
