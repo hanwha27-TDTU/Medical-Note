@@ -72,7 +72,7 @@ function drawerToggleBookmark() {
     bookmarks.add(_drawerTermId);
     showToast('⭐ 즐겨찾기에 추가됨');
   }
-  localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+  safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
   updateLearningState(_drawerTermId, { bookmarked: bookmarks.has(_drawerTermId) });
   updateBookmarkCount();
   _syncDrawerBookmarkBtn();
@@ -2092,11 +2092,24 @@ const CANONICAL_RECORD_IDS_HASH_META_KEY = 'medical_terms_canonical_record_ids_h
 const CANONICAL_SNAPSHOT_HASH_META_KEY = 'medical_terms_canonical_snapshot_hash';
 const TOMBSTONE_PRUNE_DAYS = 90;
 
+function safeSetItem(key, value, options = {}) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.warn('localStorage save failed:', key, err);
+    if (!options.silent && typeof showToast === 'function') {
+      showToast(options.message || '⚠️ 브라우저 저장공간 부족으로 일부 설정을 저장하지 못했습니다');
+    }
+    return false;
+  }
+}
+
 function getDeviceId() {
   let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
   if (!id) {
     id = (crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-    localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+    safeSetItem(DEVICE_ID_STORAGE_KEY, id, { silent: true });
   }
   return id;
 }
@@ -2191,7 +2204,7 @@ function getLocalSyncMeta() {
 
 function saveLocalSyncMeta(patch) {
   const next = { ...getLocalSyncMeta(), ...patch, deviceId: getDeviceId(), savedAt: new Date().toISOString() };
-  localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.stringify(next));
+  safeSetItem(SYNC_META_STORAGE_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -2212,7 +2225,7 @@ function getSupabaseConfig() {
 }
 
 function saveSupabaseConfig(url, key) {
-  localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url, key }));
+  safeSetItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url, key }));
 }
 
 function sbHeaders() {
@@ -2745,12 +2758,13 @@ function saveTermsToLocalStorage() {
     const payload = dedupeTermsById(TERMS).filter(t => !t.deletedAt);
     TERMS.length = 0;
     TERMS.push(...payload);
-    localStorage.setItem(TERMS_STORAGE_KEY, JSON.stringify(payload));
-    localStorage.setItem(TERMS_STORAGE_META_KEY, JSON.stringify({
+    const termsSaved = safeSetItem(TERMS_STORAGE_KEY, JSON.stringify(payload), { silent: true });
+    const metaSaved = safeSetItem(TERMS_STORAGE_META_KEY, JSON.stringify({
       count: payload.length,
       savedAt: new Date().toISOString(),
       app: 'DrBugeon Medical Terms',
-    }));
+    }), { silent: true });
+    if (!termsSaved || !metaSaved) throw new Error('localStorage save failed');
     return true;
   } catch (err) {
     console.warn('Local save failed', err);
@@ -2765,7 +2779,7 @@ function loadLocalTombstones() {
 }
 
 function saveLocalTombstones(rows) {
-  localStorage.setItem(TOMBSTONE_STORAGE_KEY, JSON.stringify(dedupeTermsById(rows).filter(t => t.deletedAt)));
+  return safeSetItem(TOMBSTONE_STORAGE_KEY, JSON.stringify(dedupeTermsById(rows).filter(t => t.deletedAt)));
 }
 
 function hideLocalTombstonesFromTrash(ids) {
@@ -2872,7 +2886,7 @@ function getLearningStateMap() {
 }
 
 function saveLearningStateMap(map) {
-  localStorage.setItem(LEARNING_STORAGE_KEY, JSON.stringify(map || {}));
+  return safeSetItem(LEARNING_STORAGE_KEY, JSON.stringify(map || {}));
 }
 
 function updateLearningState(termId, patch, pushCloud = true) {
@@ -2970,7 +2984,7 @@ function applyLearningStates(states, cloudAuthoritative = false) {
   });
   saveLearningStateMap(local);
   bookmarks = new Set(Object.values(local).filter(s => s.bookmarked).map(s => Number(s.termId)));
-  localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+  safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
 }
 
 async function syncLearningStateToCloud() {
@@ -3406,7 +3420,7 @@ function toggleBookmark(e, id) {
     bookmarks.add(id);
     showToast('⭐ 즐겨찾기에 추가됨');
   }
-  localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+  safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
   updateLearningState(id, { bookmarked: bookmarks.has(id) });
   updateBookmarkCount();
   applyFilters();
@@ -3458,7 +3472,7 @@ function deleteSelectedTerms() {
         delete learning[String(id)];
       });
       saveLearningStateMap(learning);
-      localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+      safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
       saveTermsToLocalStorage();
       tombstones.forEach(tombstone => deleteTermFromCloud(tombstone.id, tombstone.deletedAt));
       selectedTermIds.clear();
@@ -3595,7 +3609,7 @@ function updateBookmarkCount() {
   const validCount = TERMS.filter(t => bookmarks.has(t.id)).length;
   // Prune stale IDs that no longer exist in TERMS
   [...bookmarks].forEach(id => { if (!TERMS.some(t => t.id === id)) bookmarks.delete(id); });
-  localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+  safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
   document.getElementById('bookmarkCount').textContent = `즐겨찾기 ${validCount}`;
 }
 
@@ -3742,8 +3756,8 @@ function saveAIConfigFromForm(silent = false) {
   if (route === 'gemini' && !geminiKey) { showToast('⚠️ Gemini API 키를 입력해주세요'); return false; }
 
   const cfg = { route, openaiKey, anthropicKey, geminiKey, umlsKey, modelOpenAI, modelAnthropic, modelGemini, savedAt: new Date().toISOString() };
-  localStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(cfg));
-  if (umlsKey) localStorage.setItem('kma_umls_key', umlsKey);
+  safeSetItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(cfg));
+  if (umlsKey) safeSetItem('kma_umls_key', umlsKey);
   if (!silent) { showToast('✅ AI API 설정 저장 완료'); showAISettings(); }
   return true;
 }
@@ -3756,7 +3770,7 @@ function clearSingleKey(provider) {
     if (provider === 'anthropic') { cfg.anthropicKey = ''; cfg.modelAnthropic = 'claude-sonnet-4-6'; }
     if (provider === 'gemini')    { cfg.geminiKey = ''; cfg.modelGemini = 'gemini-2.0-flash'; }
     if (provider === 'umls')      { cfg.umlsKey = ''; localStorage.removeItem('kma_umls_key'); }
-    localStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(cfg));
+    safeSetItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(cfg));
     showToast(`🔌 ${labels[provider]} API 키 해제 완료`);
     showAISettings();
   });
@@ -5271,7 +5285,7 @@ function deleteTerm(id) {
     if (idx !== -1) TERMS.splice(idx, 1);
     const tombstone = recordLocalTombstone(t);
     bookmarks.delete(id);
-    localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+    safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
     saveTermsToLocalStorage();
     deleteTermFromCloud(id, tombstone?.deletedAt);
     document.getElementById('editModal')?.remove();
@@ -6113,7 +6127,7 @@ async function confirmDangerousDelete() {
     bookmarks.delete(Number(id));
   });
   saveLearningStateMap(learning);
-  localStorage.setItem('kma_bookmarks', JSON.stringify([...bookmarks]));
+  safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
   saveTermsToLocalStorage();
   updateBookmarkCount();
 
@@ -6137,16 +6151,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.34',
+  version: '3.35',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 14일 14:03',
+  updatedAt: '2026년 6월 14일 14:16',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · KMA 검색 버튼 상단 이동',
+    title: '최신 · AI 분류 검증과 저장 안정화',
+    items: [
+      'AI 재분류가 유효하지 않은 장기계 category를 반환하면 기존 category를 보존하도록 검증 버그 수정',
+      'localStorage 저장을 safeSetItem 래퍼로 통일해 저장공간 부족 예외가 즐겨찾기·설정·학습상태 흐름을 끊지 않도록 보강',
+      '핵심 용어 저장은 저장 실패를 감지해 기존처럼 경고와 실패 반환을 유지',
+    ]
+  },
+  {
+    title: 'v3.34 · KMA 검색 버튼 상단 이동',
     items: [
       '대한의사협회 용어검색 버튼을 용어 추가 옆에서 상단 데이터 버튼 옆으로 이동',
       '스크롤 중 용어 목록에 가려지지 않도록 고정 헤더 영역에서 KMA 검색을 바로 열 수 있게 정리',
@@ -6964,7 +6986,7 @@ Use General if no organ system is clear.`;
 
       const idx = TERMS.findIndex(t => t.id === term.id);
       if (idx !== -1 && (aiCat || aiConcept)) {
-        const finalCat = VALID_CATS.includes(aiCat) ? aiCat : aiCat;
+        const finalCat = VALID_CATS.includes(aiCat) ? aiCat : TERMS[idx].category;
         TERMS[idx] = normalizeTermForStorage({
           ...TERMS[idx],
           category: finalCat || TERMS[idx].category,
@@ -8301,7 +8323,7 @@ async function handleFileUpload(e, mode = 'replace') {
       exportCompleteJsonBackup();
       TERMS.length = 0;
       bookmarks.clear();
-      localStorage.setItem('kma_bookmarks', JSON.stringify([]));
+      safeSetItem('kma_bookmarks', JSON.stringify([]));
     }
 
     rows = rows.map(t => ({ ...t, id: nextTermId(), updatedAt: new Date().toISOString() }));
