@@ -903,6 +903,16 @@ document.addEventListener('keydown', e => {
     min-width: 0;
   }
 
+  .term-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    max-width: 54%;
+  }
+
   .term-korean {
     font-family: 'Noto Serif KR', serif;
     font-size: 14px;
@@ -930,6 +940,15 @@ document.addEventListener('keydown', e => {
     padding: 3px 8px;
     font-size: 10px;
     color: var(--text3);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .term-complete-badge {
+    font-size: 10px;
+    border-radius: 6px;
+    padding: 2px 6px;
+    cursor: default;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -1683,6 +1702,223 @@ document.addEventListener('keydown', e => {
   .term-card .chevron { display: none !important; }
   .term-card.expanded { border-color: var(--accent); }
 
+  @media (max-width: 600px) {
+    header {
+      padding: 14px 14px 12px;
+    }
+
+    main {
+      padding: 12px 12px calc(88px + env(safe-area-inset-bottom));
+    }
+
+    .header-top {
+      gap: 8px;
+    }
+
+    .logo-badge {
+      width: 44px;
+      height: 44px;
+    }
+
+    .header-titles h1 {
+      font-size: 16px;
+    }
+
+    .header-titles p {
+      font-size: 11px;
+    }
+
+    .data-header-btn,
+    .settings-header-btn,
+    .category-stats-header-btn,
+    .developer-header-btn {
+      flex: 1 1 calc(25% - 8px);
+      min-width: 70px;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 8px;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .final-save-header-btn,
+    .version-check-header-btn {
+      flex: 1 1 calc(50% - 6px);
+      min-width: 142px;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 10px;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .search-input {
+      min-height: 46px;
+      font-size: 14px;
+    }
+
+    header + div {
+      padding: 6px 12px 0 !important;
+    }
+
+    header + div > button,
+    header + div > select {
+      flex: 1 1 100%;
+      min-height: 36px;
+    }
+
+    .section-label {
+      margin-top: 14px;
+    }
+
+    .inline-add-btn {
+      width: 100%;
+      min-height: 38px;
+      justify-content: center;
+    }
+
+    .list-action-bar {
+      align-items: stretch;
+      padding: 10px;
+      border-radius: 12px;
+    }
+
+    .list-action-text {
+      width: 100%;
+      line-height: 1.5;
+    }
+
+    .list-action-buttons {
+      width: 100%;
+    }
+
+    .list-mini-btn {
+      flex: 1 1 100%;
+      min-height: 36px;
+    }
+
+    .term-card {
+      border-radius: 13px;
+      margin-bottom: 12px;
+    }
+
+    .term-header {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: start;
+      gap: 8px 10px;
+      padding: 14px 12px;
+    }
+
+    .term-select-wrap {
+      grid-column: 1;
+      grid-row: 1;
+      width: 30px;
+      height: 30px;
+      margin-top: 2px;
+    }
+
+    .term-main {
+      grid-column: 2;
+      grid-row: 1;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .term-korean,
+    .term-english,
+    .term-uzbek {
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-break: keep-all;
+      line-height: 1.45;
+    }
+
+    .term-korean {
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .term-english {
+      font-size: 15px;
+    }
+
+    .term-uzbek {
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .term-meta-row {
+      grid-column: 2;
+      grid-row: 2;
+      width: 100%;
+      max-width: none;
+      justify-content: flex-start;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .term-category {
+      max-width: 100%;
+      min-height: 26px;
+      display: inline-flex;
+      align-items: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .term-complete-badge {
+      min-height: 26px;
+      display: inline-flex;
+      align-items: center;
+      margin-right: 0 !important;
+    }
+
+    .bookmark-btn {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 9px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .bottom-nav {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+
+  @media (max-width: 420px) {
+    header {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    main {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    .data-header-btn,
+    .settings-header-btn,
+    .category-stats-header-btn,
+    .developer-header-btn {
+      flex-basis: calc(50% - 6px);
+    }
+
+    .final-save-header-btn,
+    .version-check-header-btn {
+      flex-basis: 100%;
+      min-width: 0;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -1778,11 +2014,6 @@ document.addEventListener('keydown', e => {
   <div class="stat-item">
     <div class="stat-dot" style="background:#a78bfa"></div>
     <span>8개 API</span>
-  </div>
-  <div class="stats-actions">
-    <button class="cloud-sync-btn" onclick="confirmPushLocalToCloud()" title="현재 기기 데이터로 클라우드 최종본을 덮어쓰기">
-      ☁️ 클라우드 최종본 덮어쓰기
-    </button>
   </div>
 </div>
 
@@ -2875,24 +3106,26 @@ function renderTerms(terms, bookmarkDivider = 0) {
           <div class="term-english"><span onclick="copyTermField(event,${termId},'en','영어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(88,166,255,0.12)'" onmouseleave="this.style.background=''">${highlight(t.en, query)}</span></div>
           ${t.uz ? `<div class="term-uzbek"><span onclick="copyTermField(event,${termId},'uz','우즈베크어')" title="📋 클릭하여 복사" style="cursor:pointer;border-radius:4px;padding:1px 2px;transition:background 0.15s" onmouseenter="this.style.background='rgba(251,191,36,0.12)'" onmouseleave="this.style.background=''"> ${highlight(t.uz, query)}</span></div>` : ''}
         </div>
-        <span class="term-category" title="개념분류">${escapeHtml(conceptDisplay(t.concept_category))}</span>
-        <span class="term-category" title="대표 장기계" style="border-color:rgba(88,166,255,0.35);color:#74b0ff">${escapeHtml(categoryDisplay(t.category))}</span>
-        ${(() => {
-          const missing = [];
-          if (!t.ko)     missing.push('KO');
-          if (!t.uz)     missing.push('UZ');
-          if (!t.def_ko) missing.push('정의');
-          if (!t.def_en) missing.push('Def');
-          if (!t.def_uz) missing.push('Uz');
-          if (!t.usmle)  missing.push('USMLE');
-          if (!t.ipa)    missing.push('IPA');
-          return missing.length
-            ? `<span title="${missing.join(', ')} 빈칸" style="font-size:10px;color:#f85149;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:6px;padding:2px 6px;margin-right:4px;cursor:default;white-space:nowrap">✗ ${missing.join(' · ')}</span>`
-            : `<span title="모든 필드 완성" style="font-size:10px;color:#3fb950;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:2px 6px;margin-right:4px;cursor:default">✓</span>`;
-        })()}
-        <button class="bookmark-btn ${bookmarks.has(t.id) ? 'saved' : ''}" onclick="toggleBookmark(event, ${termId})">${bookmarks.has(t.id) ? '⭐' : '☆'}</button>
-        <button class="bookmark-btn" onclick="openEditModal(event, ${termId})" title="편집" style="font-size:14px">✏️</button>
-        <span class="chevron">▼</span>
+        <div class="term-meta-row">
+          <span class="term-category" title="개념분류">${escapeHtml(conceptDisplay(t.concept_category))}</span>
+          <span class="term-category" title="대표 장기계" style="border-color:rgba(88,166,255,0.35);color:#74b0ff">${escapeHtml(categoryDisplay(t.category))}</span>
+          ${(() => {
+            const missing = [];
+            if (!t.ko)     missing.push('KO');
+            if (!t.uz)     missing.push('UZ');
+            if (!t.def_ko) missing.push('정의');
+            if (!t.def_en) missing.push('Def');
+            if (!t.def_uz) missing.push('Uz');
+            if (!t.usmle)  missing.push('USMLE');
+            if (!t.ipa)    missing.push('IPA');
+            return missing.length
+              ? `<span class="term-complete-badge" title="${missing.join(', ')} 빈칸" style="color:#f85149;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);margin-right:4px">✗ ${missing.join(' · ')}</span>`
+              : `<span class="term-complete-badge" title="모든 필드 완성" style="color:#3fb950;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);margin-right:4px">✓</span>`;
+          })()}
+          <button class="bookmark-btn ${bookmarks.has(t.id) ? 'saved' : ''}" onclick="toggleBookmark(event, ${termId})">${bookmarks.has(t.id) ? '⭐' : '☆'}</button>
+          <button class="bookmark-btn" onclick="openEditModal(event, ${termId})" title="편집" style="font-size:14px">✏️</button>
+          <span class="chevron">▼</span>
+        </div>
       </div>
       <div class="term-detail">
         <div class="detail-section">
@@ -3656,7 +3889,6 @@ function showAISettings() {
           <button onclick="testAndSyncSupabase()" style="flex:1;background:var(--surface2);border:1px solid #4ade80;border-radius:8px;padding:10px;color:#4ade80;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🔄 연결 테스트</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px">
-          <button onclick="confirmPushLocalToCloud()" style="flex:1;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:10px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">⬆️ 기기→최종본 덮어쓰기</button>
           <button onclick="pullFromCloud()" style="flex:1;background:var(--surface2);border:1px solid var(--accent3);border-radius:8px;padding:10px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">⬇️ 클라우드→로컬</button>
         </div>
         ${getSupabaseConfig() ? `
@@ -5058,7 +5290,7 @@ function showGuide() {
       color: '#f87171',
       items: [
         '일반 양방향 동기화는 로컬과 클라우드를 updated_at 기준으로 병합합니다',
-        '클라우드 최종본 덮어쓰기는 현재 기기 데이터를 기준으로 클라우드 최종본을 교체합니다',
+        '상단 최종상태 저장은 현재 기기 데이터를 기준으로 클라우드 최종본을 교체합니다',
         '현재 기기에 없는 항목은 다른 기기에 있더라도 최종본에서 제외될 수 있습니다',
         '덮어쓰기가 중간 실패하면 일반 동기화를 막고 데이터 관리 화면에 상태를 표시합니다',
         '최종본 기준값을 확인하지 못하면 로컬 항목이 되살아나지 않도록 일반 병합을 중단합니다',
@@ -5075,7 +5307,7 @@ function showGuide() {
         '먼저 데이터 관리의 가져오기 또는 UMLS 검색으로 용어를 넣습니다',
         '통계 버튼으로 분류가 비어 있는 계통과 완성도가 낮은 계통을 확인합니다',
         '데이터 관리에서 전체 JSON 백업을 주기적으로 저장합니다',
-        '한 기기 데이터가 가장 정확하다고 확신할 때만 “클라우드 최종본 덮어쓰기”를 사용합니다',
+        '한 기기 데이터가 가장 정확하다고 확신할 때만 상단의 “최종상태 저장”을 사용합니다',
         '평소에는 일반 양방향 동기화로 추가/수정 내용을 기기 간 전파합니다',
       ]
     },
@@ -5156,7 +5388,7 @@ function showExportMenu() {
 
           <section class="data-card sync-card">
             <div class="data-card-title">☁️ 동기화 관리</div>
-            <div class="data-card-desc">일반 양방향 동기화와 클라우드 최종본 덮어쓰기는 서로 다른 작업입니다. 덮어쓰기는 현재 기기 목록을 기준으로 모든 기기를 맞춥니다.</div>
+            <div class="data-card-desc">일반 양방향 동기화와 최종상태 저장은 서로 다른 작업입니다. 현재 기기 목록을 클라우드 기준본으로 확정할 때는 상단의 최종상태 저장을 사용합니다.</div>
             <div class="data-status-grid">
               <div class="data-status-box"><div class="data-status-label">연결 상태</div><div class="data-status-value">${getSupabaseConfig() ? '연결 설정됨' : '미설정'}</div></div>
               <div class="data-status-box"><div class="data-status-label">로컬 용어</div><div class="data-status-value">${TERMS.length}개</div></div>
@@ -5174,7 +5406,6 @@ function showExportMenu() {
             <div class="data-action-stack">
               <button class="data-action-btn outline" onclick="showSyncDiagnostics()">동기화 상태 점검</button>
               <button class="data-action-btn green" onclick="runManualSync()">일반 양방향 동기화</button>
-              <button class="data-action-btn outline" onclick="confirmPushLocalToCloud()">현재 기기 데이터로 클라우드 최종본 덮어쓰기</button>
               <button class="data-action-btn purple" onclick="confirmCloudReplaceLocal()">클라우드 최종본으로 이 기기 교체</button>
             </div>
           </section>
@@ -5484,7 +5715,7 @@ async function showSyncDiagnostics() {
         </div>
         <div style="font-size:11px;color:var(--text3);line-height:1.7;margin-bottom:12px">
           이 기기가 최종본보다 많다면, PC의 추가 ${localOnly.length}개가 실제로 클라우드에 올라갔는지 확인해야 합니다.
-          PC 데이터를 기준으로 삼으려면 PC에서 “현재 기기 데이터로 클라우드 최종본 덮어쓰기”를 실행하세요.
+          PC 데이터를 기준으로 삼으려면 PC에서 상단의 “최종상태 저장”을 실행하세요.
           클라우드 ${cloudActive.length}개가 맞다면 이 기기에서 “클라우드 최종본으로 이 기기 교체”를 실행하세요.
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -5733,7 +5964,7 @@ async function applyPendingDataImport() {
   pendingDataImport = null;
   const syncHint = getSupabaseConfig()
     ? (mode === 'replace'
-      ? ' · 다른 기기도 맞추려면 현재 기기 데이터로 클라우드 최종본 덮어쓰기를 실행하세요'
+      ? ' · 다른 기기도 맞추려면 상단 최종상태 저장을 실행하세요'
       : ' · 클라우드 반영은 일반 양방향 동기화를 실행하세요')
     : '';
   showToast(`✅ 가져오기 완료 · 현재 ${TERMS.length}개${syncHint}`);
@@ -5843,16 +6074,32 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.29',
+  version: '3.31',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 14일 11:11',
+  updatedAt: '2026년 6월 14일 11:36',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 최종상태 저장과 저장본 버전 확인',
+    title: '최신 · 중복 최종본 버튼 정리',
+    items: [
+      '상단 최종상태 저장과 같은 동작으로 이어지던 클라우드 최종본 덮어쓰기 버튼을 주요 화면에서 제거',
+      'Supabase 설정 모달과 데이터 관리 화면의 중복 덮어쓰기 진입점을 정리해 최종본 지정 동선을 하나로 통일',
+      '동기화 관리 설명을 상단 최종상태 저장 기준으로 바꿔 일반 동기화와 최종본 지정의 차이를 더 명확히 표시',
+    ]
+  },
+  {
+    title: 'v3.30 · 모바일 화면 최적화',
+    items: [
+      '작은 모바일 화면에서 용어 카드가 한 글자씩 세로로 접히지 않도록 카드 본문과 메타 영역을 2행 구조로 재배치',
+      '상단 버튼, 검색 보조 영역, 선택 액션바, 용어 추가 버튼의 모바일 폭과 터치 영역을 보강',
+      '하단 내비게이션과 카드 여백을 모바일 안전 영역 기준으로 조정해 좁은 화면에서도 읽기 흐름을 개선',
+    ]
+  },
+  {
+    title: 'v3.29 · 최종상태 저장과 저장본 버전 확인',
     items: [
       '상단 개발자 버튼 옆에 최종상태 저장과 저장본 버전 확인 버튼 추가',
       '최종상태 저장 시 revision, 저장 기기, 활성/삭제 수, record ids hash, snapshot hash를 language_sync_meta에 함께 기록',
