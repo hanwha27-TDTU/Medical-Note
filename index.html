@@ -6012,6 +6012,10 @@ function showAddTermForm(target = document.getElementById('mainContent')) {
             <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">🇺🇿 O'zbek ta'rif</label>
             <textarea id="add_def_uz" placeholder="Bo'sh qoldiring — AI yaratadi" rows="2" style="${inputStyle(true)}"></textarea>
           </div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">🔤 IPA</label>
+            <input id="add_ipa" type="text" placeholder="예: /ˈsep.sɪs/ · 비워두면 AI가 생성합니다" style="${inputStyle()}">
+          </div>
           <div>
             <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">📋 USMLE High-Yield</label>
             <textarea id="add_usmle" placeholder="비워두면 AI가 생성합니다" rows="2" style="${inputStyle(true)}"></textarea>
@@ -6505,7 +6509,8 @@ async function submitAddTerm() {
     def_en:   document.getElementById('add_def_en')?.value.trim() || '',
     def_uz:   document.getElementById('add_def_uz')?.value.trim() || '',
     usmle:    document.getElementById('add_usmle')?.value.trim() || '',
-    ipa: '', refs: [], icd11: null, fdaDrug: null, rxclassATC: null, trials: null,
+    ipa:      document.getElementById('add_ipa')?.value.trim() || '',
+    refs: [], icd11: null, fdaDrug: null, rxclassATC: null, trials: null,
   };
 
   // claude.ai 환경이거나 API 키 있으면 AI 자동완성
@@ -6533,7 +6538,7 @@ async function submitAddTerm() {
       category:   newTerm.category !== 'General' ? newTerm.category : (enriched.system || enriched.category || 'General'),
       concept_category: newTerm.concept_category !== 'Other / Unclassified' ? newTerm.concept_category : (enriched.concept_category || enriched.conceptCategory || 'Other / Unclassified'),
       system_tags: enriched.system_tags || enriched.systemTags || [],
-      ipa:        enriched.ipa        || '',
+      ipa:        newTerm.ipa        || enriched.ipa        || '',
       def_ko:     newTerm.def_ko     || enriched.def_ko     || '',
       def_en:     newTerm.def_en     || enriched.def_en     || '',
       def_uz:     newTerm.def_uz     || enriched.def_uz     || '',
@@ -8018,16 +8023,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.46',
+  version: '3.47',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 14일 17:30',
+  updatedAt: '2026년 6월 14일 17:46',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 영어 발음 듣기 추가',
+    title: '최신 · IPA 선택입력 추가',
+    items: [
+      '일반용어 추가 모달의 선택 입력 영역에 IPA 입력칸 추가',
+      '사용자가 직접 입력한 IPA가 저장 및 AI 자동완성 병합 과정에서 유지되도록 보강',
+      '기존 TSV/Excel 가져오기와 편집 화면의 IPA 흐름과 신규 단일 입력 흐름을 일치시킴',
+    ]
+  },
+  {
+    title: 'v3.46 · 영어 발음 듣기 추가',
     items: [
       '약물명 및 정보 카드와 드로어에 성분명/상품명 영어 발음 듣기 버튼 추가',
       '브라우저 내장 SpeechSynthesis를 기존 일반용어 TTS와 공유해 무료·오프라인 환경에서도 발음을 확인하도록 구현',
