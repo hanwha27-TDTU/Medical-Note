@@ -2211,6 +2211,7 @@ const SUPABASE_CONFIG_KEY = 'kma_supabase_config';
 const SYNC_META_STORAGE_KEY = 'kma_medical_terms_v2_sync_meta';
 const LEARNING_STORAGE_KEY = 'kma_medical_terms_v2_learning';
 const TOMBSTONE_STORAGE_KEY = 'kma_medical_terms_v2_tombstones';
+const DRUG_TOMBSTONE_STORAGE_KEY = 'kma_medical_terms_v2_drug_tombstones';
 const DEVICE_ID_STORAGE_KEY = 'kma_medical_terms_v2_device_id';
 const SYNC_META_TABLE = 'language_sync_meta';
 const LEARNING_TABLE = 'medical_term_learning_state';
@@ -2224,6 +2225,10 @@ const CANONICAL_ACTIVE_COUNT_META_KEY = 'medical_terms_canonical_active_count';
 const CANONICAL_DELETED_COUNT_META_KEY = 'medical_terms_canonical_deleted_count';
 const CANONICAL_RECORD_IDS_HASH_META_KEY = 'medical_terms_canonical_record_ids_hash';
 const CANONICAL_SNAPSHOT_HASH_META_KEY = 'medical_terms_canonical_snapshot_hash';
+const DRUG_CANONICAL_ACTIVE_COUNT_META_KEY = 'medical_drugs_canonical_active_count';
+const DRUG_CANONICAL_DELETED_COUNT_META_KEY = 'medical_drugs_canonical_deleted_count';
+const DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY = 'medical_drugs_canonical_record_ids_hash';
+const DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY = 'medical_drugs_canonical_snapshot_hash';
 const TOMBSTONE_PRUNE_DAYS = 90;
 
 function safeSetItem(key, value, options = {}) {
@@ -2330,6 +2335,52 @@ function computeRecordIdsHash(terms) {
 
 function computeSnapshotHash(terms) {
   return simpleHashText(JSON.stringify(canonicalTermHashPayload(terms)));
+}
+
+function canonicalDrugHashPayload(drugs) {
+  return dedupeDrugsById(drugs)
+    .filter(d => !d.deletedAt)
+    .sort((a, b) => String(a.id).localeCompare(String(b.id), 'en', { numeric: true }))
+    .map(d => stableForHash({
+      id: String(d.id),
+      generic_name: d.generic_name || '',
+      ko_name: d.ko_name || '',
+      brand_name: d.brand_name || '',
+      drug_class: d.drug_class || '',
+      target: d.target || '',
+      route: d.route || '',
+      concept_category: d.concept_category || 'Pharmacology',
+      category: d.category || '',
+      system_tags: Array.isArray(d.system_tags) ? d.system_tags : [],
+      usmle_yield: d.usmle_yield || '',
+      ipa: d.ipa || '',
+      definition_ko: d.definition_ko || '',
+      definition_en: d.definition_en || '',
+      definition_uz: d.definition_uz || '',
+      causal_chain: d.causal_chain || '',
+      why: d.why || '',
+      moa: d.moa || '',
+      clinical_uses: d.clinical_uses || '',
+      adverse_effects: d.adverse_effects || '',
+      precautions: d.precautions || '',
+      usmle_strategy: d.usmle_strategy || '',
+      memory_line: d.memory_line || '',
+      refs: Array.isArray(d.refs) ? d.refs : [],
+      createdAt: d.createdAt || '',
+      updatedAt: d.updatedAt || '',
+    }));
+}
+
+function computeDrugRecordIdsHash(drugs) {
+  const ids = dedupeDrugsById(drugs)
+    .filter(d => !d.deletedAt)
+    .map(d => String(d.id))
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+  return simpleHashText(ids.join('|'));
+}
+
+function computeDrugSnapshotHash(drugs) {
+  return simpleHashText(JSON.stringify(canonicalDrugHashPayload(drugs)));
 }
 
 function getLocalSyncMeta() {
@@ -2744,9 +2795,12 @@ async function sbPushAll(options = {}) {
     }
     const localDrugIds = new Set(cleanDrugs.map(d => String(d.id)));
     const removedCloudDrugs = cloudDrugs.filter(d => !d.deletedAt && !localDrugIds.has(String(d.id)));
+    const removedCloudDrugTombstones = [];
     for (const oldDrug of removedCloudDrugs) {
-      const ok = await sbDeleteDrug(oldDrug.id);
+      const deletedAt = new Date().toISOString();
+      const ok = await sbDeleteDrug(oldDrug.id, deletedAt);
       if (!ok) throw new Error(`누락 약물 삭제 표시 실패: ${oldDrug.id}`);
+      removedCloudDrugTombstones.push(normalizeDrugForStorage({ ...oldDrug, updatedAt: deletedAt, deletedAt }));
     }
 
     saveLocalSyncMeta({ pendingCanonicalStatus: 'learning-saving' });
@@ -2759,7 +2813,11 @@ async function sbPushAll(options = {}) {
       metaMap
     });
     await sbSetSyncMetaRows([
-      { key: DRUG_CANONICAL_META_KEY, value: pendingVersion, updated_at: canonicalSnapshot.updatedAt }
+      { key: DRUG_CANONICAL_META_KEY, value: pendingVersion, updated_at: canonicalSnapshot.updatedAt },
+      { key: DRUG_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(cleanDrugs.length), updated_at: canonicalSnapshot.updatedAt },
+      { key: DRUG_CANONICAL_DELETED_COUNT_META_KEY, value: String(cloudDrugs.filter(d => d.deletedAt).length + removedCloudDrugs.length), updated_at: canonicalSnapshot.updatedAt },
+      { key: DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeDrugRecordIdsHash(cleanDrugs), updated_at: canonicalSnapshot.updatedAt },
+      { key: DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeDrugSnapshotHash(cleanDrugs), updated_at: canonicalSnapshot.updatedAt },
     ]);
     TERMS.length = 0;
     TERMS.push(...cleanTerms);
@@ -2767,6 +2825,10 @@ async function sbPushAll(options = {}) {
     DRUGS.length = 0;
     DRUGS.push(...cleanDrugs);
     saveDrugsToLocalStorage();
+    saveLocalDrugTombstones([
+      ...cloudDrugs.filter(d => d.deletedAt),
+      ...removedCloudDrugTombstones
+    ]);
     clearPendingCanonicalStatus({
       canonicalVersion: pendingVersion,
       canonicalRevision: canonicalSnapshot.revision,
@@ -3148,6 +3210,15 @@ function saveLocalTombstones(rows) {
   return safeSetItem(TOMBSTONE_STORAGE_KEY, JSON.stringify(dedupeTermsById(rows).filter(t => t.deletedAt)));
 }
 
+function loadLocalDrugTombstones() {
+  const rows = safeJsonParse(localStorage.getItem(DRUG_TOMBSTONE_STORAGE_KEY), []);
+  return Array.isArray(rows) ? dedupeDrugsById(rows).filter(d => d.deletedAt) : [];
+}
+
+function saveLocalDrugTombstones(rows) {
+  return safeSetItem(DRUG_TOMBSTONE_STORAGE_KEY, JSON.stringify(dedupeDrugsById(rows).filter(d => d.deletedAt)));
+}
+
 function hideLocalTombstonesFromTrash(ids) {
   const hiddenAt = new Date().toISOString();
   const idSet = new Set(ids.map(id => String(id)));
@@ -3172,6 +3243,16 @@ function recordLocalTombstone(term) {
   const rows = loadLocalTombstones().filter(t => String(t.id) !== String(term.id));
   rows.push(tombstone);
   saveLocalTombstones(rows);
+  return tombstone;
+}
+
+function recordLocalDrugTombstone(drug) {
+  if (!drug) return;
+  const deletedAt = new Date().toISOString();
+  const tombstone = normalizeDrugForStorage({ ...drug, updatedAt: deletedAt, deletedAt });
+  const rows = loadLocalDrugTombstones().filter(d => String(d.id) !== String(drug.id));
+  rows.push(tombstone);
+  saveLocalDrugTombstones(rows);
   return tombstone;
 }
 
@@ -3223,20 +3304,18 @@ function mergeTermsForSync(cloudTerms, localTerms, localTombstones) {
   return [...merged.values()].map(entry => entry.term);
 }
 
-function mergeDrugsForSync(cloudDrugs, localDrugs) {
+function mergeDrugsForSync(cloudDrugs, localDrugs, localDrugTombstones = []) {
   const merged = new Map();
   [
-    ...(Array.isArray(cloudDrugs) ? cloudDrugs : []).map(drug => normalizeDrugForStorage(drug)),
-    ...(Array.isArray(localDrugs) ? localDrugs : []).map(drug => normalizeDrugForStorage(drug)),
-  ].forEach(drug => {
-    if (!drug?.id) return;
-    const key = String(drug.id);
-    const existing = merged.get(key);
-    if (!existing || (Date.parse(drug.updatedAt) || 0) >= (Date.parse(existing.updatedAt) || 0)) {
-      merged.set(key, drug);
-    }
+    ...(Array.isArray(cloudDrugs) ? cloudDrugs : []).map(drug => ({ term: normalizeDrugForStorage(drug), source: 'cloud' })),
+    ...(Array.isArray(localDrugs) ? localDrugs : []).map(drug => ({ term: normalizeDrugForStorage(drug), source: 'local' })),
+    ...(Array.isArray(localDrugTombstones) ? localDrugTombstones : []).map(drug => ({ term: normalizeDrugForStorage(drug), source: 'local_tombstone' })),
+  ].forEach(entry => {
+    if (!entry.term?.id) return;
+    const key = String(entry.term.id);
+    merged.set(key, pickSyncWinner(merged.get(key), entry));
   });
-  return [...merged.values()];
+  return [...merged.values()].map(entry => entry.term);
 }
 
 function filterLocalRowsAfterCanonicalFence(localRows, cloudTerms, canonicalMeta) {
@@ -3808,7 +3887,7 @@ function openDrugEditModal(e, id) {
           <div style="font-size:17px;font-weight:900;color:var(--text)">💊 약물 항목 편집</div>
           <div style="font-size:11px;color:var(--text3);margin-top:3px">${escapeHtml(drugDisplayName(d))}</div>
         </div>
-        <button onclick="document.getElementById('drugEditModal').remove()" style="width:38px;height:38px;border-radius:10px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-size:18px;cursor:pointer">✕</button>
+        <button onclick="document.getElementById('drugEditModal').remove()" title="닫기" style="width:38px;height:38px;border-radius:10px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-size:18px;cursor:pointer">✕</button>
       </div>
       <div style="padding:16px 20px 22px">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:10px">
@@ -3833,7 +3912,6 @@ function openDrugEditModal(e, id) {
         </div>
       </div>
     </section>`;
-  overlay.addEventListener('click', ev => { if (ev.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
 
@@ -3880,8 +3958,9 @@ function deleteDrug(id) {
   showConfirm(`"${escapeHtml(label)}" 약물 항목을 삭제할까요?`, () => {
     const idx = DRUGS.findIndex(x => Number(x.id) === Number(id));
     if (idx !== -1) DRUGS.splice(idx, 1);
+    const tombstone = recordLocalDrugTombstone(d);
     saveDrugsToLocalStorage();
-    deleteDrugFromCloud(id, new Date().toISOString());
+    deleteDrugFromCloud(id, tombstone?.deletedAt || new Date().toISOString());
     document.getElementById('drugEditModal')?.remove();
     document.getElementById('drugDetailModal')?.remove();
     showToast('🗑️ 약물 항목 삭제 완료');
@@ -4703,6 +4782,7 @@ async function pullFromCloud() {
     DRUGS.length = 0;
     DRUGS.push(...cleanCloudDrugs);
     saveDrugsToLocalStorage();
+    saveLocalDrugTombstones(cloudDrugs.filter(d => d.deletedAt));
   }
   saveLocalTombstones(cloudTerms.filter(t => t.deletedAt));
   saveLocalSyncMeta({ canonicalVersion: meta.version });
@@ -4751,6 +4831,7 @@ async function syncWithCloud() {
       DRUGS.length = 0;
       DRUGS.push(...dedupeDrugsById(cloudDrugs).filter(d => !d.deletedAt));
       saveDrugsToLocalStorage();
+      saveLocalDrugTombstones(cloudDrugs.filter(d => d.deletedAt));
     }
     saveLocalTombstones(cloudTerms.filter(t => t.deletedAt));
     const learning = await sbLoadLearningStates();
@@ -4771,10 +4852,13 @@ async function syncWithCloud() {
   saveTermsToLocalStorage();
   saveLocalTombstones(mergedRows.filter(t => t.deletedAt));
   if (canSyncDrugs) {
-    const mergedDrugs = mergeDrugsForSync(cloudDrugs, DRUGS);
+    const localDrugActiveFence = filterLocalRowsAfterCanonicalFence(DRUGS, cloudDrugs, canonicalMeta);
+    const localDrugTombstoneFence = filterLocalRowsAfterCanonicalFence(loadLocalDrugTombstones(), cloudDrugs, canonicalMeta);
+    const mergedDrugs = mergeDrugsForSync(cloudDrugs, localDrugActiveFence.rows, localDrugTombstoneFence.rows);
     DRUGS.length = 0;
     DRUGS.push(...mergedDrugs.filter(d => !d.deletedAt));
     saveDrugsToLocalStorage();
+    saveLocalDrugTombstones(mergedDrugs.filter(d => d.deletedAt));
     await sbBatchUpsertDrugRows(mergedDrugs.map(drugToRow));
   }
   await sbBatchUpsertRows(mergedRows.map(termToRow));
@@ -5717,7 +5801,7 @@ function openEditModal(e, id) {
     <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:20px;width:100%;max-width:480px;margin:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div style="font-family:'Noto Serif KR',serif;font-size:15px;color:var(--text)">✏️ 용어 편집</div>
-        <button onclick="document.getElementById('editModal').remove()" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1">×</button>
+        <button onclick="document.getElementById('editModal').remove()" title="닫기" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1">×</button>
       </div>
 
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">용어명</div>
@@ -6243,7 +6327,7 @@ function showGuide() {
       icon: '📁', title: '데이터 관리',
       color: '#4ade80',
       items: [
-        '전체 JSON 백업에는 용어 · 학습상태 · 삭제 보호 기록 · 동기화 메타가 포함됩니다',
+        '전체 JSON 백업에는 용어 · 약물명 및 정보 · 학습상태 · 삭제 보호 기록 · 동기화 메타가 포함됩니다',
         'Excel · CSV · Anki TSV를 전체 또는 선택 범위로 내보낼 수 있습니다',
         '현재 검색 결과 · 즐겨찾기 · 학습 중 · 복습 예정 · 숙달 · 미완성 범위를 따로 내보냅니다',
         '삭제된 용어는 휴지통에서 복원할 수 있고, 목록 비우기 후에도 내부 삭제 기록은 보존됩니다',
@@ -6490,13 +6574,15 @@ function downloadBlobFile(content, filename, mime = 'application/octet-stream') 
 
 function createCompleteBackupObject() {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     app: APP_INFO.name,
     appVersion: APP_INFO.version,
     exportedAt: new Date().toISOString(),
     terms: dedupeTermsById(TERMS),
+    drugs: dedupeDrugsById(DRUGS),
     learningStates: getLearningStateMap(),
     tombstones: loadLocalTombstones(),
+    drugTombstones: loadLocalDrugTombstones(),
     syncMeta: getLocalSyncMeta(),
   };
 }
@@ -6504,7 +6590,7 @@ function createCompleteBackupObject() {
 function exportCompleteJsonBackup() {
   const backup = createCompleteBackupObject();
   downloadBlobFile(JSON.stringify(backup, null, 2), `${dataFilePrefix('전체백업')}.json`, 'application/json;charset=utf-8');
-  showToast(`💾 전체 백업 완료 · 용어 ${backup.terms.length}개`);
+  showToast(`💾 전체 백업 완료 · 용어 ${backup.terms.length}개 · 약물 ${backup.drugs.length}개`);
 }
 
 function getTermsByScope(scope) {
@@ -6632,7 +6718,7 @@ async function showSyncDiagnostics() {
     return;
   }
   showToast('☁️ 동기화 상태 점검 중...');
-  const [cloudTerms, canonicalMeta] = await Promise.all([sbLoadAll(), sbLoadCanonicalMeta()]);
+  const [cloudTerms, cloudDrugs, canonicalMeta] = await Promise.all([sbLoadAll(), sbLoadAllDrugs(), sbLoadCanonicalMeta()]);
   if (cloudTerms === null || canonicalMeta === null) {
     showToast('⚠️ 클라우드 상태 확인 실패 · Supabase 설정을 확인하세요');
     return;
@@ -6641,6 +6727,8 @@ async function showSyncDiagnostics() {
   const localMeta = getLocalSyncMeta();
   const cloudActive = dedupeTermsById(cloudTerms).filter(t => !t.deletedAt);
   const cloudDeleted = dedupeTermsById(cloudTerms).filter(t => t.deletedAt);
+  const cloudActiveDrugs = Array.isArray(cloudDrugs) ? dedupeDrugsById(cloudDrugs).filter(d => !d.deletedAt) : [];
+  const cloudDeletedDrugs = Array.isArray(cloudDrugs) ? dedupeDrugsById(cloudDrugs).filter(d => d.deletedAt) : [];
   const cloudIds = new Set(cloudActive.map(t => String(t.id)));
   const localIds = new Set(TERMS.map(t => String(t.id)));
   const localOnly = TERMS.filter(t => !cloudIds.has(String(t.id)));
@@ -6669,7 +6757,10 @@ async function showSyncDiagnostics() {
         <div class="data-status-grid" style="margin-bottom:12px">
           <div class="data-status-box"><div class="data-status-label">이 기기 로컬</div><div class="data-status-value">${TERMS.length}개</div></div>
           <div class="data-status-box"><div class="data-status-label">클라우드 활성</div><div class="data-status-value">${cloudActive.length}개</div></div>
+          <div class="data-status-box"><div class="data-status-label">이 기기 약물</div><div class="data-status-value">${DRUGS.length}개</div></div>
+          <div class="data-status-box"><div class="data-status-label">클라우드 약물</div><div class="data-status-value">${cloudDrugs === null ? '확인 실패' : `${cloudActiveDrugs.length}개`}</div></div>
           <div class="data-status-box"><div class="data-status-label">클라우드 삭제 표시</div><div class="data-status-value">${cloudDeleted.length}개</div></div>
+          <div class="data-status-box"><div class="data-status-label">약물 삭제 표시</div><div class="data-status-value">${cloudDrugs === null ? '확인 실패' : `${cloudDeletedDrugs.length}개`}</div></div>
           <div class="data-status-box"><div class="data-status-label">오래된 로컬 전용 제외 예정</div><div class="data-status-value">${staleSkipped}개</div></div>
         </div>
         <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:12px;font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px">
@@ -6733,13 +6824,22 @@ async function showSavedVersionInfo() {
   const localActiveDrugs = dedupeDrugsById(DRUGS).filter(d => !d.deletedAt);
   const storedSnapshotHash = metaMap[CANONICAL_SNAPSHOT_HASH_META_KEY]?.value || '';
   const storedRecordIdsHash = metaMap[CANONICAL_RECORD_IDS_HASH_META_KEY]?.value || '';
+  const storedDrugSnapshotHash = metaMap[DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY]?.value || '';
+  const storedDrugRecordIdsHash = metaMap[DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY]?.value || '';
   const cloudSnapshotHash = computeSnapshotHash(cloudActive);
   const cloudRecordIdsHash = computeRecordIdsHash(cloudActive);
+  const cloudDrugSnapshotHash = computeDrugSnapshotHash(cloudActiveDrugs);
+  const cloudDrugRecordIdsHash = computeDrugRecordIdsHash(cloudActiveDrugs);
   const localSnapshotHash = computeSnapshotHash(localActive);
   const localRecordIdsHash = computeRecordIdsHash(localActive);
+  const localDrugSnapshotHash = computeDrugSnapshotHash(localActiveDrugs);
+  const localDrugRecordIdsHash = computeDrugRecordIdsHash(localActiveDrugs);
   const snapshotOk = storedSnapshotHash && storedSnapshotHash === cloudSnapshotHash;
   const idsOk = storedRecordIdsHash && storedRecordIdsHash === cloudRecordIdsHash;
+  const drugSnapshotOk = storedDrugSnapshotHash && storedDrugSnapshotHash === cloudDrugSnapshotHash;
+  const drugIdsOk = storedDrugRecordIdsHash && storedDrugRecordIdsHash === cloudDrugRecordIdsHash;
   const localMatchesCloud = localActive.length === cloudActive.length && localSnapshotHash === cloudSnapshotHash;
+  const localDrugsMatchCloud = localActiveDrugs.length === cloudActiveDrugs.length && localDrugSnapshotHash === cloudDrugSnapshotHash;
   const savedDeviceId = metaMap[CANONICAL_DEVICE_ID_META_KEY]?.value || '';
   const savedDeviceLabel = metaMap[CANONICAL_DEVICE_LABEL_META_KEY]?.value || '기록 없음';
   const currentDeviceId = getDeviceId();
@@ -6749,6 +6849,8 @@ async function showSavedVersionInfo() {
   const canonicalTime = canonicalMeta.updatedAt || metaMap[CANONICAL_META_KEY]?.updatedAt || null;
   const storedActiveCount = metaMap[CANONICAL_ACTIVE_COUNT_META_KEY]?.value || String(cloudActive.length);
   const storedDeletedCount = metaMap[CANONICAL_DELETED_COUNT_META_KEY]?.value || String(cloudDeleted.length);
+  const storedDrugActiveCount = metaMap[DRUG_CANONICAL_ACTIVE_COUNT_META_KEY]?.value || String(cloudActiveDrugs.length);
+  const storedDrugDeletedCount = metaMap[DRUG_CANONICAL_DELETED_COUNT_META_KEY]?.value || String(cloudDeletedDrugs.length);
 
   document.getElementById('savedVersionModal')?.remove();
   const overlay = document.createElement('div');
@@ -6771,13 +6873,14 @@ async function showSavedVersionInfo() {
           <div class="developer-field"><div class="developer-field-label">revision</div><div class="developer-field-value">${escapeHtml(revision)}</div></div>
           <div class="developer-field"><div class="developer-field-label">기준본 저장 시각</div><div class="developer-field-value">${escapeHtml(formatDataDate(canonicalTime))}</div></div>
           <div class="developer-field"><div class="developer-field-label">기준본 활성화 시각</div><div class="developer-field-value">${escapeHtml(formatDataDate(canonicalTime))}</div></div>
-          <div class="developer-field"><div class="developer-field-label">클라우드 저장본 항목 수</div><div class="developer-field-value">용어 ${cloudActive.length}개 · 저장메타 ${escapeHtml(storedActiveCount)}개<br>약물 ${cloudActiveDrugs.length}개 · 삭제 표시 ${cloudDeletedDrugs.length}개<br>용어 삭제 표시 ${cloudDeleted.length}개 · 저장메타 ${escapeHtml(storedDeletedCount)}개</div></div>
+          <div class="developer-field"><div class="developer-field-label">클라우드 저장본 항목 수</div><div class="developer-field-value">용어 ${cloudActive.length}개 · 저장메타 ${escapeHtml(storedActiveCount)}개<br>약물 ${cloudActiveDrugs.length}개 · 저장메타 ${escapeHtml(storedDrugActiveCount)}개<br>용어 삭제 표시 ${cloudDeleted.length}개 · 저장메타 ${escapeHtml(storedDeletedCount)}개<br>약물 삭제 표시 ${cloudDeletedDrugs.length}개 · 저장메타 ${escapeHtml(storedDrugDeletedCount)}개</div></div>
           <div class="developer-field"><div class="developer-field-label">기준본을 저장한 기기</div><div class="developer-field-value">${escapeHtml(savedDeviceLabel)}${sameDevice ? '<br><span style="color:#4ade80">현재 이 브라우저와 같음</span>' : ''}</div></div>
           <div class="developer-field"><div class="developer-field-label">지금 접속한 기기</div><div class="developer-field-value">${escapeHtml(getDeviceReadableLabel())}</div></div>
-          <div class="developer-field"><div class="developer-field-label">manifest/hash 검증</div><div class="developer-field-value" style="color:${snapshotOk && idsOk ? '#4ade80' : '#fbbf24'}">${snapshotOk && idsOk ? '통과' : '저장 메타 없음 또는 불일치'}</div></div>
+          <div class="developer-field"><div class="developer-field-label">manifest/hash 검증</div><div class="developer-field-value" style="color:${snapshotOk && idsOk && drugSnapshotOk && drugIdsOk ? '#4ade80' : '#fbbf24'}">용어 ${snapshotOk && idsOk ? '통과' : '저장 메타 없음 또는 불일치'}<br>약물 ${drugSnapshotOk && drugIdsOk ? '통과' : '저장 메타 없음 또는 불일치'}</div></div>
           <div class="developer-field"><div class="developer-field-label">record ids hash</div><div class="developer-field-value">${escapeHtml(compactHash(cloudRecordIdsHash))}${storedRecordIdsHash ? `<br><span style="color:${idsOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedRecordIdsHash))}</span>` : ''}</div></div>
           <div class="developer-field"><div class="developer-field-label">snapshot hash</div><div class="developer-field-value">${escapeHtml(compactHash(cloudSnapshotHash))}${storedSnapshotHash ? `<br><span style="color:${snapshotOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedSnapshotHash))}</span>` : ''}</div></div>
-          <div class="developer-field"><div class="developer-field-label">지금 화면의 로컬 캐시</div><div class="developer-field-value" style="color:${localMatchesCloud ? '#4ade80' : '#fbbf24'}">용어 ${localActive.length}개 · 약물 ${localActiveDrugs.length}개<br>${localMatchesCloud ? '용어 기준 클라우드와 일치' : '용어 기준 클라우드와 다름'}<br>ids ${escapeHtml(compactHash(localRecordIdsHash))}</div></div>
+          <div class="developer-field"><div class="developer-field-label">약물 ids/snapshot hash</div><div class="developer-field-value">ids ${escapeHtml(compactHash(cloudDrugRecordIdsHash))}${storedDrugRecordIdsHash ? `<br><span style="color:${drugIdsOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedDrugRecordIdsHash))}</span>` : ''}<br>snapshot ${escapeHtml(compactHash(cloudDrugSnapshotHash))}${storedDrugSnapshotHash ? `<br><span style="color:${drugSnapshotOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedDrugSnapshotHash))}</span>` : ''}</div></div>
+          <div class="developer-field"><div class="developer-field-label">지금 화면의 로컬 캐시</div><div class="developer-field-value" style="color:${localMatchesCloud && localDrugsMatchCloud ? '#4ade80' : '#fbbf24'}">용어 ${localActive.length}개 · ${localMatchesCloud ? '일치' : '다름'}<br>약물 ${localActiveDrugs.length}개 · ${localDrugsMatchCloud ? '일치' : '다름'}<br>term ids ${escapeHtml(compactHash(localRecordIdsHash))}<br>drug ids ${escapeHtml(compactHash(localDrugRecordIdsHash))}</div></div>
         </div>
       </div>
     </section>`;
@@ -6830,8 +6933,10 @@ async function readDataImportFile(file, kind) {
       kind,
       fileName: file.name,
       terms: dedupeTermsById(parsed.terms),
+      drugs: dedupeDrugsById(Array.isArray(parsed.drugs) ? parsed.drugs : []),
       learningStates: parsed.learningStates || {},
       tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : [],
+      drugTombstones: Array.isArray(parsed.drugTombstones) ? parsed.drugTombstones : [],
       syncMeta: parsed.syncMeta || {},
     };
   }
@@ -6845,7 +6950,7 @@ async function readDataImportFile(file, kind) {
     const workbook = XLSX.read(text, { type: 'string' });
     rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
   }
-  return { kind, fileName: file.name, terms: normalizeImportedTableRows(rows), learningStates: {}, tombstones: [] };
+  return { kind, fileName: file.name, terms: normalizeImportedTableRows(rows), drugs: [], learningStates: {}, tombstones: [], drugTombstones: [] };
 }
 
 function calculateImportPreview(importData) {
@@ -6860,7 +6965,13 @@ function calculateImportPreview(importData) {
   });
   const incomingIds = new Set(importData.terms.map(t => String(t.id)));
   const replaced = importData.kind === 'json' ? TERMS.filter(t => !incomingIds.has(String(t.id))).length : Math.max(0, TERMS.length - updated);
-  return { added, updated, replaced };
+  const existingDrugIds = new Set(DRUGS.map(d => String(d.id)));
+  const incomingDrugs = Array.isArray(importData.drugs) ? importData.drugs : [];
+  const incomingDrugIds = new Set(incomingDrugs.map(d => String(d.id)));
+  const drugAdded = incomingDrugs.filter(d => !existingDrugIds.has(String(d.id))).length;
+  const drugUpdated = incomingDrugs.length - drugAdded;
+  const drugReplaced = importData.kind === 'json' ? DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).length : 0;
+  return { added, updated, replaced, drugAdded, drugUpdated, drugReplaced };
 }
 
 async function previewDataImport(event, kind) {
@@ -6877,6 +6988,7 @@ async function previewDataImport(event, kind) {
           <span style="font-size:10px;color:#4ade80">추가 ${preview.added}</span>
           <span style="font-size:10px;color:#74b0ff">갱신 ${preview.updated}</span>
           <span style="font-size:10px;color:#f87171">교체 시 제거 ${preview.replaced}</span>
+          ${pendingDataImport.kind === 'json' ? `<span style="font-size:10px;color:#fbbf24">약물 추가 ${preview.drugAdded}</span><span style="font-size:10px;color:#9cc7ff">약물 갱신 ${preview.drugUpdated}</span><span style="font-size:10px;color:#f87171">약물 교체 시 제거 ${preview.drugReplaced}</span>` : ''}
         </div>
         <select id="dataImportMode" class="data-select">
           <option value="merge">최신 항목 병합</option>
@@ -6896,6 +7008,7 @@ async function applyPendingDataImport() {
   if (!pendingDataImport) return;
   const mode = document.getElementById('dataImportMode')?.value || 'merge';
   const incoming = dedupeTermsById(pendingDataImport.terms);
+  const incomingDrugs = dedupeDrugsById(pendingDataImport.drugs || []);
 
   if (mode === 'replace') {
     exportCompleteJsonBackup();
@@ -6904,8 +7017,13 @@ async function applyPendingDataImport() {
     TERMS.length = 0;
     TERMS.push(...incoming.filter(t => !t.deletedAt));
     if (pendingDataImport.kind === 'json') {
+      const incomingDrugIds = new Set(incomingDrugs.map(d => String(d.id)));
+      const removedDrugs = DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).map(recordLocalDrugTombstone).filter(Boolean);
+      DRUGS.length = 0;
+      DRUGS.push(...incomingDrugs.filter(d => !d.deletedAt));
       saveLearningStateMap(pendingDataImport.learningStates);
-      saveLocalTombstones(pendingDataImport.tombstones);
+      saveLocalTombstones([...(pendingDataImport.tombstones || []), ...removed.filter(Boolean)]);
+      saveLocalDrugTombstones([...(pendingDataImport.drugTombstones || []), ...removedDrugs]);
       if (pendingDataImport.syncMeta?.canonicalVersion) saveLocalSyncMeta(pendingDataImport.syncMeta);
     } else {
       saveLocalTombstones([...loadLocalTombstones(), ...removed]);
@@ -6925,10 +7043,26 @@ async function applyPendingDataImport() {
     if (pendingDataImport.kind === 'json' && mode === 'merge') {
       applyLearningStates(Object.values(pendingDataImport.learningStates || {}), false);
       saveLocalTombstones([...loadLocalTombstones(), ...(pendingDataImport.tombstones || [])]);
+      const mergedDrugs = mergeDrugsForSync(incomingDrugs, DRUGS, [
+        ...loadLocalDrugTombstones(),
+        ...(pendingDataImport.drugTombstones || [])
+      ]);
+      DRUGS.length = 0;
+      DRUGS.push(...mergedDrugs.filter(d => !d.deletedAt));
+      saveLocalDrugTombstones(mergedDrugs.filter(d => d.deletedAt));
+    } else if (pendingDataImport.kind === 'json' && mode === 'append') {
+      const drugIds = new Set(DRUGS.map(d => String(d.id)));
+      incomingDrugs.forEach(drug => {
+        if (!drugIds.has(String(drug.id)) && !drug.deletedAt) {
+          DRUGS.push(drug);
+          drugIds.add(String(drug.id));
+        }
+      });
     }
   }
 
   saveTermsToLocalStorage();
+  saveDrugsToLocalStorage();
   updateBookmarkCount();
   pendingDataImport = null;
   const syncHint = getSupabaseConfig()
@@ -6936,7 +7070,7 @@ async function applyPendingDataImport() {
       ? ' · 다른 기기도 맞추려면 상단 최종상태 저장을 실행하세요'
       : ' · 클라우드 반영은 일반 양방향 동기화를 실행하세요')
     : '';
-  showToast(`✅ 가져오기 완료 · 현재 ${TERMS.length}개${syncHint}`);
+  showToast(`✅ 가져오기 완료 · 현재 용어 ${TERMS.length}개 · 약물 ${DRUGS.length}개${syncHint}`);
   showExportMenu();
 }
 
@@ -7043,16 +7177,32 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.39',
+  version: '3.41',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 14일 16:08',
+  updatedAt: '2026년 6월 14일 16:15',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 약물명 및 정보 명칭 변경',
+    title: '최신 · 대규모 변경 점검 보강',
+    items: [
+      '약물명 및 정보 삭제 시 로컬 tombstone을 남겨 클라우드 삭제 실패나 다른 기기 동기화 때 항목이 되살아나는 위험을 줄임',
+      '전체 JSON 백업과 복원에 약물명 및 정보와 약물 삭제 보호 기록을 포함하도록 보강',
+      '저장본 버전 확인과 동기화 상태 점검에서 약물 count/hash 검증을 함께 표시',
+    ]
+  },
+  {
+    title: 'v3.40 · 편집창 닫기 버튼 전용',
+    items: [
+      '약물명 및 정보 항목 편집 중 배경을 클릭해도 창이 닫히지 않도록 수정',
+      '용어 편집과 항목 편집의 닫기 버튼에 닫기 의미를 명시해 편집 중 실수로 입력 내용이 사라지는 일을 줄임',
+      '저장과 삭제처럼 사용자가 명시적으로 누른 동작은 기존처럼 처리되도록 유지',
+    ]
+  },
+  {
+    title: 'v3.39 · 약물명 및 정보 명칭 변경',
     items: [
       '사용자 화면의 약물 관련 표시명을 더 직관적인 “약물명 및 정보”로 일괄 변경',
       '용어 추가의 저장 선택, 저장 버튼, 약물 목록 제목, 빈 세부내용 안내 문구를 새 명칭으로 통일',
@@ -7366,7 +7516,7 @@ const UPDATE_HISTORY = [
     title: 'v3.1 · 데이터 관리 페이지 전면 개편',
     items: [
       '가져오기 · 백업 · 동기화 · 휴지통 · 위험 작업을 카드형 2열 화면으로 통합',
-      '전체 JSON 백업에 용어 · 학습상태 · tombstone · 동기화 메타 포함',
+      '전체 JSON 백업에 용어 · 약물명 및 정보 · 학습상태 · tombstone · 동기화 메타 포함',
       '가져오기 전에 추가 · 갱신 · 교체 예상 건수를 미리보기',
       '현재 검색결과 · 즐겨찾기 · 학습 중 · 복습 예정 · 숙달 · 미완성 범위 내보내기',
       '의학 분야별 Excel · CSV · Anki TSV 내보내기',
