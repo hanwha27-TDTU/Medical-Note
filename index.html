@@ -3582,6 +3582,7 @@ function normalizeDrugForStorage(d) {
     createdAt: d.createdAt || d.created_at || d.updatedAt || now,
     updatedAt: d.updatedAt || d.updated_at || now,
     deletedAt: d.deletedAt || d.deleted_at || null,
+    hiddenAt: d.hiddenAt || d.hidden_at || null,
   };
 }
 
@@ -3743,6 +3744,13 @@ function hideLocalTombstonesFromTrash(ids) {
   saveLocalTombstones(rows);
 }
 
+function hideLocalDrugTombstonesFromTrash(ids) {
+  const hiddenAt = new Date().toISOString();
+  const idSet = new Set(ids.map(id => String(id)));
+  const rows = loadLocalDrugTombstones().map(d => idSet.has(String(d.id)) ? { ...d, hiddenAt } : d);
+  saveLocalDrugTombstones(rows);
+}
+
 function pruneOldLocalTombstones(days = TOMBSTONE_PRUNE_DAYS) {
   const cutoff = Date.now() - days * 86400000;
   const rows = loadLocalTombstones().filter(t => {
@@ -3766,7 +3774,7 @@ function recordLocalTombstone(term) {
 function recordLocalDrugTombstone(drug) {
   if (!drug) return;
   const deletedAt = new Date().toISOString();
-  const tombstone = normalizeDrugForStorage({ ...drug, updatedAt: deletedAt, deletedAt });
+  const tombstone = normalizeDrugForStorage({ ...drug, updatedAt: deletedAt, deletedAt, hiddenAt: null });
   const rows = loadLocalDrugTombstones().filter(d => String(d.id) !== String(drug.id));
   rows.push(tombstone);
   saveLocalDrugTombstones(rows);
@@ -7676,10 +7684,13 @@ function showExportMenu() {
   const main = document.getElementById('mainContent');
   const learning = getLearningStateMap();
   const tombstones = loadLocalTombstones();
+  const drugTombstones = loadLocalDrugTombstones();
   const visibleTrashCount = tombstones.filter(t => !t.hiddenAt).length;
+  const visibleDrugTrashCount = drugTombstones.filter(d => !d.hiddenAt).length;
   const localMeta = getLocalSyncMeta();
   const cacheMeta = safeJsonParse(localStorage.getItem(LOCAL_CACHE_META_KEY), {}) || {};
   const categories = [...new Set(TERMS.map(t => t.category || '기타'))].sort();
+  const drugSystems = [...new Set(DRUGS.map(d => d.category || 'General'))].sort();
   const reviewed = Object.values(learning).filter(s => s.lastReviewedAt).length;
   const due = Object.values(learning).filter(s => s.dueAt && new Date(s.dueAt) <= new Date()).length;
 
@@ -7740,13 +7751,15 @@ function showExportMenu() {
           <section class="data-card">
             <div class="data-card-title">🗑️ 휴지통 · 데이터 정리</div>
             <div class="data-card-desc">
-              복원 가능 ${visibleTrashCount}개 · 동기화 보호 기록 ${tombstones.length}개 · 중복과 미완성 데이터를 검토할 수 있습니다.
+              용어 복원 가능 ${visibleTrashCount}개 · 약물 복원 가능 ${visibleDrugTrashCount}개 · 동기화 보호 기록 용어 ${tombstones.length}개/약물 ${drugTombstones.length}개
             </div>
             <div class="data-action-stack">
               <button class="data-action-btn outline" onclick="showTrashManager()">삭제된 용어 보기 · 복원</button>
+              <button class="data-action-btn outline" onclick="showDrugTrashManager()">삭제된 약물명 및 정보 보기 · 복원</button>
               <button class="data-action-btn outline" onclick="showDuplicateManager()">중복 용어 검토</button>
               <button class="data-action-btn outline" onclick="bulkFillBlanks('all')">미완성 용어 AI 보강 (${TERMS.filter(t=>!t.def_ko||!t.def_en||!t.def_uz||!t.usmle||!t.ipa).length}개)</button>
               <button class="data-action-btn red" onclick="confirmEmptyTrash()">휴지통 목록 비우기</button>
+              <button class="data-action-btn red" onclick="confirmEmptyDrugTrash()">약물 휴지통 목록 비우기</button>
               <button class="data-action-btn outline" onclick="pruneOldLocalTombstones();showToast('🧹 90일 지난 삭제 보호 기록 정리 완료');showExportMenu()">90일 지난 보호 기록 정리</button>
             </div>
           </section>
@@ -7754,11 +7767,19 @@ function showExportMenu() {
           <section class="data-card danger-card">
             <div class="data-card-title" style="color:#f87171">⚠️ 위험 작업</div>
             <div class="data-card-desc">실행 전에 자동 JSON 백업을 내려받고 확인 문구를 입력합니다.</div>
+            <div style="font-size:11px;color:#fca5a5;font-weight:800;margin:2px 0 7px">일반용어 일괄 삭제</div>
             <select id="bulkDeleteCategory" class="data-select">
               <option value="__all__">전체 용어 (${TERMS.length}개)</option>
               ${categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)} (${TERMS.filter(t => (t.category || '기타') === cat).length}개)</option>`).join('')}
             </select>
-            <button class="data-action-btn red" onclick="confirmDangerousDelete()">선택 범위 삭제</button>
+            <button class="data-action-btn red" onclick="confirmDangerousDelete()">선택 용어 범위 삭제</button>
+            <div style="height:1px;background:rgba(248,81,73,0.25);margin:12px 0"></div>
+            <div style="font-size:11px;color:#fca5a5;font-weight:800;margin:2px 0 7px">약물명 및 정보 일괄 삭제</div>
+            <select id="bulkDeleteDrugSystem" class="data-select">
+              <option value="__all__">전체 약물명 및 정보 (${DRUGS.length}개)</option>
+              ${drugSystems.map(system => `<option value="${escapeHtml(system)}">${escapeHtml(categoryDisplay(system))} (${DRUGS.filter(d => (d.category || 'General') === system).length}개)</option>`).join('')}
+            </select>
+            <button class="data-action-btn red" onclick="confirmDangerousDrugDelete()">선택 약물 범위 삭제</button>
           </section>
         </div>
 
@@ -8474,6 +8495,56 @@ async function restoreTrashTerm(id) {
   showTrashManager();
 }
 
+function showDrugTrashManager() {
+  const rows = loadLocalDrugTombstones()
+    .filter(d => !d.hiddenAt)
+    .sort((a, b) => (Date.parse(b.deletedAt) || 0) - (Date.parse(a.deletedAt) || 0));
+  document.getElementById('drugTrashManagerModal')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'drugTrashManagerModal';
+  overlay.className = 'developer-modal-overlay';
+  overlay.innerHTML = `
+    <section class="developer-modal" role="dialog" aria-modal="true">
+      <div class="developer-modal-head">
+        <div style="font-size:17px;font-weight:800;color:var(--text)">💊 삭제된 약물명 및 정보</div>
+        <button onclick="document.getElementById('drugTrashManagerModal').remove()" style="width:38px;height:38px;border-radius:10px;border:1px solid #30363d;background:#21262d;color:#8b949e;font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:16px 20px 22px">
+        ${rows.length ? rows.map(drug => `
+          <div style="display:flex;align-items:center;gap:10px;background:#0d1117;border:1px solid #30363d;border-radius:9px;padding:11px;margin-bottom:7px">
+            <div style="min-width:0;flex:1">
+              <div style="font-size:12px;color:var(--text);font-weight:700">${escapeHtml(drug.generic_name || drug.brand_name || drug.ko_name || '이름 없음')}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(drug.ko_name || drug.drug_class || '')} · ${formatDataDate(drug.deletedAt)}</div>
+            </div>
+            <button onclick="restoreTrashDrug(${Number(drug.id)})" style="background:rgba(63,185,80,0.1);border:1px solid #238636;border-radius:7px;padding:7px 10px;color:#4ade80;font-size:10px;font-weight:700;cursor:pointer">복원</button>
+          </div>`).join('') : '<div style="padding:30px;text-align:center;color:var(--text3);font-size:12px">약물 휴지통이 비어 있습니다.</div>'}
+      </div>
+    </section>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+async function restoreTrashDrug(id) {
+  const rows = loadLocalDrugTombstones();
+  const drug = rows.find(d => String(d.id) === String(id));
+  if (!drug) return;
+  const restored = normalizeDrugForStorage({
+    ...drug,
+    deletedAt: null,
+    hiddenAt: null,
+    updatedAt: new Date().toISOString(),
+  });
+  const existingIndex = DRUGS.findIndex(d => String(d.id) === String(id));
+  if (existingIndex === -1) DRUGS.push(restored);
+  else DRUGS[existingIndex] = restored;
+  saveLocalDrugTombstones(rows.filter(d => String(d.id) !== String(id)));
+  saveDrugsToLocalStorage();
+  const cloudOk = getSupabaseConfig() ? await sbUpsertDrug(restored) : true;
+  if (cloudOk) showToast(`✅ ${restored.generic_name || restored.ko_name || restored.brand_name} 복원 완료`);
+  else showToast('⚠️ 로컬 약물 복원 완료 · 클라우드 반영은 일반 동기화에서 재시도하세요');
+  showDrugTrashManager();
+}
+
 function confirmEmptyTrash() {
   const visibleRows = loadLocalTombstones().filter(t => !t.hiddenAt);
   const count = visibleRows.length;
@@ -8481,6 +8552,17 @@ function confirmEmptyTrash() {
   showConfirm(`삭제 기록 ${count}개를 휴지통 목록에서 숨길까요?<br><span style="font-size:11px;color:#8b949e">기기 간 부활 방지를 위해 내부 삭제 기록은 보존됩니다.</span>`, () => {
     hideLocalTombstonesFromTrash(visibleRows.map(t => t.id));
     showToast('🗑️ 휴지통 목록 비우기 완료 · 삭제 동기화 기록은 보존됨');
+    showExportMenu();
+  });
+}
+
+function confirmEmptyDrugTrash() {
+  const visibleRows = loadLocalDrugTombstones().filter(d => !d.hiddenAt);
+  const count = visibleRows.length;
+  if (!count) { showToast('✅ 약물 휴지통이 비어 있습니다'); return; }
+  showConfirm(`삭제된 약물 기록 ${count}개를 휴지통 목록에서 숨길까요?<br><span style="font-size:11px;color:#8b949e">기기 간 부활 방지를 위해 내부 삭제 기록은 보존됩니다.</span>`, () => {
+    hideLocalDrugTombstonesFromTrash(visibleRows.map(d => d.id));
+    showToast('🗑️ 약물 휴지통 목록 비우기 완료 · 삭제 동기화 기록은 보존됨');
     showExportMenu();
   });
 }
@@ -8522,22 +8604,60 @@ async function confirmDangerousDelete() {
   showExportMenu();
 }
 
+async function confirmDangerousDrugDelete() {
+  const system = document.getElementById('bulkDeleteDrugSystem')?.value || '__all__';
+  const targets = system === '__all__' ? [...DRUGS] : DRUGS.filter(d => (d.category || 'General') === system);
+  if (!targets.length) { showToast('⚠️ 삭제할 약물명 및 정보가 없습니다'); return; }
+  exportCompleteJsonBackup();
+  const label = system === '__all__' ? '전체 약물명 및 정보' : categoryDisplay(system);
+  const typed = window.prompt(`자동 백업을 내려받았습니다.\n${label} ${targets.length}개를 삭제하려면 "삭제"를 입력하세요.`);
+  if (typed !== '삭제') { showToast('삭제가 취소되었습니다'); return; }
+
+  const targetIds = new Set(targets.map(d => String(d.id)));
+  const tombstones = targets.map(recordLocalDrugTombstone).filter(Boolean);
+  for (let i = DRUGS.length - 1; i >= 0; i--) {
+    if (targetIds.has(String(DRUGS[i].id))) DRUGS.splice(i, 1);
+  }
+  saveDrugsToLocalStorage();
+
+  if (getSupabaseConfig()) {
+    try {
+      for (const tombstone of tombstones) await sbDeleteDrug(tombstone.id, tombstone.deletedAt);
+    } catch (e) {
+      console.error(e);
+      showToast('⚠️ 로컬 약물 삭제 완료 · 클라우드 반영은 다음 동기화에서 재시도됩니다');
+      showExportMenu();
+      return;
+    }
+  }
+  showToast(`🗑️ 약물명 및 정보 ${targets.length}개 삭제 완료`);
+  showExportMenu();
+}
+
 function showDevInfo() {
   showDeveloperInfo();
 }
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.51',
+  version: '3.52',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 15일 15:50',
+  updatedAt: '2026년 6월 15일 16:05',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 약물 백업/복원 보강',
+    title: '최신 · 약물 일괄 삭제와 복원 추가',
+    items: [
+      '데이터 관리 위험 작업에 약물명 및 정보 전체/장기계별 일괄 삭제 기능을 추가',
+      '약물 일괄 삭제도 개별 삭제와 동일하게 삭제 tombstone을 남기고 Supabase deleted_at soft delete를 시도하도록 연결',
+      '삭제된 약물명 및 정보 보기, 복원, 약물 휴지통 목록 비우기를 추가해 삭제 후 복구 경로를 보강',
+    ]
+  },
+  {
+    title: 'v3.51 · 약물 백업/복원 보강',
     items: [
       '구형 JSON처럼 약물 배열이 없는 백업을 복원할 때 현재 약물명 및 정보가 빈 배열로 교체되지 않도록 보호',
       '전체 백업 영역에 약물명 및 정보 Excel/CSV 내보내기를 추가하고 일반용어 내보내기와 명칭을 구분',
