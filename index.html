@@ -7691,7 +7691,7 @@ function showExportMenu() {
           <div style="font-size:11px;color:var(--text3);margin-top:4px">가져오기 · 백업 · 동기화 · 선택 내보내기 · 삭제 데이터 관리</div>
         </div>
         <div style="font-size:10px;color:var(--text3);text-align:right;line-height:1.6">
-          용어 ${TERMS.length}개<br>학습기록 ${reviewed}개
+          용어 ${TERMS.length}개<br>약물 ${DRUGS.length}개<br>학습기록 ${reviewed}개
         </div>
       </div>
 
@@ -7701,7 +7701,7 @@ function showExportMenu() {
             <div class="data-card-title">📥 가져오기</div>
             <div class="data-card-desc">
               파일을 먼저 분석해 추가·수정·삭제 예상 건수를 보여준 뒤 적용합니다.
-              JSON 전체 백업에는 용어·학습상태·삭제기록이 포함됩니다.
+              JSON 전체 백업에는 용어·약물명 및 정보·학습상태·삭제기록이 포함됩니다.
             </div>
             <div class="data-action-stack">
               <button class="data-action-btn outline" onclick="document.getElementById('dataJsonImport').click()">전체 백업 JSON 선택</button>
@@ -7768,9 +7768,11 @@ function showExportMenu() {
             <div class="data-card-desc">API 키와 Supabase 인증정보는 백업에 포함하지 않습니다.</div>
             <div class="data-action-stack">
               <button class="data-action-btn green" onclick="exportCompleteJsonBackup()">전체 백업 JSON</button>
-              <button class="data-action-btn primary" onclick="exportTermsByScope('all','xlsx')">전체 Excel</button>
-              <button class="data-action-btn primary" onclick="exportTermsByScope('all','csv')">전체 CSV</button>
-              <button class="data-action-btn purple" onclick="exportTermsByScope('all','anki')">전체 Anki TSV</button>
+              <button class="data-action-btn primary" onclick="exportTermsByScope('all','xlsx')">일반용어 Excel</button>
+              <button class="data-action-btn primary" onclick="exportTermsByScope('all','csv')">일반용어 CSV</button>
+              <button class="data-action-btn primary" onclick="exportDrugCollection('xlsx')">약물명 및 정보 Excel</button>
+              <button class="data-action-btn primary" onclick="exportDrugCollection('csv')">약물명 및 정보 CSV</button>
+              <button class="data-action-btn purple" onclick="exportTermsByScope('all','anki')">일반용어 Anki TSV</button>
             </div>
           </section>
 
@@ -7852,7 +7854,7 @@ function downloadBlobFile(content, filename, mime = 'application/octet-stream') 
 
 function createCompleteBackupObject() {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     app: APP_INFO.name,
     appVersion: APP_INFO.version,
     exportedAt: new Date().toISOString(),
@@ -7943,6 +7945,39 @@ function termExportRows(terms) {
   }));
 }
 
+function drugExportRows(drugs) {
+  return dedupeDrugsById(drugs).filter(d => !d.deletedAt).map(d => ({
+    id: d.id,
+    Generic_name: d.generic_name || '',
+    Korean_drug_name: d.ko_name || '',
+    Brand_name: d.brand_name || '',
+    USMLE_class: d.drug_class || '',
+    Same_class_drugs: d.same_class_drugs || '',
+    Drug_form: d.drug_form || '',
+    ATC_class: d.atc_class || '',
+    Target: d.target || '',
+    Route: d.route || '',
+    System: d.category || 'General',
+    System_tags: Array.isArray(d.system_tags) ? d.system_tags.join(', ') : '',
+    USMLE_yield: d.usmle_yield || '',
+    IPA: d.ipa || '',
+    Causal_chain: d.causal_chain || '',
+    Definition_ko: d.definition_ko || '',
+    Definition_en: d.definition_en || '',
+    Definition_uz: d.definition_uz || '',
+    Why: d.why || '',
+    MOA: d.moa || '',
+    Clinical_uses: d.clinical_uses || '',
+    Adverse_effects: d.adverse_effects || '',
+    Precautions: d.precautions || '',
+    USMLE_strategy: d.usmle_strategy || '',
+    Memory_line: d.memory_line || '',
+    Refs_json: stringifyExportJson(d.refs || []),
+    Created_at: d.createdAt || '',
+    Updated_at: d.updatedAt || '',
+  }));
+}
+
 function csvCell(value) {
   const text = String(value ?? '');
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
@@ -7978,6 +8013,26 @@ function exportTermCollection(terms, label, format) {
     downloadBlobFile('\uFEFF' + [header, ...rows].join('\n'), `${prefix}_Anki.tsv`, 'text/tab-separated-values;charset=utf-8');
   }
   showToast(`✅ ${label} ${terms.length}개 내보내기 완료`);
+}
+
+function exportDrugCollection(format) {
+  const drugs = dedupeDrugsById(DRUGS).filter(d => !d.deletedAt);
+  if (!drugs.length) { showToast('⚠️ 내보낼 약물명 및 정보가 없습니다'); return; }
+  const prefix = dataFilePrefix('약물명및정보');
+  const rows = drugExportRows(drugs);
+  if (format === 'xlsx') {
+    if (!window.XLSX) { showToast('⚠️ Excel 모듈을 불러오지 못했습니다'); return; }
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet['!cols'] = [10,18,18,18,22,30,28,32,24,24,18,28,16,18,44,38,38,38,48,48,48,48,48,48,38,28,24,24].map(wch => ({ wch }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Medical Drugs');
+    XLSX.writeFile(workbook, `${prefix}.xlsx`);
+  } else {
+    const headers = Object.keys(rows[0]);
+    const csv = [headers.join(','), ...rows.map(row => headers.map(key => csvCell(row[key])).join(','))].join('\r\n');
+    downloadBlobFile('\uFEFF' + csv, `${prefix}.csv`, 'text/csv;charset=utf-8');
+  }
+  showToast(`✅ 약물명 및 정보 ${drugs.length}개 내보내기 완료`);
 }
 
 async function runManualSync() {
@@ -8207,15 +8262,19 @@ async function readDataImportFile(file, kind) {
   if (kind === 'json') {
     const parsed = JSON.parse(await file.text());
     if (!parsed || !Array.isArray(parsed.terms)) throw new Error('지원되는 전체 백업 JSON이 아닙니다.');
+    const hasDrugPayload = Object.prototype.hasOwnProperty.call(parsed, 'drugs') && Array.isArray(parsed.drugs);
+    const hasDrugTombstonePayload = Object.prototype.hasOwnProperty.call(parsed, 'drugTombstones') && Array.isArray(parsed.drugTombstones);
     return {
       kind,
       fileName: file.name,
       terms: dedupeTermsById(parsed.terms),
-      drugs: dedupeDrugsById(Array.isArray(parsed.drugs) ? parsed.drugs : []),
+      drugs: hasDrugPayload ? dedupeDrugsById(parsed.drugs) : [],
       learningStates: parsed.learningStates || {},
       tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : [],
-      drugTombstones: Array.isArray(parsed.drugTombstones) ? parsed.drugTombstones : [],
+      drugTombstones: hasDrugTombstonePayload ? parsed.drugTombstones : [],
       syncMeta: parsed.syncMeta || {},
+      hasDrugPayload,
+      hasDrugTombstonePayload,
     };
   }
 
@@ -8228,7 +8287,7 @@ async function readDataImportFile(file, kind) {
     const workbook = XLSX.read(text, { type: 'string' });
     rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
   }
-  return { kind, fileName: file.name, terms: normalizeImportedTableRows(rows), drugs: [], learningStates: {}, tombstones: [], drugTombstones: [] };
+  return { kind, fileName: file.name, terms: normalizeImportedTableRows(rows), drugs: [], learningStates: {}, tombstones: [], drugTombstones: [], hasDrugPayload: false, hasDrugTombstonePayload: false };
 }
 
 function calculateImportPreview(importData) {
@@ -8246,10 +8305,10 @@ function calculateImportPreview(importData) {
   const existingDrugIds = new Set(DRUGS.map(d => String(d.id)));
   const incomingDrugs = Array.isArray(importData.drugs) ? importData.drugs : [];
   const incomingDrugIds = new Set(incomingDrugs.map(d => String(d.id)));
-  const drugAdded = incomingDrugs.filter(d => !existingDrugIds.has(String(d.id))).length;
-  const drugUpdated = incomingDrugs.length - drugAdded;
-  const drugReplaced = importData.kind === 'json' ? DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).length : 0;
-  return { added, updated, replaced, drugAdded, drugUpdated, drugReplaced };
+  const drugAdded = importData.hasDrugPayload ? incomingDrugs.filter(d => !existingDrugIds.has(String(d.id))).length : 0;
+  const drugUpdated = importData.hasDrugPayload ? incomingDrugs.length - drugAdded : 0;
+  const drugReplaced = importData.kind === 'json' && importData.hasDrugPayload ? DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).length : 0;
+  return { added, updated, replaced, drugAdded, drugUpdated, drugReplaced, hasDrugPayload: !!importData.hasDrugPayload };
 }
 
 async function previewDataImport(event, kind) {
@@ -8266,7 +8325,11 @@ async function previewDataImport(event, kind) {
           <span style="font-size:10px;color:#4ade80">추가 ${preview.added}</span>
           <span style="font-size:10px;color:#74b0ff">갱신 ${preview.updated}</span>
           <span style="font-size:10px;color:#f87171">교체 시 제거 ${preview.replaced}</span>
-          ${pendingDataImport.kind === 'json' ? `<span style="font-size:10px;color:#fbbf24">약물 추가 ${preview.drugAdded}</span><span style="font-size:10px;color:#9cc7ff">약물 갱신 ${preview.drugUpdated}</span><span style="font-size:10px;color:#f87171">약물 교체 시 제거 ${preview.drugReplaced}</span>` : ''}
+          ${pendingDataImport.kind === 'json' ? (
+            preview.hasDrugPayload
+              ? `<span style="font-size:10px;color:#fbbf24">약물 추가 ${preview.drugAdded}</span><span style="font-size:10px;color:#9cc7ff">약물 갱신 ${preview.drugUpdated}</span><span style="font-size:10px;color:#f87171">약물 교체 시 제거 ${preview.drugReplaced}</span>`
+              : `<span style="font-size:10px;color:#8b949e">약물 데이터 없음 · 현재 약물 보존</span>`
+          ) : ''}
         </div>
         <select id="dataImportMode" class="data-select">
           <option value="merge">최신 항목 병합</option>
@@ -8287,6 +8350,7 @@ async function applyPendingDataImport() {
   const mode = document.getElementById('dataImportMode')?.value || 'merge';
   const incoming = dedupeTermsById(pendingDataImport.terms);
   const incomingDrugs = dedupeDrugsById(pendingDataImport.drugs || []);
+  const hasDrugPayload = !!pendingDataImport.hasDrugPayload;
 
   if (mode === 'replace') {
     exportCompleteJsonBackup();
@@ -8295,13 +8359,18 @@ async function applyPendingDataImport() {
     TERMS.length = 0;
     TERMS.push(...incoming.filter(t => !t.deletedAt));
     if (pendingDataImport.kind === 'json') {
-      const incomingDrugIds = new Set(incomingDrugs.map(d => String(d.id)));
-      const removedDrugs = DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).map(recordLocalDrugTombstone).filter(Boolean);
-      DRUGS.length = 0;
-      DRUGS.push(...incomingDrugs.filter(d => !d.deletedAt));
+      let removedDrugs = [];
+      if (hasDrugPayload) {
+        const incomingDrugIds = new Set(incomingDrugs.map(d => String(d.id)));
+        removedDrugs = DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).map(recordLocalDrugTombstone).filter(Boolean);
+        DRUGS.length = 0;
+        DRUGS.push(...incomingDrugs.filter(d => !d.deletedAt));
+      }
       saveLearningStateMap(pendingDataImport.learningStates);
       saveLocalTombstones([...(pendingDataImport.tombstones || []), ...removed.filter(Boolean)]);
-      saveLocalDrugTombstones([...(pendingDataImport.drugTombstones || []), ...removedDrugs]);
+      if (hasDrugPayload || pendingDataImport.hasDrugTombstonePayload) {
+        saveLocalDrugTombstones([...(pendingDataImport.drugTombstones || []), ...removedDrugs]);
+      }
       if (pendingDataImport.syncMeta?.canonicalVersion) saveLocalSyncMeta(pendingDataImport.syncMeta);
     } else {
       saveLocalTombstones([...loadLocalTombstones(), ...removed]);
@@ -8321,21 +8390,25 @@ async function applyPendingDataImport() {
     if (pendingDataImport.kind === 'json' && mode === 'merge') {
       applyLearningStates(Object.values(pendingDataImport.learningStates || {}), false);
       saveLocalTombstones([...loadLocalTombstones(), ...(pendingDataImport.tombstones || [])]);
-      const mergedDrugs = mergeDrugsForSync(incomingDrugs, DRUGS, [
-        ...loadLocalDrugTombstones(),
-        ...(pendingDataImport.drugTombstones || [])
-      ]);
-      DRUGS.length = 0;
-      DRUGS.push(...mergedDrugs.filter(d => !d.deletedAt));
-      saveLocalDrugTombstones(mergedDrugs.filter(d => d.deletedAt));
+      if (hasDrugPayload || pendingDataImport.hasDrugTombstonePayload) {
+        const mergedDrugs = mergeDrugsForSync(hasDrugPayload ? incomingDrugs : [], DRUGS, [
+          ...loadLocalDrugTombstones(),
+          ...(pendingDataImport.drugTombstones || [])
+        ]);
+        DRUGS.length = 0;
+        DRUGS.push(...mergedDrugs.filter(d => !d.deletedAt));
+        saveLocalDrugTombstones(mergedDrugs.filter(d => d.deletedAt));
+      }
     } else if (pendingDataImport.kind === 'json' && mode === 'append') {
-      const drugIds = new Set(DRUGS.map(d => String(d.id)));
-      incomingDrugs.forEach(drug => {
-        if (!drugIds.has(String(drug.id)) && !drug.deletedAt) {
-          DRUGS.push(drug);
-          drugIds.add(String(drug.id));
-        }
-      });
+      if (hasDrugPayload) {
+        const drugIds = new Set(DRUGS.map(d => String(d.id)));
+        incomingDrugs.forEach(drug => {
+          if (!drugIds.has(String(drug.id)) && !drug.deletedAt) {
+            DRUGS.push(drug);
+            drugIds.add(String(drug.id));
+          }
+        });
+      }
     }
   }
 
@@ -8455,16 +8528,24 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.50',
+  version: '3.51',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 14일 18:40',
+  updatedAt: '2026년 6월 15일 15:50',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 약물 카드 2.0 기본/고급 개편',
+    title: '최신 · 약물 백업/복원 보강',
+    items: [
+      '구형 JSON처럼 약물 배열이 없는 백업을 복원할 때 현재 약물명 및 정보가 빈 배열로 교체되지 않도록 보호',
+      '전체 백업 영역에 약물명 및 정보 Excel/CSV 내보내기를 추가하고 일반용어 내보내기와 명칭을 구분',
+      '가져오기 미리보기에서 약물 데이터 포함 여부와 약물 추가/갱신/교체 예상 건수를 명확히 표시',
+    ]
+  },
+  {
+    title: 'v3.50 · 약물 카드 2.0 기본/고급 개편',
     items: [
       '약물명 및 정보 드로어를 기본 카드와 접혀있는 고급 정보로 재구성해 핵심 USMLE 정보가 먼저 보이도록 개선',
       '같은 계열 약물명 필드를 추가하고 약물 추가, 편집, 카드 표시, 검색, Supabase 저장 경로에 연결',
