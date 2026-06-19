@@ -322,19 +322,7 @@ function drugDrawerOpenEdit() {
 function _renderDrugDrawerContent(d) {
   const title = drugDisplayName(d);
   const subtitle = [d.ko_name, d.brand_name].filter(Boolean).join(' · ');
-  const chips = [
-    d.drug_class ? `USMLE ${d.drug_class}` : '',
-    d.same_class_drugs ? `같은 계열 ${d.same_class_drugs}` : '',
-    d.drug_form,
-    d.atc_class ? `ATC ${d.atc_class}` : '',
-    d.target ? `Target ${d.target}` : '',
-    d.route,
-    d.category,
-    d.usmle_yield,
-    d.ipa ? `IPA ${d.ipa}` : '',
-    ...(Array.isArray(d.system_tags) ? d.system_tags : []),
-    ...drugApiSources(d),
-  ].filter(Boolean);
+  const chips = drugPrimaryChipLabels(d);
 
   const body = document.getElementById('drugDrawerBody');
   const titleEl = document.getElementById('drugDrawerTitle');
@@ -402,11 +390,11 @@ document.addEventListener('keydown', e => {
   }
 
   html[data-theme="light"] {
-    --bg: #f4f7fb;
+    --bg: #f6f8fb;
     --surface: #ffffff;
-    --surface2: #eef3fb;
-    --border: #cfd8e6;
-    --header-bg: linear-gradient(180deg, #ffffff 0%, #eef3fb 100%);
+    --surface2: #f1f5f9;
+    --border: #d7e0ee;
+    --header-bg: rgba(255,255,255,0.94);
     --overlay-bg: rgba(15,23,42,0.38);
     --accent: #2563eb;
     --accent2: #15803d;
@@ -1442,6 +1430,114 @@ document.addEventListener('keydown', e => {
     background: rgba(88,166,255,0.08);
     font-size: 11px;
     white-space: nowrap;
+  }
+
+  html[data-theme="light"] header {
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  }
+
+  html[data-theme="light"] .data-header-btn,
+  html[data-theme="light"] .kma-header-btn,
+  html[data-theme="light"] .settings-header-btn,
+  html[data-theme="light"] .category-stats-header-btn,
+  html[data-theme="light"] .developer-header-btn,
+  html[data-theme="light"] .theme-toggle-btn,
+  html[data-theme="light"] .version-check-header-btn {
+    background: #ffffff;
+    border-color: #d7e0ee;
+    color: #475569;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  html[data-theme="light"] .final-save-header-btn {
+    background: #fffaf0;
+    border-color: #f0c36a;
+    color: #92400e;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  html[data-theme="light"] .data-header-btn:hover,
+  html[data-theme="light"] .kma-header-btn:hover,
+  html[data-theme="light"] .settings-header-btn:hover,
+  html[data-theme="light"] .category-stats-header-btn:hover,
+  html[data-theme="light"] .developer-header-btn:hover,
+  html[data-theme="light"] .theme-toggle-btn:hover,
+  html[data-theme="light"] .version-check-header-btn:hover {
+    background: #f8fafc;
+    border-color: #b9c7da;
+    color: #1e293b;
+  }
+
+  html[data-theme="light"] .search-input {
+    background: #ffffff;
+    border-color: #d7e0ee;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  }
+
+  html[data-theme="light"] .filter-btn {
+    background: #ffffff;
+    border-color: #d7e0ee;
+    color: #475569;
+  }
+
+  html[data-theme="light"] .filter-btn:hover {
+    border-color: #93c5fd;
+    color: #1d4ed8;
+    background: #f8fbff;
+  }
+
+  html[data-theme="light"] .filter-btn.active {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+  }
+
+  html[data-theme="light"] .filter-btn.concept.active {
+    background: #f5f3ff;
+    border-color: #c4b5fd;
+    color: #6d28d9;
+  }
+
+  html[data-theme="light"] .term-card {
+    background: #ffffff;
+    border-color: #d7e0ee;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  }
+
+  html[data-theme="light"] .term-card:hover {
+    border-color: #b9c7da;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  }
+
+  html[data-theme="light"] .drug-frame-title strong {
+    color: #334155;
+  }
+
+  html[data-theme="light"] .drug-card {
+    background: #ffffff;
+    border-color: #d7e0ee;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  html[data-theme="light"] .drug-card:hover {
+    background: #ffffff;
+    border-color: #93c5fd;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  }
+
+  html[data-theme="light"] .drug-card.selected {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.45), 0 8px 22px rgba(15, 23, 42, 0.08);
+  }
+
+  html[data-theme="light"] .drug-sub {
+    color: #64748b;
+  }
+
+  html[data-theme="light"] .drug-chip {
+    background: #f8fafc;
+    border-color: #d7e0ee;
+    color: #334155;
   }
 
   .drug-section-grid {
@@ -4821,17 +4917,7 @@ function renderDrugFrame(drugs = []) {
             </div>
           </div>
           <div class="drug-chip-row">
-            ${d.drug_class ? `<span class="drug-chip">USMLE ${escapeHtml(d.drug_class)}</span>` : ''}
-            ${d.same_class_drugs ? `<span class="drug-chip">같은 계열 ${escapeHtml(compactDrugText(d.same_class_drugs, 42))}</span>` : ''}
-            ${d.drug_form ? `<span class="drug-chip">${escapeHtml(d.drug_form)}</span>` : ''}
-            ${d.atc_class ? `<span class="drug-chip">ATC ${escapeHtml(d.atc_class)}</span>` : ''}
-            ${d.target ? `<span class="drug-chip">Target ${escapeHtml(d.target)}</span>` : ''}
-            ${d.route ? `<span class="drug-chip">${escapeHtml(d.route)}</span>` : ''}
-            ${d.usmle_yield ? `<span class="drug-chip">${escapeHtml(d.usmle_yield)}</span>` : ''}
-            ${d.ipa ? `<span class="drug-chip">IPA ${escapeHtml(d.ipa)}</span>` : ''}
-            ${(Array.isArray(d.system_tags) ? d.system_tags : []).map(tag => `<span class="drug-chip">${escapeHtml(categoryDisplay(tag))}</span>`).join('')}
-            ${drugApiSourceChipsHtml(d)}
-            <span class="drug-chip">세부 ${detailCount}개</span>
+            ${drugPrimaryChipLabels(d, 58).map(chip => `<span class="drug-chip">${escapeHtml(chip)}</span>`).join('')}
           </div>
           ${detailCount === 0 ? `<div class="drug-empty-note">세부 내용이 아직 입력되지 않았습니다. 카드를 클릭해 상세 화면을 열거나 연필 버튼으로 내용을 추가하세요.</div>` : ''}
         </article>
@@ -4842,6 +4928,20 @@ function renderDrugFrame(drugs = []) {
 
 function drugDisplayName(d) {
   return d?.generic_name || d?.ko_name || d?.brand_name || '이름 없음';
+}
+
+function drugPrimaryChipLabels(d, maxLength = 0) {
+  const primarySystem = d?.category && d.category !== 'General'
+    ? categoryDisplay(d.category)
+    : (Array.isArray(d?.system_tags) && d.system_tags.length ? categoryDisplay(d.system_tags[0]) : '');
+  const chips = [
+    d?.drug_class ? `계열 ${d.drug_class}` : '',
+    d?.drug_form ? `약물형태 ${d.drug_form}` : '',
+    d?.target ? `타겟 ${d.target}` : '',
+    d?.route ? `투여방법 ${d.route}` : '',
+    primarySystem ? `시스템 ${primarySystem}` : '',
+  ].filter(Boolean);
+  return maxLength ? chips.map(chip => compactDrugText(chip, maxLength)) : chips;
 }
 
 function compactDrugText(value, max = 80) {
@@ -8900,16 +9000,32 @@ function showDevInfo() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.60',
+  version: '3.62',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 19일 11:37',
+  updatedAt: '2026년 6월 19일 11:48',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 라이트모드 약물 드로어 가독성 개선',
+    title: '최신 · 라이트모드 전체 톤 정리',
+    items: [
+      '라이트모드에서 다크모드 잔재처럼 보이던 약물 카드의 어두운 그라데이션을 흰 카드와 낮은 그림자 기준으로 정리',
+      '상단 버튼, 검색창, 필터 버튼, 태그의 채도와 테두리 대비를 낮춰 밝은 의학 학습 DB 화면에 맞게 조정',
+      '라이트모드 배경과 표면 토큰을 조용한 청회색 계열로 정리해 빈 공간과 카드 UI가 덜 조잡하게 보이도록 개선',
+    ]
+  },
+  {
+    title: 'v3.61 · 약물 태그 핵심 5개 정리',
+    items: [
+      '약물 카드와 상세 드로어 상단 태그를 계열, 약물형태, 타겟, 투여방법, 시스템 5개 중심으로 축약',
+      'ATC, IPA, USMLE Yield, RxNorm, RxClass, 세부 개수, 보조 시스템 태그는 상단 태그에서 숨기고 상세/고급 정보 데이터는 유지',
+      '태그 생성 기준을 공통 헬퍼로 통합해 카드와 드로어가 같은 정보 밀도를 유지하도록 정리',
+    ]
+  },
+  {
+    title: 'v3.60 · 라이트모드 약물 드로어 가독성 개선',
     items: [
       '라이트모드에서 약물 상세 드로어의 일부 카드가 어두운 배경과 낮은 대비로 깨져 보이던 문제를 수정',
       '약물 정보 박스, Target/System/MOA/임상 사용 카드, 핵심 공식, 고급 정보 영역에 라이트모드 전용 팔레트를 적용',
