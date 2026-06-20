@@ -164,13 +164,13 @@ function _renderDrawerContent(t) {
   // 링크 버튼들
   const linksHtml = `
     <div class="drawer-links">
-      <a class="drawer-link-btn" href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" style="background:rgba(63,185,80,0.08);border-color:#166534;color:#4ade80">📚 PubMed</a>
-      <a class="drawer-link-btn" href="${youtubeSearchUrl(t)}" target="_blank" rel="noopener noreferrer" style="background:rgba(255,0,0,0.08);border-color:#991b1b;color:#fca5a5">▶️ YouTube</a>
-      <a class="drawer-link-btn" href="${googleUsageSearchUrl(t)}" target="_blank" rel="noopener noreferrer" style="background:rgba(251,191,36,0.08);border-color:#92400e;color:#fbbf24">🔎 Google 사용례</a>
-      <button class="drawer-link-btn" onclick="showICD11ForTerm(${termId});" style="background:rgba(139,92,246,0.08);border-color:#5b21b6;color:#a78bfa;font-family:'Noto Sans KR',sans-serif">🏷️ ICD-11</button>
-      <a class="drawer-link-btn" href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" style="background:rgba(88,166,255,0.08);border-color:#1d4ed8;color:#74b0ff">💊 MedlinePlus</a>
-      <a class="drawer-link-btn" href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" rel="noopener noreferrer" style="background:rgba(34,197,94,0.08);border-color:#166534;color:#4ade80">🔬 ClinicalTrials</a>
-      <a class="drawer-link-btn" href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" style="background:rgba(248,81,73,0.08);border-color:#991b1b;color:#f87171">⚠️ FDA</a>
+      <a class="drawer-link-btn" href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer">PubMed</a>
+      <a class="drawer-link-btn" href="${youtubeSearchUrl(t)}" target="_blank" rel="noopener noreferrer">YouTube</a>
+      <a class="drawer-link-btn" href="${googleUsageSearchUrl(t)}" target="_blank" rel="noopener noreferrer">Google 사용례</a>
+      <button class="drawer-link-btn" onclick="showICD11ForTerm(${termId});">ICD-11</button>
+      <a class="drawer-link-btn" href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer">MedlinePlus</a>
+      <a class="drawer-link-btn" href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" rel="noopener noreferrer">ClinicalTrials</a>
+      <a class="drawer-link-btn" href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer">FDA</a>
     </div>`;
 
   document.getElementById('drawerBody').innerHTML = `
@@ -2634,12 +2634,30 @@ document.addEventListener('keydown', e => {
     border-radius: 8px;
     padding: 5px 11px;
     font-size: 11px;
+    font-weight: 700;
     font-family: 'Noto Sans KR', sans-serif;
     cursor: pointer;
-    border: 1px solid;
-    transition: opacity 0.15s;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
-  .drawer-link-btn:hover { opacity: 0.8; }
+  .drawer-link-btn:hover {
+    background: var(--add-active-bg);
+    border-color: var(--add-active-border);
+    color: var(--add-active-text);
+  }
+  html[data-theme="light"] .drawer-link-btn {
+    background: #ffffff;
+    border-color: #d7e0ee;
+    color: #475569;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+  }
+  html[data-theme="light"] .drawer-link-btn:hover {
+    background: #eef6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+  }
   .drawer-complete-badge {
     font-size: 10px;
     border-radius: 6px;
@@ -4930,14 +4948,14 @@ function renderTerms(terms, bookmarkDivider = 0) {
         </div>
         <div class="detail-section" style="background:rgba(0,0,0,0.1)">
           <div class="lang-badge" style="background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border)">🔗 더 알아보기</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-            <a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(63,185,80,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">📚 PubMed</a>
-            <a href="${youtubeSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="YouTube에서 이 의학용어가 사용된 영상을 검색" style="text-decoration:none;background:rgba(255,0,0,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#fca5a5">▶️ YouTube</a>
-            <a href="${googleUsageSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Google에서 실제 사용례 검색" style="text-decoration:none;background:rgba(251,191,36,0.08);border:1px solid #92400e;border-radius:8px;padding:4px 10px;font-size:11px;color:#fbbf24">🔎 Google 사용례</a>
-            <button onclick="event.stopPropagation();showICD11ForTerm(${termId});" style="background:rgba(139,92,246,0.08);border:1px solid #5b21b6;border-radius:8px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🏷️ ICD-11</button>
-            <a href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(88,166,255,0.08);border:1px solid #1d4ed8;border-radius:8px;padding:4px 10px;font-size:11px;color:#74b0ff">💊 MedlinePlus</a>
-            <a href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(34,197,94,0.08);border:1px solid #166534;border-radius:8px;padding:4px 10px;font-size:11px;color:#4ade80">🔬 ClinicalTrials</a>
-            <a href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="text-decoration:none;background:rgba(248,81,73,0.08);border:1px solid #991b1b;border-radius:8px;padding:4px 10px;font-size:11px;color:#f87171">⚠️ FDA</a>
+          <div class="drawer-links" style="margin-top:8px">
+            <a class="drawer-link-btn" href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">PubMed</a>
+            <a class="drawer-link-btn" href="${youtubeSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="YouTube에서 이 의학용어가 사용된 영상을 검색">YouTube</a>
+            <a class="drawer-link-btn" href="${googleUsageSearchUrl(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Google에서 실제 사용례 검색">Google 사용례</a>
+            <button class="drawer-link-btn" onclick="event.stopPropagation();showICD11ForTerm(${termId});">ICD-11</button>
+            <a class="drawer-link-btn" href="https://medlineplus.gov/search.html?query=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">MedlinePlus</a>
+            <a class="drawer-link-btn" href="https://clinicaltrials.gov/search?cond=${encodeURIComponent(t.en)}&recrs=a" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">ClinicalTrials</a>
+            <a class="drawer-link-btn" href="https://www.fda.gov/search?s=${encodeURIComponent(t.en)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">FDA</a>
           </div>
         </div>
       </div>
@@ -9114,16 +9132,24 @@ async function confirmDangerousDrugDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.66',
+  version: '3.67',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 20일 12:52',
+  updatedAt: '2026년 6월 20일 13:02',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 추가 버튼 색상 정돈 및 지침 반영',
+    title: '최신 · 외부 자료 버튼 톤 정리',
+    items: [
+      'PubMed, YouTube, Google 사용례, ICD-11, MedlinePlus, ClinicalTrials, FDA 버튼의 브랜드색 테두리와 컬러 이모지를 제거',
+      '상세 드로어와 카드 확장 영역의 외부 자료 링크를 같은 중립 버튼 스타일로 통일해 라이트모드에서 산만해 보이던 문제를 완화',
+      '외부 링크는 hover 시에만 약한 파랑 tint가 나타나도록 조정해 참고자료 툴바처럼 보이게 정리',
+    ]
+  },
+  {
+    title: 'v3.66 · 추가 버튼 색상 정돈 및 지침 반영',
     items: [
       '라이트모드에서 목록 상단 추가 버튼의 초록 배경, 연두 텍스트, 보라색 이모지 조합이 튀어 보이던 문제를 완화',
       '추가 버튼을 용어 추가 모달과 같은 연한 파랑 tint 토큰으로 맞춰 화면 내 액션 색상 체계를 통일',
