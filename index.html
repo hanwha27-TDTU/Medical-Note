@@ -864,6 +864,50 @@ document.addEventListener('keydown', e => {
   .data-action-btn.purple { color:#c4b5fd;background:rgba(167,139,250,0.1);border:1px solid #5b21b6; }
   .data-action-btn.red { color:#f87171;background:rgba(248,81,73,0.1);border:1px solid #b91c1c; }
 
+  .edit-modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    align-items: stretch;
+  }
+
+  .edit-action-btn {
+    border-radius: 8px;
+    min-height: 42px;
+    padding: 10px 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.12s;
+  }
+
+  .edit-action-btn:active { transform: translateY(1px); }
+  .edit-action-btn.save {
+    flex: 1;
+    background: var(--button-bg);
+    border: 1px solid var(--button-border);
+    color: var(--text);
+  }
+
+  .edit-action-btn.save:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .edit-action-btn.delete {
+    width: 96px;
+    background: var(--surface2);
+    border: 1px solid rgba(248,81,73,0.35);
+    color: var(--red);
+  }
+
+  .edit-action-btn.delete:hover {
+    background: rgba(248,81,73,0.08);
+    border-color: var(--red);
+  }
+
   .data-select {
     width: 100%;
     background: var(--surface2);
@@ -5803,9 +5847,9 @@ function openDrugEditModal(e, id) {
           <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">${label}</label>
           <textarea id="drug_edit_${key}" rows="3" style="${TA}">${esc(d[key])}</textarea>
         `).join('')}
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-          <button class="data-action-btn primary" style="flex:1;min-width:150px" onclick="saveDrugEdit(${Number(d.id)})">저장</button>
-          <button class="data-action-btn red" style="flex:1;min-width:150px" onclick="deleteDrug(${Number(d.id)})">삭제</button>
+        <div class="edit-modal-actions">
+          <button class="edit-action-btn save" onclick="saveDrugEdit(${Number(d.id)})">저장</button>
+          <button class="edit-action-btn delete" onclick="deleteDrug(${Number(d.id)})">삭제</button>
         </div>
       </div>
     </section>`;
@@ -5968,9 +6012,9 @@ function openFormulaEditModal(e, id) {
       </div>
       <div style="padding:16px 20px 22px">
         ${formulaFormFieldsHtml('formula_edit', f, IS, TA)}
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-          <button class="data-action-btn primary" style="flex:1;min-width:150px" onclick="saveFormulaEdit(${Number(f.id)})">저장</button>
-          <button class="data-action-btn red" style="flex:1;min-width:150px" onclick="deleteFormula(${Number(f.id)})">삭제</button>
+        <div class="edit-modal-actions">
+          <button class="edit-action-btn save" onclick="saveFormulaEdit(${Number(f.id)})">저장</button>
+          <button class="edit-action-btn delete" onclick="deleteFormula(${Number(f.id)})">삭제</button>
         </div>
       </div>
     </section>`;
@@ -8361,9 +8405,9 @@ function openEditModal(e, id) {
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;margin-top:4px">USMLE High-Yield</div>
       <div style="${ROW}"><textarea id="edit_usmle" rows="2" placeholder="↑X, ↓Y | Tx: Z | Trap: W" style="${TA}">${esc(t.usmle)}</textarea><button style="${RB};margin-top:2px" onclick="regenField(${id},'usmle')" title="AI 재생성">🔄</button></div>
 
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button onclick="saveEdit(${id})" style="flex:1;background:var(--accent);border:none;border-radius:8px;padding:12px;color:#0d1117;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💾 저장</button>
-        <button onclick="deleteTerm(${id})" style="background:rgba(248,81,73,0.12);border:1px solid #f85149;border-radius:8px;padding:12px 16px;color:#f85149;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🗑️</button>
+      <div class="edit-modal-actions">
+        <button class="edit-action-btn save" onclick="saveEdit(${id})">저장</button>
+        <button class="edit-action-btn delete" onclick="deleteTerm(${id})">삭제</button>
       </div>
     </div>`;
 
@@ -10085,16 +10129,24 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.68',
+  version: '3.69',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 20일 13:09',
+  updatedAt: '2026년 6월 20일 13:36',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 주요 의학계산공식 카드 추가',
+    title: '최신 · 편집 저장삭제 버튼 정돈',
+    items: [
+      '일반용어 편집 모달 하단의 강한 파랑 저장 버튼과 이모지 삭제 버튼을 차분한 공통 버튼 스타일로 교체',
+      '약물명 및 정보, 주요 의학계산공식 편집 모달도 같은 저장/삭제 버튼 스타일을 사용하도록 통일',
+      '라이트모드에서 원색 버튼과 컬러 이모지가 튀어 보이던 문제를 줄이고 삭제 버튼은 outline danger 형태로 정리',
+    ]
+  },
+  {
+    title: 'v3.68 · 주요 의학계산공식 카드 추가',
     items: [
       '일반용어, 약물명 및 정보 옆에 주요 의학계산공식 전환 버튼을 추가해 공식 암기용 카드 화면을 별도 모드로 구성',
       '공식명, 식, 변수, 해석, 예시, 암기 포인트를 직접 입력해 저장·수정·삭제할 수 있게 하고 검색/필터/추가 버튼을 공식 모드에 맞게 전환',
