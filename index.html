@@ -1231,21 +1231,23 @@ document.addEventListener('keydown', e => {
   .section-label:first-child { margin-top: 0; }
 
   .inline-add-btn {
-    background: rgba(63,185,80,0.12);
-    border: 1px solid #238636;
+    background: var(--add-active-bg);
+    border: 1px solid var(--add-active-border);
     border-radius: 10px;
     padding: 7px 12px;
-    color: #7ee787;
+    color: var(--add-active-text);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     font-family: 'Noto Sans KR', sans-serif;
     white-space: nowrap;
+    box-shadow: none;
   }
 
   .inline-add-btn:hover {
-    border-color: #3fb950;
-    background: rgba(63,185,80,0.18);
+    border-color: var(--add-active-border);
+    background: var(--add-active-bg);
+    filter: brightness(1.04);
   }
 
   /* Term card */
@@ -5638,7 +5640,7 @@ function setSectionLabel(text = '') {
   const labelText = clean && clean !== '전체 용어'
     ? `<span class="section-label-text">${escapeHtml(clean)}</span>`
     : '';
-  const addLabel = currentLibraryMode === 'drugs' ? '➕ 약물명 및 정보 추가' : '➕ 용어 추가';
+  const addLabel = currentLibraryMode === 'drugs' ? '+ 약물명 및 정보 추가' : '+ 용어 추가';
   label.innerHTML = `
     ${labelText}
     <button class="inline-add-btn" onclick="showAddTermModal()">${addLabel}</button>
@@ -9112,16 +9114,24 @@ async function confirmDangerousDrugDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.65',
+  version: '3.66',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 20일 12:41',
+  updatedAt: '2026년 6월 20일 12:52',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 용어 추가 모달 정돈 및 시스템 태그 입력',
+    title: '최신 · 추가 버튼 색상 정돈 및 지침 반영',
+    items: [
+      '라이트모드에서 목록 상단 추가 버튼의 초록 배경, 연두 텍스트, 보라색 이모지 조합이 튀어 보이던 문제를 완화',
+      '추가 버튼을 용어 추가 모달과 같은 연한 파랑 tint 토큰으로 맞춰 화면 내 액션 색상 체계를 통일',
+      '색상/테마 관련 재발 방지를 위해 전역 개발 지침에 원색·이모지·고정색 조합 점검 규칙을 반영',
+    ]
+  },
+  {
+    title: 'v3.65 · 용어 추가 모달 정돈 및 시스템 태그 입력',
     items: [
       '라이트모드에서 용어 추가 모달의 원색 파랑과 두꺼운 박스감을 낮추고, 활성 탭/저장 항목 버튼을 연한 tint 스타일로 정리',
       '용어 추가 단일 입력의 선택 입력 영역에 시스템 태그 입력칸을 추가해 대표 장기계 외 보조 장기계를 직접 저장 가능하게 보강',
