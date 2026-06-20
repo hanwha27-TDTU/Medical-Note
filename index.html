@@ -1089,6 +1089,12 @@ document.addEventListener('keydown', e => {
     box-shadow: inset 0 0 0 1px rgba(251,191,36,0.45);
   }
 
+  .library-mode-btn.formula.active {
+    background: rgba(88,166,255,0.16);
+    color: #9cc7ff;
+    box-shadow: inset 0 0 0 1px rgba(88,166,255,0.45);
+  }
+
   html[data-theme="light"] .library-mode-switch {
     background: var(--surface);
     border-color: var(--border);
@@ -1109,6 +1115,12 @@ document.addEventListener('keydown', e => {
     background: #fef3c7;
     color: #b45309;
     box-shadow: inset 0 0 0 1px #facc15;
+  }
+
+  html[data-theme="light"] .library-mode-btn.formula.active {
+    background: #eef6ff;
+    color: #1d4ed8;
+    box-shadow: inset 0 0 0 1px #bfdbfe;
   }
 
   .library-mode-hint {
@@ -1552,6 +1564,95 @@ document.addEventListener('keydown', e => {
     background: #f8fafc;
     border-color: #d7e0ee;
     color: #334155;
+  }
+
+  .formula-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+
+  .formula-card:hover {
+    border-color: var(--add-active-border);
+    background: rgba(88,166,255,0.05);
+  }
+
+  .formula-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .formula-name {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .formula-sub {
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .formula-expression {
+    margin: 10px 0;
+    padding: 11px 12px;
+    border: 1px solid var(--add-active-border);
+    border-radius: 10px;
+    background: var(--add-active-bg);
+    color: var(--add-active-text);
+    font-family: Consolas, 'Cascadia Mono', monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .formula-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .formula-chip {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 8px;
+    color: var(--text2);
+    background: var(--surface2);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .formula-memory-line {
+    margin-top: 9px;
+    color: var(--text2);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  html[data-theme="light"] .formula-card {
+    background: #ffffff;
+    border-color: #d7e0ee;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+  }
+
+  html[data-theme="light"] .formula-card:hover {
+    background: #fbfdff;
+    border-color: #bfdbfe;
+    box-shadow: 0 8px 22px rgba(15,23,42,0.07);
+  }
+
+  html[data-theme="light"] .formula-chip {
+    background: #f8fafc;
+    border-color: #d7e0ee;
+    color: #475569;
   }
 
   .add-modal-card {
@@ -2991,7 +3092,7 @@ document.addEventListener('keydown', e => {
     <button class="kma-header-btn" onclick="openKmaTermSearch(event)" title="대한의사협회 의학용어 검색을 화면 크기에 맞는 새 창으로 열기">🔎 <span class="wide-label">대한의사협회 용어검색</span><span class="mobile-label" style="display:none">KMA 검색</span></button>
     <button class="settings-header-btn" onclick="showAISettings()" title="AI와 Supabase 설정">⚙️ 설정</button>
     <button class="category-stats-header-btn" onclick="showCategoryStats()" title="분류별 용어 통계 보기">📊 통계</button>
-    <button class="final-save-header-btn" onclick="saveCurrentStateToCloud()" title="현재 화면의 용어 목록을 클라우드 최종본으로 저장">💾 최종상태 저장</button>
+    <button class="final-save-header-btn" onclick="saveCurrentStateToCloud()" title="현재 화면의 용어·약물·공식 데이터를 클라우드 최종본으로 저장">💾 최종상태 저장</button>
     <button class="version-check-header-btn" onclick="showSavedVersionInfo()" title="클라우드 저장본 버전과 현재 로컬 캐시 상태 확인">🔎 저장본 버전 확인</button>
     <button class="developer-header-btn" onclick="showDeveloperInfo()" title="개발자 정보와 업데이트 내역 보기">👨‍💻 개발자</button>
   </div>
@@ -3004,9 +3105,10 @@ document.addEventListener('keydown', e => {
 </header>
 
 <div class="library-mode-bar" role="region" aria-label="자료 모드 선택">
-  <div class="library-mode-switch" role="tablist" aria-label="일반용어와 약물명 및 정보 전환">
+  <div class="library-mode-switch" role="tablist" aria-label="자료 유형 전환">
     <button id="libraryModeTermsBtn" class="library-mode-btn active" role="tab" aria-selected="true" onclick="setLibraryMode('terms')">📘 일반용어</button>
     <button id="libraryModeDrugsBtn" class="library-mode-btn drug" role="tab" aria-selected="false" onclick="setLibraryMode('drugs')">💊 약물명 및 정보</button>
+    <button id="libraryModeFormulasBtn" class="library-mode-btn formula" role="tab" aria-selected="false" onclick="setLibraryMode('formulas')">∑ 주요 의학계산공식</button>
   </div>
   <div class="library-mode-hint" id="libraryModeHint">일반 의학용어를 개념분류와 대표 장기계로 봅니다.</div>
 </div>
@@ -3087,6 +3189,7 @@ document.addEventListener('keydown', e => {
   <div class="section-label" id="sectionLabel"></div>
   <div id="termList"></div>
   <div id="drugFrame"></div>
+  <div id="formulaFrame"></div>
   <div id="emptyState" class="empty-state" style="display:none">
     <div class="icon">📂</div>
     <h3>용어 데이터가 없습니다</h3>
@@ -3118,16 +3221,20 @@ document.addEventListener('keydown', e => {
 // ─── Data ───
 const TERMS = [];
 const DRUGS = [];
+const FORMULAS = [];
 const TERMS_STORAGE_KEY = 'kma_medical_terms_v2_terms';
 const TERMS_STORAGE_META_KEY = 'kma_medical_terms_v2_meta';
 const DRUGS_STORAGE_KEY = 'kma_medical_terms_v2_drugs';
 const DRUGS_STORAGE_META_KEY = 'kma_medical_terms_v2_drugs_meta';
+const FORMULAS_STORAGE_KEY = 'kma_medical_terms_v2_formulas';
+const FORMULAS_STORAGE_META_KEY = 'kma_medical_terms_v2_formulas_meta';
 const AI_CONFIG_STORAGE_KEY = 'kma_medical_terms_v2_ai_config';
 const SUPABASE_CONFIG_KEY = 'kma_supabase_config';
 const SYNC_META_STORAGE_KEY = 'kma_medical_terms_v2_sync_meta';
 const LEARNING_STORAGE_KEY = 'kma_medical_terms_v2_learning';
 const TOMBSTONE_STORAGE_KEY = 'kma_medical_terms_v2_tombstones';
 const DRUG_TOMBSTONE_STORAGE_KEY = 'kma_medical_terms_v2_drug_tombstones';
+const FORMULA_TOMBSTONE_STORAGE_KEY = 'kma_medical_terms_v2_formula_tombstones';
 const DEVICE_ID_STORAGE_KEY = 'kma_medical_terms_v2_device_id';
 const LOCAL_CACHE_DB_NAME = 'kma_medical_terms_v2_indexed_cache';
 const LOCAL_CACHE_STORE = 'kv';
@@ -3135,6 +3242,7 @@ const LOCAL_CACHE_META_KEY = 'kma_medical_terms_v2_cache_meta';
 const SYNC_META_TABLE = 'language_sync_meta';
 const LEARNING_TABLE = 'medical_term_learning_state';
 const DRUGS_TABLE = 'medical_drugs';
+const FORMULAS_TABLE = 'medical_formulas';
 const CANONICAL_META_KEY = 'medical_terms_canonical_version';
 const DRUG_CANONICAL_META_KEY = 'medical_drugs_canonical_version';
 const CANONICAL_REVISION_META_KEY = 'medical_terms_canonical_revision';
@@ -3148,6 +3256,11 @@ const DRUG_CANONICAL_ACTIVE_COUNT_META_KEY = 'medical_drugs_canonical_active_cou
 const DRUG_CANONICAL_DELETED_COUNT_META_KEY = 'medical_drugs_canonical_deleted_count';
 const DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY = 'medical_drugs_canonical_record_ids_hash';
 const DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY = 'medical_drugs_canonical_snapshot_hash';
+const FORMULA_CANONICAL_META_KEY = 'medical_formulas_canonical_version';
+const FORMULA_CANONICAL_ACTIVE_COUNT_META_KEY = 'medical_formulas_canonical_active_count';
+const FORMULA_CANONICAL_DELETED_COUNT_META_KEY = 'medical_formulas_canonical_deleted_count';
+const FORMULA_CANONICAL_RECORD_IDS_HASH_META_KEY = 'medical_formulas_canonical_record_ids_hash';
+const FORMULA_CANONICAL_SNAPSHOT_HASH_META_KEY = 'medical_formulas_canonical_snapshot_hash';
 const TOMBSTONE_PRUNE_DAYS = 90;
 
 function safeSetItem(key, value, options = {}) {
@@ -3167,6 +3280,7 @@ let _localCacheDbPromise = null;
 let _localCacheWarned = false;
 let _localTombstonesCache = null;
 let _localDrugTombstonesCache = null;
+let _localFormulaTombstonesCache = null;
 let _learningStateCache = null;
 let _localCacheBackend = 'localStorage';
 
@@ -3428,6 +3542,41 @@ function computeDrugSnapshotHash(drugs) {
   return simpleHashText(JSON.stringify(canonicalDrugHashPayload(drugs)));
 }
 
+function canonicalFormulaHashPayload(formulas) {
+  return dedupeFormulasById(formulas)
+    .filter(f => !f.deletedAt)
+    .sort((a, b) => String(a.id).localeCompare(String(b.id), 'en', { numeric: true }))
+    .map(f => stableForHash({
+      id: String(f.id),
+      name: f.name || '',
+      short_name: f.short_name || '',
+      formula: f.formula || '',
+      category: f.category || '',
+      system: f.system || '',
+      use_case: f.use_case || '',
+      normal_range: f.normal_range || '',
+      interpretation: f.interpretation || '',
+      example: f.example || '',
+      memory_tip: f.memory_tip || '',
+      usmle_trap: f.usmle_trap || '',
+      variables: f.variables || '',
+      createdAt: f.createdAt || '',
+      updatedAt: f.updatedAt || '',
+    }));
+}
+
+function computeFormulaRecordIdsHash(formulas) {
+  const ids = dedupeFormulasById(formulas)
+    .filter(f => !f.deletedAt)
+    .map(f => String(f.id))
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+  return simpleHashText(ids.join('|'));
+}
+
+function computeFormulaSnapshotHash(formulas) {
+  return simpleHashText(JSON.stringify(canonicalFormulaHashPayload(formulas)));
+}
+
 function getLocalSyncMeta() {
   return safeJsonParse(localStorage.getItem(SYNC_META_STORAGE_KEY), {}) || {};
 }
@@ -3592,6 +3741,51 @@ function rowToDrug(r) {
   });
 }
 
+function formulaToRow(f) {
+  const now = new Date().toISOString();
+  return {
+    id: Number(f.id),
+    name: f.name || '',
+    short_name: f.short_name || '',
+    formula: f.formula || '',
+    category: f.category || '',
+    system: f.system || 'General',
+    use_case: f.use_case || '',
+    normal_range: f.normal_range || '',
+    interpretation: f.interpretation || '',
+    example: f.example || '',
+    memory_tip: f.memory_tip || '',
+    usmle_trap: f.usmle_trap || '',
+    variables: f.variables || '',
+    tags: Array.isArray(f.tags) ? f.tags : [],
+    created_at: f.createdAt || f.updatedAt || now,
+    updated_at: f.updatedAt || now,
+    deleted_at: f.deletedAt || null,
+  };
+}
+
+function rowToFormula(r) {
+  return normalizeFormulaForStorage({
+    id: Number(r.id),
+    name: r.name || '',
+    short_name: r.short_name || '',
+    formula: r.formula || '',
+    category: r.category || '',
+    system: r.system || 'General',
+    use_case: r.use_case || '',
+    normal_range: r.normal_range || '',
+    interpretation: r.interpretation || '',
+    example: r.example || '',
+    memory_tip: r.memory_tip || '',
+    usmle_trap: r.usmle_trap || '',
+    variables: r.variables || '',
+    tags: Array.isArray(r.tags) ? r.tags : [],
+    createdAt: r.created_at || r.updated_at || new Date().toISOString(),
+    updatedAt: r.updated_at || new Date().toISOString(),
+    deletedAt: r.deleted_at || null,
+  });
+}
+
 // Supabase에 용어 upsert (추가/수정)
 async function sbUpsertTerm(t) {
   const cfg = getSupabaseConfig();
@@ -3623,6 +3817,21 @@ async function sbUpsertDrug(d) {
   return false;
 }
 
+async function sbUpsertFormula(f) {
+  const cfg = getSupabaseConfig();
+  if (!cfg) return;
+  try {
+    const res = await fetch(`${cfg.url}/rest/v1/${FORMULAS_TABLE}`, {
+      method: 'POST',
+      headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(formulaToRow(f))
+    });
+    if (!res.ok) throw new Error(`formula upsert failed: ${res.status} ${await res.text()}`);
+    return true;
+  } catch(e) { console.warn('Supabase formula upsert failed:', e); }
+  return false;
+}
+
 // 삭제도 변경 이력으로 동기화되도록 soft delete 처리
 async function sbDeleteTerm(id, deletedAt = new Date().toISOString()) {
   const cfg = getSupabaseConfig();
@@ -3651,6 +3860,21 @@ async function sbDeleteDrug(id, deletedAt = new Date().toISOString()) {
     if (!res.ok) throw new Error(`drug soft delete failed: ${res.status} ${await res.text()}`);
     return true;
   } catch(e) { console.warn('Supabase drug delete failed:', e); }
+  return false;
+}
+
+async function sbDeleteFormula(id, deletedAt = new Date().toISOString()) {
+  const cfg = getSupabaseConfig();
+  if (!cfg) return false;
+  try {
+    const res = await fetch(`${cfg.url}/rest/v1/${FORMULAS_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: sbHeaders(),
+      body: JSON.stringify({ deleted_at: deletedAt, updated_at: deletedAt })
+    });
+    if (!res.ok) throw new Error(`formula soft delete failed: ${res.status} ${await res.text()}`);
+    return true;
+  } catch(e) { console.warn('Supabase formula delete failed:', e); }
   return false;
 }
 
@@ -3693,6 +3917,26 @@ async function sbLoadAllDrugs() {
     }
     return dedupeDrugsById(rows.map(rowToDrug));
   } catch(e) { console.warn('Supabase drug load failed:', e); return null; }
+}
+
+async function sbLoadAllFormulas() {
+  const cfg = getSupabaseConfig();
+  if (!cfg) return null;
+  try {
+    const rows = [];
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const res = await fetch(`${cfg.url}/rest/v1/${FORMULAS_TABLE}?select=*&order=updated_at.desc&limit=${pageSize}&offset=${offset}`, {
+        headers: sbHeaders()
+      });
+      if (!res.ok) return null;
+      const page = await res.json();
+      if (!Array.isArray(page)) return null;
+      rows.push(...page);
+      if (page.length < pageSize) break;
+    }
+    return dedupeFormulasById(rows.map(rowToFormula));
+  } catch(e) { console.warn('Supabase formula load failed:', e); return null; }
 }
 
 async function sbLoadCanonicalMeta() {
@@ -3792,6 +4036,20 @@ async function sbBatchUpsertDrugRows(rows) {
   }
 }
 
+async function sbBatchUpsertFormulaRows(rows) {
+  const cfg = getSupabaseConfig();
+  if (!cfg) throw new Error('Supabase 설정이 없습니다.');
+  if (!rows.length) return;
+  for (let i = 0; i < rows.length; i += 100) {
+    const res = await fetch(`${cfg.url}/rest/v1/${FORMULAS_TABLE}`, {
+      method: 'POST',
+      headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(rows.slice(i, i + 100))
+    });
+    if (!res.ok) throw new Error(`formula batch upsert failed: ${res.status} ${await res.text()}`);
+  }
+}
+
 // 현재 기기 데이터로 클라우드 최종본 덮어쓰기: 데이터 저장이 모두 성공한 뒤 canonical_version 갱신
 async function sbPushAll(options = {}) {
   const cfg = getSupabaseConfig();
@@ -3799,7 +4057,7 @@ async function sbPushAll(options = {}) {
   const { confirmOverwrite = false } = options;
   if (confirmOverwrite) {
     const ok = window.confirm(
-      `현재 이 기기의 ${TERMS.length}개 용어로 클라우드 최종본을 덮어쓸까요?\n\n` +
+      `현재 이 기기의 용어 ${TERMS.length}개, 약물 ${DRUGS.length}개, 공식 ${FORMULAS.length}개로 클라우드 최종본을 덮어쓸까요?\n\n` +
       `현재 이 기기에 없는 항목은 PC·모바일·태블릿 등 다른 기기에 있더라도 최종본에서 제외될 수 있습니다.\n` +
       `먼저 데이터 관리에서 전체 백업 JSON을 저장하는 것을 권장합니다.`
     );
@@ -3808,22 +4066,26 @@ async function sbPushAll(options = {}) {
   try {
     const cleanTerms = dedupeTermsById(TERMS).filter(t => !t.deletedAt);
     const cleanDrugs = dedupeDrugsById(DRUGS).filter(d => !d.deletedAt);
+    const cleanFormulas = dedupeFormulasById(FORMULAS).filter(f => !f.deletedAt);
     showToast('☁️ 새 기준본을 안전하게 저장 중...');
     const cloudTerms = await sbLoadAll();
     if (cloudTerms === null) throw new Error('기존 클라우드 데이터를 읽지 못했습니다.');
     const cloudDrugs = await sbLoadAllDrugs();
     if (cloudDrugs === null) throw new Error('약물 테이블을 읽지 못했습니다. 통합 SQL을 먼저 실행해주세요.');
+    const cloudFormulas = await sbLoadAllFormulas();
+    if (cloudFormulas === null) throw new Error('공식 테이블을 읽지 못했습니다. 통합 SQL을 먼저 실행해주세요.');
     const metaMap = await sbLoadSyncMetaMap();
     const pendingVersion = `${Date.now()}-${getDeviceId()}`;
     saveLocalSyncMeta({
       pendingCanonicalVersion: pendingVersion,
       pendingCanonicalAt: new Date().toISOString(),
-      pendingCanonicalCount: cleanTerms.length,
+      pendingCanonicalCount: cleanTerms.length + cleanDrugs.length + cleanFormulas.length,
       pendingCanonicalStatus: 'uploading'
     });
     const rows = cleanTerms.map(termToRow);
     await sbBatchUpsertRows(rows);
     await sbBatchUpsertDrugRows(cleanDrugs.map(drugToRow));
+    await sbBatchUpsertFormulaRows(cleanFormulas.map(formulaToRow));
 
     const localIds = new Set(cleanTerms.map(t => String(t.id)));
     const removedCloudTerms = cloudTerms.filter(t => !t.deletedAt && !localIds.has(String(t.id)));
@@ -3839,6 +4101,15 @@ async function sbPushAll(options = {}) {
       const ok = await sbDeleteDrug(oldDrug.id, deletedAt);
       if (!ok) throw new Error(`누락 약물 삭제 표시 실패: ${oldDrug.id}`);
       removedCloudDrugTombstones.push(normalizeDrugForStorage({ ...oldDrug, updatedAt: deletedAt, deletedAt }));
+    }
+    const localFormulaIds = new Set(cleanFormulas.map(f => String(f.id)));
+    const removedCloudFormulas = cloudFormulas.filter(f => !f.deletedAt && !localFormulaIds.has(String(f.id)));
+    const removedCloudFormulaTombstones = [];
+    for (const oldFormula of removedCloudFormulas) {
+      const deletedAt = new Date().toISOString();
+      const ok = await sbDeleteFormula(oldFormula.id, deletedAt);
+      if (!ok) throw new Error(`누락 공식 삭제 표시 실패: ${oldFormula.id}`);
+      removedCloudFormulaTombstones.push(normalizeFormulaForStorage({ ...oldFormula, updatedAt: deletedAt, deletedAt }));
     }
 
     saveLocalSyncMeta({ pendingCanonicalStatus: 'learning-saving' });
@@ -3856,6 +4127,11 @@ async function sbPushAll(options = {}) {
       { key: DRUG_CANONICAL_DELETED_COUNT_META_KEY, value: String(cloudDrugs.filter(d => d.deletedAt).length + removedCloudDrugs.length), updated_at: canonicalSnapshot.updatedAt },
       { key: DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeDrugRecordIdsHash(cleanDrugs), updated_at: canonicalSnapshot.updatedAt },
       { key: DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeDrugSnapshotHash(cleanDrugs), updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_META_KEY, value: pendingVersion, updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(cleanFormulas.length), updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_DELETED_COUNT_META_KEY, value: String(cloudFormulas.filter(f => f.deletedAt).length + removedCloudFormulas.length), updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeFormulaRecordIdsHash(cleanFormulas), updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeFormulaSnapshotHash(cleanFormulas), updated_at: canonicalSnapshot.updatedAt },
     ]);
     TERMS.length = 0;
     TERMS.push(...cleanTerms);
@@ -3863,9 +4139,16 @@ async function sbPushAll(options = {}) {
     DRUGS.length = 0;
     DRUGS.push(...cleanDrugs);
     saveDrugsToLocalStorage();
+    FORMULAS.length = 0;
+    FORMULAS.push(...cleanFormulas);
+    saveFormulasToLocalStorage();
     saveLocalDrugTombstones([
       ...cloudDrugs.filter(d => d.deletedAt),
       ...removedCloudDrugTombstones
+    ]);
+    saveLocalFormulaTombstones([
+      ...cloudFormulas.filter(f => f.deletedAt),
+      ...removedCloudFormulaTombstones
     ]);
     clearPendingCanonicalStatus({
       canonicalVersion: pendingVersion,
@@ -3876,7 +4159,7 @@ async function sbPushAll(options = {}) {
     });
     updateBookmarkCount();
     applyFilters();
-    showToast(`☁️ 이 기기 데이터로 클라우드 최종본을 덮어썼습니다 (${cleanTerms.length}개 · rev ${canonicalSnapshot.revision})`);
+    showToast(`☁️ 이 기기 데이터로 클라우드 최종본을 덮어썼습니다 (용어 ${cleanTerms.length} · 약물 ${cleanDrugs.length} · 공식 ${cleanFormulas.length} · rev ${canonicalSnapshot.revision})`);
   } catch(e) {
     console.error('Canonical push failed:', e);
     saveLocalSyncMeta({ pendingCanonicalStatus: 'failed', pendingCanonicalError: String(e?.message || e) });
@@ -3888,8 +4171,9 @@ function saveCurrentStateToCloud() {
   if (!getSupabaseConfig()) { showToast('⚠️ Supabase 설정 먼저 저장하세요'); return; }
   const count = dedupeTermsById(TERMS).filter(t => !t.deletedAt).length;
   const drugCount = dedupeDrugsById(DRUGS).filter(d => !d.deletedAt).length;
+  const formulaCount = dedupeFormulasById(FORMULAS).filter(f => !f.deletedAt).length;
   showConfirm(
-    `현재 화면의 활성 용어 ${count}개와 약물 ${drugCount}개를<br><b style="color:#fbbf24">새 클라우드 최종상태</b>로 저장할까요?<br><br>` +
+    `현재 화면의 활성 용어 ${count}개, 약물 ${drugCount}개, 공식 ${formulaCount}개를<br><b style="color:#fbbf24">새 클라우드 최종상태</b>로 저장할까요?<br><br>` +
     `<span style="font-size:11px;color:var(--text3)">다른 기기에만 있던 항목은 최종본에서 제외될 수 있습니다. 저장 전 전체 백업 JSON을 권장합니다.</span>`,
     async () => {
       showToast('💾 최종상태 저장 중...');
@@ -4106,6 +4390,30 @@ function normalizeDrugForStorage(d) {
   };
 }
 
+function normalizeFormulaForStorage(f) {
+  const now = new Date().toISOString();
+  return {
+    id: Number(f.id) || nextFormulaId(),
+    name: cleanTermString(f.name || f.formula_name || f.title),
+    short_name: cleanTermString(f.short_name || f.shortName || f.abbrev),
+    formula: cleanTermString(f.formula || f.expression),
+    category: cleanTermString(f.category || f.formula_category || 'Acid-base'),
+    system: normalizeSystemCategory(f.system || f.category_system || 'General'),
+    use_case: cleanTermString(f.use_case || f.useCase || f.when_to_use),
+    normal_range: cleanTermString(f.normal_range || f.normalRange || f.reference_range),
+    interpretation: cleanTermString(f.interpretation || f.meaning),
+    example: cleanTermString(f.example || f.sample_calculation),
+    memory_tip: cleanTermString(f.memory_tip || f.memoryTip || f.mnemonic),
+    usmle_trap: cleanTermString(f.usmle_trap || f.usmleTrap || f.trap),
+    variables: cleanTermString(f.variables || f.variable_notes),
+    tags: normalizeSystemTags(f.tags || f.system_tags || f.systemTags),
+    createdAt: f.createdAt || f.created_at || f.updatedAt || now,
+    updatedAt: f.updatedAt || f.updated_at || now,
+    deletedAt: f.deletedAt || f.deleted_at || null,
+    hiddenAt: f.hiddenAt || f.hidden_at || null,
+  };
+}
+
 function dedupeTermsById(terms) {
   const byId = new Map();
   (Array.isArray(terms) ? terms : []).forEach(raw => {
@@ -4127,6 +4435,19 @@ function dedupeDrugsById(drugs) {
     const existing = byId.get(key);
     if (!existing || (Date.parse(drug.updatedAt) || 0) >= (Date.parse(existing.updatedAt) || 0)) {
       byId.set(key, drug);
+    }
+  });
+  return [...byId.values()];
+}
+
+function dedupeFormulasById(formulas) {
+  const byId = new Map();
+  (Array.isArray(formulas) ? formulas : []).forEach(raw => {
+    const formula = normalizeFormulaForStorage(raw);
+    const key = String(formula.id);
+    const existing = byId.get(key);
+    if (!existing || (Date.parse(formula.updatedAt) || 0) >= (Date.parse(existing.updatedAt) || 0)) {
+      byId.set(key, formula);
     }
   });
   return [...byId.values()];
@@ -4231,6 +4552,22 @@ function saveDrugsToLocalStorage() {
   }
 }
 
+function saveFormulasToLocalStorage() {
+  try {
+    const payload = dedupeFormulasById(FORMULAS).filter(f => !f.deletedAt);
+    FORMULAS.length = 0;
+    FORMULAS.push(...payload);
+    return scheduleLargeCacheWrite(FORMULAS_STORAGE_KEY, payload, FORMULAS_STORAGE_META_KEY, {
+      count: payload.length,
+      app: 'DrBugeon Medical Formulas',
+    });
+  } catch (err) {
+    console.warn('Formula cache save failed', err);
+    if (typeof showToast === 'function') showToast('⚠️ 공식 로컬 캐시 저장에 실패했습니다');
+    return false;
+  }
+}
+
 function loadLocalTombstones() {
   const rows = _localTombstonesCache ?? safeJsonParse(localStorage.getItem(TOMBSTONE_STORAGE_KEY), []);
   return Array.isArray(rows) ? dedupeTermsById(rows).filter(t => t.deletedAt) : [];
@@ -4257,6 +4594,19 @@ function saveLocalDrugTombstones(rows) {
   });
 }
 
+function loadLocalFormulaTombstones() {
+  const rows = _localFormulaTombstonesCache ?? safeJsonParse(localStorage.getItem(FORMULA_TOMBSTONE_STORAGE_KEY), []);
+  return Array.isArray(rows) ? dedupeFormulasById(rows).filter(f => f.deletedAt) : [];
+}
+
+function saveLocalFormulaTombstones(rows) {
+  _localFormulaTombstonesCache = dedupeFormulasById(rows).filter(f => f.deletedAt);
+  return scheduleLargeCacheWrite(FORMULA_TOMBSTONE_STORAGE_KEY, _localFormulaTombstonesCache, `${FORMULA_TOMBSTONE_STORAGE_KEY}_meta`, {
+    count: _localFormulaTombstonesCache.length,
+    app: 'DrBugeon Medical Formula Tombstones',
+  });
+}
+
 function hideLocalTombstonesFromTrash(ids) {
   const hiddenAt = new Date().toISOString();
   const idSet = new Set(ids.map(id => String(id)));
@@ -4271,6 +4621,13 @@ function hideLocalDrugTombstonesFromTrash(ids) {
   saveLocalDrugTombstones(rows);
 }
 
+function hideLocalFormulaTombstonesFromTrash(ids) {
+  const hiddenAt = new Date().toISOString();
+  const idSet = new Set(ids.map(id => String(id)));
+  const rows = loadLocalFormulaTombstones().map(f => idSet.has(String(f.id)) ? { ...f, hiddenAt } : f);
+  saveLocalFormulaTombstones(rows);
+}
+
 function pruneOldLocalTombstones(days = TOMBSTONE_PRUNE_DAYS) {
   const cutoff = Date.now() - days * 86400000;
   const rows = loadLocalTombstones().filter(t => {
@@ -4278,6 +4635,16 @@ function pruneOldLocalTombstones(days = TOMBSTONE_PRUNE_DAYS) {
     return !Number.isFinite(deletedAt) || deletedAt >= cutoff;
   });
   saveLocalTombstones(rows);
+  const drugRows = loadLocalDrugTombstones().filter(d => {
+    const deletedAt = Date.parse(d.deletedAt || d.updatedAt || '');
+    return !Number.isFinite(deletedAt) || deletedAt >= cutoff;
+  });
+  saveLocalDrugTombstones(drugRows);
+  const formulaRows = loadLocalFormulaTombstones().filter(f => {
+    const deletedAt = Date.parse(f.deletedAt || f.updatedAt || '');
+    return !Number.isFinite(deletedAt) || deletedAt >= cutoff;
+  });
+  saveLocalFormulaTombstones(formulaRows);
   return rows.length;
 }
 
@@ -4298,6 +4665,16 @@ function recordLocalDrugTombstone(drug) {
   const rows = loadLocalDrugTombstones().filter(d => String(d.id) !== String(drug.id));
   rows.push(tombstone);
   saveLocalDrugTombstones(rows);
+  return tombstone;
+}
+
+function recordLocalFormulaTombstone(formula) {
+  if (!formula) return;
+  const deletedAt = new Date().toISOString();
+  const tombstone = normalizeFormulaForStorage({ ...formula, updatedAt: deletedAt, deletedAt, hiddenAt: null });
+  const rows = loadLocalFormulaTombstones().filter(f => String(f.id) !== String(formula.id));
+  rows.push(tombstone);
+  saveLocalFormulaTombstones(rows);
   return tombstone;
 }
 
@@ -4363,6 +4740,20 @@ function mergeDrugsForSync(cloudDrugs, localDrugs, localDrugTombstones = []) {
   return [...merged.values()].map(entry => entry.term);
 }
 
+function mergeFormulasForSync(cloudFormulas, localFormulas, localFormulaTombstones = []) {
+  const merged = new Map();
+  [
+    ...(Array.isArray(cloudFormulas) ? cloudFormulas : []).map(formula => ({ term: normalizeFormulaForStorage(formula), source: 'cloud' })),
+    ...(Array.isArray(localFormulas) ? localFormulas : []).map(formula => ({ term: normalizeFormulaForStorage(formula), source: 'local' })),
+    ...(Array.isArray(localFormulaTombstones) ? localFormulaTombstones : []).map(formula => ({ term: normalizeFormulaForStorage(formula), source: 'local_tombstone' })),
+  ].forEach(entry => {
+    if (!entry.term?.id) return;
+    const key = String(entry.term.id);
+    merged.set(key, pickSyncWinner(merged.get(key), entry));
+  });
+  return [...merged.values()].map(entry => entry.term);
+}
+
 function filterLocalRowsAfterCanonicalFence(localRows, cloudTerms, canonicalMeta) {
   const canonicalTime = Date.parse(canonicalMeta?.updatedAt || '') || 0;
   if (!canonicalTime) return { rows: localRows, skipped: 0 };
@@ -4387,12 +4778,20 @@ function saveDrugToCloud(d) {
   if (getSupabaseConfig()) sbUpsertDrug(d).catch(() => {});
 }
 
+function saveFormulaToCloud(f) {
+  if (getSupabaseConfig()) sbUpsertFormula(f).catch(() => {});
+}
+
 function deleteTermFromCloud(id, deletedAt) {
   if (getSupabaseConfig()) sbDeleteTerm(id, deletedAt).catch(() => {});
 }
 
 function deleteDrugFromCloud(id, deletedAt) {
   if (getSupabaseConfig()) sbDeleteDrug(id, deletedAt).catch(() => {});
+}
+
+function deleteFormulaFromCloud(id, deletedAt) {
+  if (getSupabaseConfig()) sbDeleteFormula(id, deletedAt).catch(() => {});
 }
 
 function getLearningStateMap() {
@@ -4532,10 +4931,19 @@ async function loadDrugsFromLocalStorage() {
   return DRUGS.length;
 }
 
+async function loadFormulasFromLocalStorage() {
+  const saved = await readLargeCacheValue(FORMULAS_STORAGE_KEY, []);
+  if (!Array.isArray(saved) || saved.length === 0) return 0;
+  FORMULAS.length = 0;
+  FORMULAS.push(...dedupeFormulasById(saved).filter(f => !f.deletedAt));
+  return FORMULAS.length;
+}
+
 async function loadAuxiliaryLocalCaches() {
-  const [tombstones, drugTombstones, learning] = await Promise.all([
+  const [tombstones, drugTombstones, formulaTombstones, learning] = await Promise.all([
     readLargeCacheValue(TOMBSTONE_STORAGE_KEY, []),
     readLargeCacheValue(DRUG_TOMBSTONE_STORAGE_KEY, []),
+    readLargeCacheValue(FORMULA_TOMBSTONE_STORAGE_KEY, []),
     readLargeCacheValue(LEARNING_STORAGE_KEY, {}),
   ]);
   _localTombstonesCache = Array.isArray(tombstones)
@@ -4544,31 +4952,38 @@ async function loadAuxiliaryLocalCaches() {
   _localDrugTombstonesCache = Array.isArray(drugTombstones)
     ? dedupeDrugsById(drugTombstones).filter(d => d.deletedAt)
     : [];
+  _localFormulaTombstonesCache = Array.isArray(formulaTombstones)
+    ? dedupeFormulasById(formulaTombstones).filter(f => f.deletedAt)
+    : [];
   _learningStateCache = learning && typeof learning === 'object' && !Array.isArray(learning)
     ? learning
     : {};
   return {
     tombstones: _localTombstonesCache.length,
     drugTombstones: _localDrugTombstonesCache.length,
+    formulaTombstones: _localFormulaTombstonesCache.length,
     learningStates: Object.keys(_learningStateCache).length,
   };
 }
 
 async function loadLocalCacheForStartup() {
-  const [localCount, drugCount, aux] = await Promise.all([
+  const [localCount, drugCount, formulaCount, aux] = await Promise.all([
     loadTermsFromLocalStorage(),
     loadDrugsFromLocalStorage(),
+    loadFormulasFromLocalStorage(),
     loadAuxiliaryLocalCaches(),
   ]);
   rememberLocalCacheMeta({
     terms: localCount,
     drugs: drugCount,
+    formulas: formulaCount,
     tombstones: aux.tombstones,
     drugTombstones: aux.drugTombstones,
+    formulaTombstones: aux.formulaTombstones,
     learningStates: aux.learningStates,
     loadedAt: new Date().toISOString(),
   });
-  return { localCount, drugCount, ...aux };
+  return { localCount, drugCount, formulaCount, ...aux };
 }
 
 function getDeviceIdShard() {
@@ -4592,6 +5007,13 @@ function nextDrugId() {
   return ++_idCounter;
 }
 
+function nextFormulaId() {
+  const maxId = FORMULAS.reduce((max, f) => Math.max(max, Number(f.id) || 0), 999);
+  const deviceTimeId = Date.now() * 1000 + getDeviceIdShard();
+  _idCounter = Math.max(_idCounter, deviceTimeId, maxId);
+  return ++_idCounter;
+}
+
 let currentLibraryMode = 'terms';
 let currentFilter = 'all';
 let currentConceptFilter = 'all';
@@ -4607,6 +5029,7 @@ const CONCEPT_CATEGORIES = ['Anatomy','Physiology','Symptoms & Signs','Diseases'
 const VALID_CATS = ['General','Cardiovascular','Pulmonary','Renal','GI & Hepatobiliary','Endocrine',
   'Neurology','Hematology & Oncology','Infectious Disease','Musculoskeletal',
   'Dermatology','Ophthalmology','ENT','Reproductive','Psychiatry','Pediatrics','Immunology'];
+const FORMULA_CATEGORIES = ['Acid-base','Renal','Cardiology','Pulmonary','Endocrine','Heme/Onc','Pediatrics','OB/GYN','Pharmacology','Statistics','General'];
 
 const CATEGORY_META = {
   'General': { icon: '📌', label: 'General' },
@@ -4774,36 +5197,107 @@ function renderDrugFilterControls() {
   ].join('');
 }
 
+function getActiveFormulas() {
+  return dedupeFormulasById(FORMULAS).filter(f => !f.deletedAt);
+}
+
+function formulaSystemValues(f) {
+  const values = [
+    normalizeSystemCategory(f?.system || 'General'),
+    ...(Array.isArray(f?.tags) ? f.tags : [])
+  ].map(v => normalizeDrugFilterValue(v, '')).filter(Boolean);
+  return [...new Set(values.length ? values : ['General'])];
+}
+
+function renderFormulaFilterControls() {
+  const conceptTitle = document.getElementById('primaryFilterTitle');
+  const systemTitle = document.getElementById('secondaryFilterTitle');
+  const conceptRow = document.getElementById('conceptFilterRow');
+  const systemRow = document.getElementById('filterRow');
+  if (!conceptRow || !systemRow) return;
+  const categoryOptions = countOptionsFromFormulas(f => f.category || 'General');
+  const systemOptions = countOptionsFromFormulas(formulaSystemValues);
+  if (currentDrugClassFilter !== 'all' && !categoryOptions.some(o => o.value === currentDrugClassFilter)) currentDrugClassFilter = 'all';
+  if (currentDrugSystemFilter !== 'all' && !systemOptions.some(o => o.value === currentDrugSystemFilter)) currentDrugSystemFilter = 'all';
+  if (conceptTitle) conceptTitle.innerHTML = '∑ 공식 분야 <span>어떤 계산인가?</span>';
+  if (systemTitle) systemTitle.innerHTML = '🎯 관련 장기계 <span>어디에 쓰이는가?</span>';
+  conceptRow.innerHTML = [
+    filterButtonHtml({ value: 'all', label: '전체', active: currentDrugClassFilter === 'all', onclick: 'setDrugClassFilter', extraClass: 'concept formula-mode' }),
+    ...categoryOptions.map(option => filterButtonHtml({
+      value: option.value,
+      label: `∑ ${option.value}`,
+      active: currentDrugClassFilter === option.value,
+      onclick: 'setDrugClassFilter',
+      extraClass: 'concept formula-mode',
+      count: option.count
+    }))
+  ].join('');
+  systemRow.innerHTML = [
+    filterButtonHtml({ value: 'all', label: '전체', active: currentDrugSystemFilter === 'all', onclick: 'setDrugSystemFilter', extraClass: 'formula-mode' }),
+    ...systemOptions.map(option => filterButtonHtml({
+      value: option.value,
+      label: drugSystemDisplay(option.value),
+      active: currentDrugSystemFilter === option.value,
+      onclick: 'setDrugSystemFilter',
+      extraClass: 'formula-mode',
+      count: option.count
+    }))
+  ].join('');
+}
+
+function countOptionsFromFormulas(valueGetter) {
+  const map = new Map();
+  getActiveFormulas().forEach(formula => {
+    const values = valueGetter(formula);
+    (Array.isArray(values) ? values : [values]).forEach(value => {
+      const clean = normalizeDrugFilterValue(value);
+      map.set(clean, (map.get(clean) || 0) + 1);
+    });
+  });
+  return [...map.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'ko', { sensitivity: 'base', numeric: true }));
+}
+
 function renderFilterControls() {
   if (currentLibraryMode === 'drugs') renderDrugFilterControls();
+  else if (currentLibraryMode === 'formulas') renderFormulaFilterControls();
   else renderTermFilterControls();
 }
 
 function updateLibraryModeControls() {
   const isDrugs = currentLibraryMode === 'drugs';
+  const isFormulas = currentLibraryMode === 'formulas';
   const termsBtn = document.getElementById('libraryModeTermsBtn');
   const drugsBtn = document.getElementById('libraryModeDrugsBtn');
+  const formulasBtn = document.getElementById('libraryModeFormulasBtn');
   const hint = document.getElementById('libraryModeHint');
   const search = document.getElementById('searchInput');
-  termsBtn?.classList.toggle('active', !isDrugs);
+  termsBtn?.classList.toggle('active', !isDrugs && !isFormulas);
   drugsBtn?.classList.toggle('active', isDrugs);
-  termsBtn?.setAttribute('aria-selected', String(!isDrugs));
+  formulasBtn?.classList.toggle('active', isFormulas);
+  termsBtn?.setAttribute('aria-selected', String(!isDrugs && !isFormulas));
   drugsBtn?.setAttribute('aria-selected', String(isDrugs));
-  if (hint) hint.textContent = isDrugs
-    ? '약물명 및 정보를 USMLE 계열과 관련 장기계 기준으로 봅니다.'
-    : '일반 의학용어를 개념분류와 대표 장기계로 봅니다.';
-  if (search) search.placeholder = isDrugs
-    ? '약물명(영어/한국어), USMLE 계열, Target, MOA로 검색...'
-    : '한국어, 영어, 우즈베크어로 검색...';
+  formulasBtn?.setAttribute('aria-selected', String(isFormulas));
+  if (hint) hint.textContent = isFormulas
+    ? '주요 의학계산공식을 공식 분야와 관련 장기계 기준으로 봅니다.'
+    : (isDrugs
+      ? '약물명 및 정보를 USMLE 계열과 관련 장기계 기준으로 봅니다.'
+      : '일반 의학용어를 개념분류와 대표 장기계로 봅니다.');
+  if (search) search.placeholder = isFormulas
+    ? '공식명, 계산식, 암기 포인트, USMLE 함정으로 검색...'
+    : (isDrugs
+      ? '약물명(영어/한국어), USMLE 계열, Target, MOA로 검색...'
+      : '한국어, 영어, 우즈베크어로 검색...');
   const stat = document.getElementById('bookmarkCount');
   if (stat) {
     const validCount = TERMS.filter(t => bookmarks.has(t.id)).length;
-    stat.textContent = isDrugs ? `약물 ${getActiveDrugs().length}개` : `즐겨찾기 ${validCount}`;
+    stat.textContent = isFormulas ? `공식 ${getActiveFormulas().length}개` : (isDrugs ? `약물 ${getActiveDrugs().length}개` : `즐겨찾기 ${validCount}`);
   }
 }
 
 function setLibraryMode(mode, silent = false) {
-  const nextMode = mode === 'drugs' ? 'drugs' : 'terms';
+  const nextMode = mode === 'drugs' ? 'drugs' : (mode === 'formulas' ? 'formulas' : 'terms');
   if (nextMode !== currentLibraryMode) {
     selectedTermIds.clear();
     visibleTermLimit = LIST_PAGE_SIZE;
@@ -5075,6 +5569,76 @@ function renderDrugFrame(drugs = []) {
   updateCounts(active.length, active.length, 'drugs');
 }
 
+function formulaSearchText(f) {
+  return [
+    f.name, f.short_name, f.formula, f.category, f.system, f.use_case,
+    f.normal_range, f.interpretation, f.example, f.memory_tip, f.usmle_trap,
+    f.variables, ...(Array.isArray(f.tags) ? f.tags : [])
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function filterFormulasForQuery(query = '') {
+  const q = String(query || '').trim().toLowerCase();
+  let filtered = getActiveFormulas();
+  if (currentDrugClassFilter !== 'all') filtered = filtered.filter(f => (f.category || 'General') === currentDrugClassFilter);
+  if (currentDrugSystemFilter !== 'all') filtered = filtered.filter(f => formulaSystemValues(f).includes(currentDrugSystemFilter));
+  if (q) filtered = filtered.filter(f => formulaSearchText(f).includes(q));
+  return filtered.sort((a, b) =>
+    String(a.name || a.short_name || '').localeCompare(String(b.name || b.short_name || ''), 'ko', { sensitivity: 'base', numeric: true })
+  );
+}
+
+function renderFormulaFrame(formulas = []) {
+  const frame = document.getElementById('formulaFrame');
+  const empty = document.getElementById('emptyState');
+  if (!frame) return;
+  const active = Array.isArray(formulas) ? formulas.filter(f => !f.deletedAt) : [];
+  if (!active.length) {
+    frame.innerHTML = '';
+    if (empty && currentLibraryMode === 'formulas') {
+      const total = getActiveFormulas().length;
+      empty.innerHTML = total === 0 ? `
+        <div class="icon">∑</div>
+        <h3>의학계산공식 데이터가 없습니다</h3>
+        <p>공식 추가에서 Anion gap, Corrected Na, Winter's formula 같은<br>암기용 공식 카드를 추가하세요</p>
+      ` : `
+        <div class="icon">🔍</div>
+        <h3>공식 결과 없음</h3>
+        <p>다른 검색어를 입력하거나<br>공식 분야·관련 장기계 필터를 변경해 보세요</p>
+      `;
+      empty.style.display = 'block';
+    }
+    updateCounts(0, 0, 'formulas');
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  frame.innerHTML = `
+    <section class="drug-frame">
+      <div class="drug-frame-title">
+        <strong>∑ 주요 의학계산공식 · ${active.length}개</strong>
+        <span style="font-size:10px;color:var(--text3)">공식 숙지와 암기 중심</span>
+      </div>
+      ${active.map(f => `
+        <article class="formula-card" id="formula-card-${Number(f.id)}" onclick="openFormulaEditModal(event, ${Number(f.id)})" title="클릭해서 공식 편집">
+          <div class="formula-head">
+            <div>
+              <div class="formula-name">${escapeHtml(f.name || f.short_name || '이름 없음')}</div>
+              <div class="formula-sub">${escapeHtml([f.short_name, f.use_case].filter(Boolean).join(' · '))}</div>
+            </div>
+            <button class="bookmark-btn" onclick="openFormulaEditModal(event, ${Number(f.id)})" title="공식 편집">✏️</button>
+          </div>
+          <div class="formula-expression">${escapeHtml(f.formula || '공식 미입력')}</div>
+          <div class="formula-chip-row">
+            ${[f.category ? `분야 ${f.category}` : '', f.system ? `장기계 ${categoryDisplay(f.system)}` : '', f.normal_range ? `기준 ${compactDrugText(f.normal_range, 48)}` : '']
+              .filter(Boolean).map(chip => `<span class="formula-chip">${escapeHtml(chip)}</span>`).join('')}
+          </div>
+          ${f.memory_tip ? `<div class="formula-memory-line">암기: ${escapeHtml(f.memory_tip)}</div>` : ''}
+        </article>
+      `).join('')}
+    </section>`;
+  updateCounts(active.length, active.length, 'formulas');
+}
+
 function drugDisplayName(d) {
   return d?.generic_name || d?.ko_name || d?.brand_name || '이름 없음';
 }
@@ -5299,6 +5863,138 @@ function deleteDrug(id) {
     deleteDrugFromCloud(id, tombstone?.deletedAt || new Date().toISOString());
     document.getElementById('drugEditModal')?.remove();
     showToast('🗑️ 약물 항목 삭제 완료');
+    applyFilters();
+  });
+}
+
+function formulaFieldValue(id) {
+  return document.getElementById(id)?.value?.trim() || '';
+}
+
+function formulaFormFieldsHtml(prefix, f = {}, IS = inputStyle(), TA = inputStyle(true)) {
+  const escVal = value => escapeHtml(value || '');
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:10px">
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">공식명</label><input id="${prefix}_name" value="${escVal(f.name)}" placeholder="예: Anion gap" style="${IS}"></div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">약어/별칭</label><input id="${prefix}_short" value="${escVal(f.short_name)}" placeholder="예: AG" style="${IS}"></div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">공식 분야</label><input id="${prefix}_category" value="${escVal(f.category || 'Acid-base')}" placeholder="Acid-base" style="${IS}"></div>
+      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">관련 장기계</label><select id="${prefix}_system" style="${IS}">${['General', ...VALID_CATS.filter(c => c !== 'General')].map(c => `<option value="${escapeHtml(c)}" ${(f.system || 'General') === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}</select></div>
+    </div>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">계산식</label>
+    <textarea id="${prefix}_formula" rows="2" placeholder="예: Na - (Cl + HCO3)" style="${TA}">${escVal(f.formula)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">언제 쓰는가</label>
+    <textarea id="${prefix}_use" rows="2" placeholder="예: 대사성 산증 감별" style="${TA}">${escVal(f.use_case)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">정상값/판정 기준</label>
+    <textarea id="${prefix}_normal" rows="2" placeholder="예: 8-12 mEq/L" style="${TA}">${escVal(f.normal_range)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">해석/판정</label>
+    <textarea id="${prefix}_interpretation" rows="2" placeholder="증가/감소 시 의미" style="${TA}">${escVal(f.interpretation)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">예시 계산</label>
+    <textarea id="${prefix}_example" rows="2" placeholder="예: Na 140, Cl 104, HCO3 12 → AG 24" style="${TA}">${escVal(f.example)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">암기 포인트</label>
+    <textarea id="${prefix}_memory" rows="2" placeholder="예: 양이온 - 주요 음이온" style="${TA}">${escVal(f.memory_tip)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">USMLE 함정</label>
+    <textarea id="${prefix}_trap" rows="2" placeholder="예: hypoalbuminemia에서 AG 보정 필요" style="${TA}">${escVal(f.usmle_trap)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">변수 설명</label>
+    <textarea id="${prefix}_variables" rows="2" placeholder="각 변수와 단위" style="${TA}">${escVal(f.variables)}</textarea>
+    <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">태그</label>
+    <input id="${prefix}_tags" value="${escVal(Array.isArray(f.tags) ? f.tags.join(', ') : f.tags)}" placeholder="예: Renal, Acid-base" style="${IS}">
+  `;
+}
+
+function upsertFormulaFromForm(id = null) {
+  const isEdit = id !== null && id !== undefined;
+  const prefix = isEdit ? 'formula_edit' : 'add_formula';
+  const existing = isEdit ? FORMULAS.find(f => Number(f.id) === Number(id)) : null;
+  const next = normalizeFormulaForStorage({
+    ...(existing || {}),
+    id: existing?.id || nextFormulaId(),
+    name: formulaFieldValue(`${prefix}_name`),
+    short_name: formulaFieldValue(`${prefix}_short`),
+    formula: formulaFieldValue(`${prefix}_formula`),
+    category: formulaFieldValue(`${prefix}_category`) || 'General',
+    system: formulaFieldValue(`${prefix}_system`) || 'General',
+    use_case: formulaFieldValue(`${prefix}_use`),
+    normal_range: formulaFieldValue(`${prefix}_normal`),
+    interpretation: formulaFieldValue(`${prefix}_interpretation`),
+    example: formulaFieldValue(`${prefix}_example`),
+    memory_tip: formulaFieldValue(`${prefix}_memory`),
+    usmle_trap: formulaFieldValue(`${prefix}_trap`),
+    variables: formulaFieldValue(`${prefix}_variables`),
+    tags: formulaFieldValue(`${prefix}_tags`),
+    updatedAt: new Date().toISOString(),
+  });
+  if (!next.name && !next.short_name) { showToast('⚠️ 공식명 또는 약어를 입력해주세요'); return null; }
+  if (!next.formula) { showToast('⚠️ 계산식을 입력해주세요'); return null; }
+  const duplicateIdx = FORMULAS.findIndex((f, idx) => {
+    if (isEdit && Number(f.id) === Number(id)) return false;
+    return normalizeSyncText(f.name || f.short_name) === normalizeSyncText(next.name || next.short_name);
+  });
+  if (duplicateIdx >= 0) { showToast('⚠️ 중복된 공식입니다.'); return null; }
+  const idx = FORMULAS.findIndex(f => Number(f.id) === Number(next.id));
+  if (idx >= 0) FORMULAS[idx] = next;
+  else FORMULAS.push(next);
+  saveFormulasToLocalStorage();
+  saveFormulaToCloud(next);
+  applyFilters();
+  return next;
+}
+
+function submitAddFormula() {
+  const saved = upsertFormulaFromForm(null);
+  if (!saved) return;
+  showToast(`✅ "${saved.name || saved.short_name}" 공식 저장 완료`);
+  finishAddFlow();
+  setLibraryMode('formulas');
+}
+
+function openFormulaEditModal(e, id) {
+  if (e) e.stopPropagation();
+  const f = FORMULAS.find(x => Number(x.id) === Number(id));
+  if (!f) { showToast('⚠️ 공식 항목을 찾지 못했습니다'); return; }
+  document.getElementById('formulaEditModal')?.remove();
+  const IS = `width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none;box-sizing:border-box;`;
+  const TA = IS + `resize:vertical;`;
+  const overlay = document.createElement('div');
+  overlay.id = 'formulaEditModal';
+  overlay.className = 'developer-modal-overlay';
+  overlay.innerHTML = `
+    <section class="developer-modal" role="dialog" aria-modal="true">
+      <div class="developer-modal-head">
+        <div>
+          <div style="font-size:17px;font-weight:900;color:var(--text)">∑ 의학계산공식 편집</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">${escapeHtml(f.name || f.short_name || '')}</div>
+        </div>
+        <button onclick="document.getElementById('formulaEditModal').remove()" title="닫기" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:16px 20px 22px">
+        ${formulaFormFieldsHtml('formula_edit', f, IS, TA)}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <button class="data-action-btn primary" style="flex:1;min-width:150px" onclick="saveFormulaEdit(${Number(f.id)})">저장</button>
+          <button class="data-action-btn red" style="flex:1;min-width:150px" onclick="deleteFormula(${Number(f.id)})">삭제</button>
+        </div>
+      </div>
+    </section>`;
+  document.body.appendChild(overlay);
+}
+
+function saveFormulaEdit(id) {
+  const saved = upsertFormulaFromForm(id);
+  if (!saved) return;
+  document.getElementById('formulaEditModal')?.remove();
+  showToast('✅ 공식 수정 완료');
+}
+
+function deleteFormula(id) {
+  const f = FORMULAS.find(x => Number(x.id) === Number(id));
+  const label = f?.name || f?.short_name || '공식';
+  showConfirm(`"${escapeHtml(label)}" 공식을 삭제할까요?`, () => {
+    const idx = FORMULAS.findIndex(x => Number(x.id) === Number(id));
+    if (idx !== -1) FORMULAS.splice(idx, 1);
+    const tombstone = recordLocalFormulaTombstone(f);
+    saveFormulasToLocalStorage();
+    deleteFormulaFromCloud(id, tombstone?.deletedAt || new Date().toISOString());
+    document.getElementById('formulaEditModal')?.remove();
+    showToast('🗑️ 공식 삭제 완료');
     applyFilters();
   });
 }
@@ -5658,7 +6354,9 @@ function setSectionLabel(text = '') {
   const labelText = clean && clean !== '전체 용어'
     ? `<span class="section-label-text">${escapeHtml(clean)}</span>`
     : '';
-  const addLabel = currentLibraryMode === 'drugs' ? '+ 약물명 및 정보 추가' : '+ 용어 추가';
+  const addLabel = currentLibraryMode === 'formulas'
+    ? '+ 공식 추가'
+    : (currentLibraryMode === 'drugs' ? '+ 약물명 및 정보 추가' : '+ 용어 추가');
   label.innerHTML = `
     ${labelText}
     <button class="inline-add-btn" onclick="showAddTermModal()">${addLabel}</button>
@@ -5832,7 +6530,7 @@ function applyFilters() {
   document.getElementById('searchClear').classList.toggle('visible', query.length > 0);
 
   // 데이터 없을 때 홈 화면: 즐겨찾기 or 빈 안내
-  if (TERMS.length === 0 && DRUGS.length === 0 && !query) {
+  if (TERMS.length === 0 && DRUGS.length === 0 && FORMULAS.length === 0 && !query) {
     renderHome();
     return;
   }
@@ -5840,6 +6538,8 @@ function applyFilters() {
   if (currentLibraryMode === 'drugs') {
     const list = document.getElementById('termList');
     if (list) list.innerHTML = '';
+    const formulaFrame = document.getElementById('formulaFrame');
+    if (formulaFrame) formulaFrame.innerHTML = '';
     const results = filterDrugsForQuery(query);
     const labelParts = [];
     if (currentDrugClassFilter !== 'all') labelParts.push(drugClassDisplay(currentDrugClassFilter));
@@ -5851,8 +6551,26 @@ function applyFilters() {
     return;
   }
 
+  if (currentLibraryMode === 'formulas') {
+    const list = document.getElementById('termList');
+    const drugFrame = document.getElementById('drugFrame');
+    if (list) list.innerHTML = '';
+    if (drugFrame) drugFrame.innerHTML = '';
+    const results = filterFormulasForQuery(query);
+    const labelParts = [];
+    if (currentDrugClassFilter !== 'all') labelParts.push(`∑ ${currentDrugClassFilter}`);
+    if (currentDrugSystemFilter !== 'all') labelParts.push(drugSystemDisplay(currentDrugSystemFilter));
+    const baseLabel = query ? '공식 검색 결과' : '전체 주요 의학계산공식';
+    const sectionLabel = labelParts.length ? `${baseLabel} · ${labelParts.join(' · ')}` : baseLabel;
+    setSectionLabel(`${sectionLabel} — ${results.length}개`);
+    renderFormulaFrame(results);
+    return;
+  }
+
   const drugFrame = document.getElementById('drugFrame');
   if (drugFrame) drugFrame.innerHTML = '';
+  const formulaFrame = document.getElementById('formulaFrame');
+  if (formulaFrame) formulaFrame.innerHTML = '';
   let results = TERMS;
 
   if (currentFilter === '즐겨찾기') {
@@ -5905,6 +6623,9 @@ function renderHome() {
   } else if (DRUGS.length > 0) {
     list.innerHTML = '';
     renderDrugFrame(filterDrugsForQuery(''));
+  } else if (FORMULAS.length > 0) {
+    list.innerHTML = '';
+    renderFormulaFrame(filterFormulasForQuery(''));
   } else {
     list.innerHTML = `
       <div class="empty-state">
@@ -5957,8 +6678,9 @@ function updateCounts(shown, filtered = shown, mode = currentLibraryMode) {
   const el = document.getElementById('totalCount');
   if (!el) return;
   const isDrugs = mode === 'drugs';
-  const total = isDrugs ? getActiveDrugs().length : TERMS.length;
-  const label = isDrugs ? '약물' : '용어';
+  const isFormulas = mode === 'formulas';
+  const total = isFormulas ? getActiveFormulas().length : (isDrugs ? getActiveDrugs().length : TERMS.length);
+  const label = isFormulas ? '공식' : (isDrugs ? '약물' : '용어');
   el.textContent = filtered === total
     ? `${shown}개 표시 / 전체 ${label} ${total}개`
     : `${shown}개 표시 / 결과 ${filtered}개 / 전체 ${label} ${total}개`;
@@ -5971,9 +6693,11 @@ function updateBookmarkCount() {
   safeSetItem('kma_bookmarks', JSON.stringify([...bookmarks]));
   const el = document.getElementById('bookmarkCount');
   if (!el) return;
-  el.textContent = currentLibraryMode === 'drugs'
-    ? `약물 ${getActiveDrugs().length}개`
-    : `즐겨찾기 ${validCount}`;
+  el.textContent = currentLibraryMode === 'formulas'
+    ? `공식 ${getActiveFormulas().length}개`
+    : (currentLibraryMode === 'drugs'
+      ? `약물 ${getActiveDrugs().length}개`
+      : `즐겨찾기 ${validCount}`);
 }
 
 // ─── Saved home HTML for tab restoration ───
@@ -5981,6 +6705,7 @@ const HOME_HTML = `
   <div class="section-label" id="sectionLabel"></div>
   <div id="termList"></div>
   <div id="drugFrame"></div>
+  <div id="formulaFrame"></div>
   <div id="emptyState" class="empty-state" style="display:none">
     <div class="icon">📂</div>
     <h3>용어 데이터가 없습니다</h3>
@@ -6015,7 +6740,7 @@ function switchTab(tab, btn) {
     setFilter('즐겨찾기', document.getElementById('filterBookmarkBtn'));
   } else {
     restoreHomeTab(true);
-    if (currentLibraryMode === 'drugs') {
+    if (currentLibraryMode === 'drugs' || currentLibraryMode === 'formulas') {
       currentDrugClassFilter = 'all';
       currentDrugSystemFilter = 'all';
       renderFilterControls();
@@ -6389,7 +7114,7 @@ async function testAndSyncSupabase() {
 async function pullFromCloud() {
   if (!getSupabaseConfig()) { showToast('⚠️ Supabase 설정 먼저 저장하세요'); return; }
   showToast('⬇️ 클라우드에서 불러오는 중...');
-  const [cloudTerms, cloudDrugs, meta] = await Promise.all([sbLoadAll(), sbLoadAllDrugs(), sbLoadCanonicalMeta()]);
+  const [cloudTerms, cloudDrugs, cloudFormulas, meta] = await Promise.all([sbLoadAll(), sbLoadAllDrugs(), sbLoadAllFormulas(), sbLoadCanonicalMeta()]);
   if (cloudTerms === null) { showToast('⚠️ 클라우드 데이터를 불러오지 못했습니다'); return; }
   if (meta === null) { showToast('⚠️ 최종본 기준값을 확인하지 못했습니다'); return; }
   if (!hasCanonicalVersion(meta)) {
@@ -6410,19 +7135,28 @@ async function pullFromCloud() {
     saveDrugsToLocalStorage();
     saveLocalDrugTombstones(cloudDrugs.filter(d => d.deletedAt));
   }
+  if (cloudFormulas === null) {
+    showToast('⚠️ 공식 테이블을 불러오지 못했습니다 · 통합 SQL을 먼저 실행해주세요');
+  } else {
+    const cleanCloudFormulas = dedupeFormulasById(cloudFormulas).filter(f => !f.deletedAt);
+    FORMULAS.length = 0;
+    FORMULAS.push(...cleanCloudFormulas);
+    saveFormulasToLocalStorage();
+    saveLocalFormulaTombstones(cloudFormulas.filter(f => f.deletedAt));
+  }
   saveLocalTombstones(cloudTerms.filter(t => t.deletedAt));
   saveLocalSyncMeta({ canonicalVersion: meta.version });
   const learning = await sbLoadLearningStates();
   if (learning) applyLearningStates(learning, true);
   updateBookmarkCount();
   applyFilters();
-  showToast(`⬇️ 클라우드 기준본 ${cleanCloudTerms.length}개 불러옴`);
+  showToast(`⬇️ 클라우드 기준본 불러옴 · 용어 ${TERMS.length}개 · 약물 ${DRUGS.length}개 · 공식 ${FORMULAS.length}개`);
 }
 
 async function syncWithCloud() {
   if (!getSupabaseConfig()) return false;
   showToast('☁️ 변경사항 동기화 중...');
-  const [cloudTerms, cloudDrugs, canonicalMeta] = await Promise.all([sbLoadAll(), sbLoadAllDrugs(), sbLoadCanonicalMeta()]);
+  const [cloudTerms, cloudDrugs, cloudFormulas, canonicalMeta] = await Promise.all([sbLoadAll(), sbLoadAllDrugs(), sbLoadAllFormulas(), sbLoadCanonicalMeta()]);
   if (cloudTerms === null) {
     showToast('⚠️ 클라우드 데이터를 불러오지 못했습니다');
     return false;
@@ -6445,6 +7179,8 @@ async function syncWithCloud() {
   }
   const canSyncDrugs = Array.isArray(cloudDrugs);
   if (!canSyncDrugs) showToast('⚠️ 약물 테이블 동기화는 건너뜁니다 · 통합 SQL을 실행해주세요');
+  const canSyncFormulas = Array.isArray(cloudFormulas);
+  if (!canSyncFormulas) showToast('⚠️ 공식 테이블 동기화는 건너뜁니다 · 통합 SQL을 실행해주세요');
 
   const refreshedMeta = getLocalSyncMeta();
   const canonicalChanged = !!canonicalMeta?.version && canonicalMeta.version !== refreshedMeta.canonicalVersion;
@@ -6459,19 +7195,25 @@ async function syncWithCloud() {
       saveDrugsToLocalStorage();
       saveLocalDrugTombstones(cloudDrugs.filter(d => d.deletedAt));
     }
+    if (canSyncFormulas) {
+      FORMULAS.length = 0;
+      FORMULAS.push(...dedupeFormulasById(cloudFormulas).filter(f => !f.deletedAt));
+      saveFormulasToLocalStorage();
+      saveLocalFormulaTombstones(cloudFormulas.filter(f => f.deletedAt));
+    }
     saveLocalTombstones(cloudTerms.filter(t => t.deletedAt));
     const learning = await sbLoadLearningStates();
     if (learning) applyLearningStates(learning, true);
     saveLocalSyncMeta({ canonicalVersion: canonicalMeta.version });
     updateBookmarkCount();
     applyFilters();
-    showToast(`☁️ 새 최종본 적용 완료 (${TERMS.length}개)`);
+    showToast(`☁️ 새 최종본 적용 완료 · 용어 ${TERMS.length}개 · 약물 ${DRUGS.length}개 · 공식 ${FORMULAS.length}개`);
     return true;
   }
 
   const localActiveFence = filterLocalRowsAfterCanonicalFence(TERMS, cloudTerms, canonicalMeta);
   const localTombstoneFence = filterLocalRowsAfterCanonicalFence(loadLocalTombstones(), cloudTerms, canonicalMeta);
-  const skippedStaleLocalRows = localActiveFence.skipped + localTombstoneFence.skipped;
+  let skippedStaleLocalRows = localActiveFence.skipped + localTombstoneFence.skipped;
   const mergedRows = mergeTermsForSync(cloudTerms, localActiveFence.rows, localTombstoneFence.rows);
   TERMS.length = 0;
   TERMS.push(...mergedRows.filter(t => !t.deletedAt));
@@ -6480,6 +7222,7 @@ async function syncWithCloud() {
   if (canSyncDrugs) {
     const localDrugActiveFence = filterLocalRowsAfterCanonicalFence(DRUGS, cloudDrugs, canonicalMeta);
     const localDrugTombstoneFence = filterLocalRowsAfterCanonicalFence(loadLocalDrugTombstones(), cloudDrugs, canonicalMeta);
+    skippedStaleLocalRows += localDrugActiveFence.skipped + localDrugTombstoneFence.skipped;
     const mergedDrugs = mergeDrugsForSync(cloudDrugs, localDrugActiveFence.rows, localDrugTombstoneFence.rows);
     DRUGS.length = 0;
     DRUGS.push(...mergedDrugs.filter(d => !d.deletedAt));
@@ -6487,12 +7230,23 @@ async function syncWithCloud() {
     saveLocalDrugTombstones(mergedDrugs.filter(d => d.deletedAt));
     await sbBatchUpsertDrugRows(mergedDrugs.map(drugToRow));
   }
+  if (canSyncFormulas) {
+    const localFormulaActiveFence = filterLocalRowsAfterCanonicalFence(FORMULAS, cloudFormulas, canonicalMeta);
+    const localFormulaTombstoneFence = filterLocalRowsAfterCanonicalFence(loadLocalFormulaTombstones(), cloudFormulas, canonicalMeta);
+    skippedStaleLocalRows += localFormulaActiveFence.skipped + localFormulaTombstoneFence.skipped;
+    const mergedFormulas = mergeFormulasForSync(cloudFormulas, localFormulaActiveFence.rows, localFormulaTombstoneFence.rows);
+    FORMULAS.length = 0;
+    FORMULAS.push(...mergedFormulas.filter(f => !f.deletedAt));
+    saveFormulasToLocalStorage();
+    saveLocalFormulaTombstones(mergedFormulas.filter(f => f.deletedAt));
+    await sbBatchUpsertFormulaRows(mergedFormulas.map(formulaToRow));
+  }
   await sbBatchUpsertRows(mergedRows.map(termToRow));
   await syncLearningStateToCloud();
   if (canonicalMeta?.version) saveLocalSyncMeta({ canonicalVersion: canonicalMeta.version });
   updateBookmarkCount();
   applyFilters();
-  showToast(`✅ 양방향 동기화 완료 (${TERMS.length}개${skippedStaleLocalRows ? ` · 오래된 로컬 전용 ${skippedStaleLocalRows}개 제외` : ''})`);
+  showToast(`✅ 양방향 동기화 완료 · 용어 ${TERMS.length}개 · 약물 ${DRUGS.length}개 · 공식 ${FORMULAS.length}개${skippedStaleLocalRows ? ` · 오래된 로컬 전용 ${skippedStaleLocalRows}개 제외` : ''}`);
   return true;
 }
 
@@ -6763,6 +7517,7 @@ function showAddTermForm(target = document.getElementById('mainContent')) {
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
             <button id="addKind_term" class="add-kind-btn active" onclick="switchAddKind('term')" style="background:var(--add-active-bg);border:1px solid var(--add-active-border);border-radius:10px;padding:11px;color:var(--add-active-text);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">📘 일반 용어</button>
             <button id="addKind_drug" class="add-kind-btn" onclick="switchAddKind('drug')" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💊 약물명 및 정보</button>
+            <button id="addKind_formula" class="add-kind-btn" onclick="switchAddKind('formula')" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">∑ 주요 의학계산공식</button>
           </div>
         </div>
         <div id="termAddFields">
@@ -6952,6 +7707,14 @@ function showAddTermForm(target = document.getElementById('mainContent')) {
           </div>
         </div><!-- /drugAddFields -->
 
+        <div id="formulaAddFields" style="display:none">
+          <div class="add-section-card" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px">
+            <div class="add-section-title" style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px">∑ 주요 의학계산공식</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px">공식명, 계산식, 암기 포인트, 예시 계산을 카드로 저장합니다.</div>
+            ${formulaFormFieldsHtml('add_formula')}
+          </div>
+        </div><!-- /formulaAddFields -->
+
       <!-- Submit -->
       <button id="addSubmitBtn" class="add-submit-btn" onclick="submitAddTerm()" style="width:100%;background:var(--accent);border:none;border-radius:10px;padding:14px;color:#0d1117;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px">
         ➕ 용어 추가
@@ -6987,6 +7750,7 @@ function showAddTermModal() {
   document.body.appendChild(modal);
   showAddTermForm(document.getElementById('addTermModalBody'));
   if (currentLibraryMode === 'drugs') switchAddKind('drug');
+  if (currentLibraryMode === 'formulas') switchAddKind('formula');
   setTimeout(updateAddKeyHint, 0);
 }
 
@@ -7040,15 +7804,19 @@ function switchAddTab(tab) {
 
 function switchAddKind(kind) {
   const isDrug = kind === 'drug';
+  const isFormula = kind === 'formula';
   const kindInput = document.getElementById('add_kind');
   const termFields = document.getElementById('termAddFields');
   const drugFields = document.getElementById('drugAddFields');
+  const formulaFields = document.getElementById('formulaAddFields');
   const termBtn = document.getElementById('addKind_term');
   const drugBtn = document.getElementById('addKind_drug');
+  const formulaBtn = document.getElementById('addKind_formula');
   const submitBtn = document.getElementById('addSubmitBtn');
-  if (kindInput) kindInput.value = isDrug ? 'drug' : 'term';
-  if (termFields) termFields.style.display = isDrug ? 'none' : 'block';
+  if (kindInput) kindInput.value = isFormula ? 'formula' : (isDrug ? 'drug' : 'term');
+  if (termFields) termFields.style.display = (!isDrug && !isFormula) ? 'block' : 'none';
   if (drugFields) drugFields.style.display = isDrug ? 'block' : 'none';
+  if (formulaFields) formulaFields.style.display = isFormula ? 'block' : 'none';
   const setKindButton = (btn, active) => {
     if (!btn) return;
     btn.classList.toggle('active', active);
@@ -7056,9 +7824,10 @@ function switchAddKind(kind) {
     btn.style.border = active ? '1px solid var(--add-active-border)' : '1px solid var(--border)';
     btn.style.color = active ? 'var(--add-active-text)' : 'var(--text2)';
   };
-  setKindButton(termBtn, !isDrug);
+  setKindButton(termBtn, !isDrug && !isFormula);
   setKindButton(drugBtn, isDrug);
-  if (submitBtn) submitBtn.textContent = isDrug ? '💊 약물명 및 정보로 저장' : '➕ 용어 추가';
+  setKindButton(formulaBtn, isFormula);
+  if (submitBtn) submitBtn.textContent = isFormula ? '∑ 공식 저장' : (isDrug ? '💊 약물명 및 정보로 저장' : '➕ 용어 추가');
   updateAddKeyHint();
 }
 
@@ -7298,7 +8067,12 @@ function handleAddOnlyExcelUpload(event) {
 }
 
 async function submitAddTerm() {
-  if ((document.getElementById('add_kind')?.value || 'term') === 'drug') {
+  const addKind = document.getElementById('add_kind')?.value || 'term';
+  if (addKind === 'formula') {
+    submitAddFormula();
+    return;
+  }
+  if (addKind === 'drug') {
     await submitAddDrug();
     return;
   }
@@ -8075,7 +8849,7 @@ function showGuide() {
         'RxNorm/RxClass 무료 API 보강은 표준 약물명과 ATC 분류를 확인하는 보조 기능입니다',
         '약물 카드는 목록에서는 compact하게 보이고, 클릭하면 기본 카드와 접힌 고급 정보로 나뉘어 표시됩니다',
         '약물 삭제는 hard delete가 아니라 deleted_at tombstone을 남겨 다른 기기에서 되살아나지 않게 합니다',
-        '데이터 관리에서 약물 전체/장기계별 일괄삭제, 삭제된 약물 복원, 약물 휴지통 목록 숨김을 처리합니다',
+        '데이터 관리에서 약물과 공식의 전체/장기계별 일괄삭제, 삭제 항목 복원, 휴지통 목록 숨김을 처리합니다',
       ]
     },
     {
@@ -8105,12 +8879,12 @@ function showGuide() {
       icon: '📁', title: '데이터 관리와 백업',
       color: '#f87171',
       items: [
-        '전체 JSON 백업에는 일반용어, 약물명 및 정보, 학습상태, 삭제 보호 기록, 동기화 메타가 포함됩니다',
+        '전체 JSON 백업에는 일반용어, 약물명 및 정보, 주요 의학계산공식, 학습상태, 삭제 보호 기록, 동기화 메타가 포함됩니다',
         '구형 JSON처럼 약물 배열이 없는 백업을 복원해도 현재 약물 데이터는 보존됩니다',
         '일반용어 Excel/CSV/Anki와 약물명 및 정보 Excel/CSV를 구분해 내보냅니다',
         '가져오기는 미리보기 후 최신 병합, 신규만 추가, 현재 데이터 교체 중에서 선택합니다',
         '현재 데이터 교체 전에는 자동으로 전체 JSON 백업을 내려받습니다',
-        '삭제된 일반용어와 약물은 각각 휴지통에서 복원할 수 있습니다',
+        '삭제된 일반용어, 약물명 및 정보, 주요 의학계산공식은 각각 휴지통에서 복원할 수 있습니다',
         '휴지통 목록을 비워도 내부 tombstone은 보존되어 다른 기기에서 오래된 항목이 되살아나는 것을 막습니다',
         '대용량 로컬 캐시는 IndexedDB를 우선 사용하고 localStorage는 설정과 작은 메타 중심으로 둡니다',
       ]
@@ -8122,7 +8896,7 @@ function showGuide() {
         'Supabase가 기준 원본이고, IndexedDB/localStorage는 빠른 화면 복원용 로컬 캐시입니다',
         '일반 양방향 동기화는 로컬과 클라우드를 updated_at 기준으로 병합합니다',
         '상단 최종상태 저장은 현재 기기 데이터를 클라우드 기준본으로 지정하는 별도 작업입니다',
-        '저장본 버전 확인에서 클라우드 항목 수, 약물 항목 수, 삭제 표시 수, hash 일치 여부를 확인합니다',
+        '저장본 버전 확인에서 클라우드 용어·약물·공식 항목 수, 삭제 표시 수, hash 일치 여부를 확인합니다',
         '최종본 기준값을 확인하지 못하면 오래된 로컬 항목 부활을 막기 위해 일반 병합을 중단합니다',
         '최종본 생성 시각보다 오래된 로컬 전용 항목은 새 항목으로 보지 않고 동기화에서 제외합니다',
         '한 기기 데이터가 가장 정확하다고 확신할 때만 최종상태 저장을 사용합니다',
@@ -8134,7 +8908,7 @@ function showGuide() {
       items: [
         '평소에는 검색 화면에서 일반용어와 약물명 및 정보를 전환해 학습합니다',
         '새 자료를 넣기 전 데이터 관리에서 전체 JSON 백업을 먼저 저장합니다',
-        '용어 또는 약물을 추가한 뒤에는 일반 양방향 동기화로 다른 기기에 전파합니다',
+        '용어, 약물, 공식을 추가한 뒤에는 일반 양방향 동기화로 다른 기기에 전파합니다',
         '분류나 내용이 부족하면 통계와 미완성 용어 AI 보강을 이용합니다',
         '대량 삭제나 복원 후에는 저장본 버전 확인으로 클라우드/로컬 개수 차이를 확인합니다',
         'PC나 특정 기기를 최종본으로 확정해야 할 때만 상단 최종상태 저장을 실행합니다',
@@ -8163,9 +8937,9 @@ function showGuide() {
         <div style="font-size:20px;font-weight:700;color:var(--text)">Bugeon Medical Terms Guide</div>
         <div style="font-size:12px;color:var(--text3);margin-top:6px">v${APP_INFO.version} · 최신 구조 기준 가이드</div>
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">
-          <span style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:10px;padding:3px 10px;font-size:10px;color:#74b0ff">일반용어 · 약물 전환</span>
+          <span style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:10px;padding:3px 10px;font-size:10px;color:#74b0ff">일반용어 · 약물 · 공식 전환</span>
           <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:10px;padding:3px 10px;font-size:10px;color:#4ade80">전체 JSON 백업</span>
-          <span style="background:rgba(167,139,250,0.1);border:1px solid #5b21b6;border-radius:10px;padding:3px 10px;font-size:10px;color:#a78bfa">약물 복원 · 일괄삭제</span>
+          <span style="background:rgba(167,139,250,0.1);border:1px solid #5b21b6;border-radius:10px;padding:3px 10px;font-size:10px;color:#a78bfa">약물/공식 복원 · 일괄삭제</span>
           <span style="background:rgba(248,81,73,0.1);border:1px solid #991b1b;border-radius:10px;padding:3px 10px;font-size:10px;color:#f87171">저장본 버전 검증</span>
         </div>
       </div>
@@ -8181,12 +8955,15 @@ function showExportMenu() {
   const learning = getLearningStateMap();
   const tombstones = loadLocalTombstones();
   const drugTombstones = loadLocalDrugTombstones();
+  const formulaTombstones = loadLocalFormulaTombstones();
   const visibleTrashCount = tombstones.filter(t => !t.hiddenAt).length;
   const visibleDrugTrashCount = drugTombstones.filter(d => !d.hiddenAt).length;
+  const visibleFormulaTrashCount = formulaTombstones.filter(f => !f.hiddenAt).length;
   const localMeta = getLocalSyncMeta();
   const cacheMeta = safeJsonParse(localStorage.getItem(LOCAL_CACHE_META_KEY), {}) || {};
   const categories = [...new Set(TERMS.map(t => t.category || '기타'))].sort();
   const drugSystems = [...new Set(DRUGS.map(d => d.category || 'General'))].sort();
+  const formulaSystems = [...new Set(FORMULAS.map(f => f.system || 'General'))].sort();
   const reviewed = Object.values(learning).filter(s => s.lastReviewedAt).length;
   const due = Object.values(learning).filter(s => s.dueAt && new Date(s.dueAt) <= new Date()).length;
 
@@ -8199,6 +8976,7 @@ function showExportMenu() {
         </div>
         <div style="font-size:10px;color:var(--text3);text-align:right;line-height:1.6">
           용어 ${TERMS.length}개<br>약물 ${DRUGS.length}개<br>학습기록 ${reviewed}개
+          <br>공식 ${FORMULAS.length}개
         </div>
       </div>
 
@@ -8208,7 +8986,7 @@ function showExportMenu() {
             <div class="data-card-title">📥 가져오기</div>
             <div class="data-card-desc">
               파일을 먼저 분석해 추가·수정·삭제 예상 건수를 보여준 뒤 적용합니다.
-              JSON 전체 백업에는 용어·약물명 및 정보·학습상태·삭제기록이 포함됩니다.
+              JSON 전체 백업에는 용어·약물명 및 정보·주요 의학계산공식·학습상태·삭제기록이 포함됩니다.
             </div>
             <div class="data-action-stack">
               <button class="data-action-btn outline" onclick="document.getElementById('dataJsonImport').click()">전체 백업 JSON 선택</button>
@@ -8247,15 +9025,17 @@ function showExportMenu() {
           <section class="data-card">
             <div class="data-card-title">🗑️ 휴지통 · 데이터 정리</div>
             <div class="data-card-desc">
-              용어 복원 가능 ${visibleTrashCount}개 · 약물 복원 가능 ${visibleDrugTrashCount}개 · 동기화 보호 기록 용어 ${tombstones.length}개/약물 ${drugTombstones.length}개
+              용어 복원 가능 ${visibleTrashCount}개 · 약물 복원 가능 ${visibleDrugTrashCount}개 · 공식 복원 가능 ${visibleFormulaTrashCount}개 · 동기화 보호 기록 용어 ${tombstones.length}개/약물 ${drugTombstones.length}개/공식 ${formulaTombstones.length}개
             </div>
             <div class="data-action-stack">
               <button class="data-action-btn outline" onclick="showTrashManager()">삭제된 용어 보기 · 복원</button>
               <button class="data-action-btn outline" onclick="showDrugTrashManager()">삭제된 약물명 및 정보 보기 · 복원</button>
+              <button class="data-action-btn outline" onclick="showFormulaTrashManager()">삭제된 주요 의학계산공식 보기 · 복원</button>
               <button class="data-action-btn outline" onclick="showDuplicateManager()">중복 용어 검토</button>
               <button class="data-action-btn outline" onclick="bulkFillBlanks('all')">미완성 용어 AI 보강 (${TERMS.filter(t=>!t.def_ko||!t.def_en||!t.def_uz||!t.usmle||!t.ipa).length}개)</button>
               <button class="data-action-btn red" onclick="confirmEmptyTrash()">휴지통 목록 비우기</button>
               <button class="data-action-btn red" onclick="confirmEmptyDrugTrash()">약물 휴지통 목록 비우기</button>
+              <button class="data-action-btn red" onclick="confirmEmptyFormulaTrash()">공식 휴지통 목록 비우기</button>
               <button class="data-action-btn outline" onclick="pruneOldLocalTombstones();showToast('🧹 90일 지난 삭제 보호 기록 정리 완료');showExportMenu()">90일 지난 보호 기록 정리</button>
             </div>
           </section>
@@ -8276,6 +9056,13 @@ function showExportMenu() {
               ${drugSystems.map(system => `<option value="${escapeHtml(system)}">${escapeHtml(categoryDisplay(system))} (${DRUGS.filter(d => (d.category || 'General') === system).length}개)</option>`).join('')}
             </select>
             <button class="data-action-btn red" onclick="confirmDangerousDrugDelete()">선택 약물 범위 삭제</button>
+            <div style="height:1px;background:rgba(248,81,73,0.25);margin:12px 0"></div>
+            <div style="font-size:11px;color:#fca5a5;font-weight:800;margin:2px 0 7px">주요 의학계산공식 일괄 삭제</div>
+            <select id="bulkDeleteFormulaSystem" class="data-select">
+              <option value="__all__">전체 주요 의학계산공식 (${FORMULAS.length}개)</option>
+              ${formulaSystems.map(system => `<option value="${escapeHtml(system)}">${escapeHtml(categoryDisplay(system))} (${FORMULAS.filter(f => (f.system || 'General') === system).length}개)</option>`).join('')}
+            </select>
+            <button class="data-action-btn red" onclick="confirmDangerousFormulaDelete()">선택 공식 범위 삭제</button>
           </section>
         </div>
 
@@ -8371,15 +9158,17 @@ function downloadBlobFile(content, filename, mime = 'application/octet-stream') 
 
 function createCompleteBackupObject() {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     app: APP_INFO.name,
     appVersion: APP_INFO.version,
     exportedAt: new Date().toISOString(),
     terms: dedupeTermsById(TERMS),
     drugs: dedupeDrugsById(DRUGS),
+    formulas: dedupeFormulasById(FORMULAS),
     learningStates: getLearningStateMap(),
     tombstones: loadLocalTombstones(),
     drugTombstones: loadLocalDrugTombstones(),
+    formulaTombstones: loadLocalFormulaTombstones(),
     syncMeta: getLocalSyncMeta(),
   };
 }
@@ -8387,7 +9176,7 @@ function createCompleteBackupObject() {
 function exportCompleteJsonBackup() {
   const backup = createCompleteBackupObject();
   downloadBlobFile(JSON.stringify(backup, null, 2), `${dataFilePrefix('전체백업')}.json`, 'application/json;charset=utf-8');
-  showToast(`💾 전체 백업 완료 · 용어 ${backup.terms.length}개 · 약물 ${backup.drugs.length}개`);
+  showToast(`💾 전체 백업 완료 · 용어 ${backup.terms.length}개 · 약물 ${backup.drugs.length}개 · 공식 ${backup.formulas.length}개`);
 }
 
 function getTermsByScope(scope) {
@@ -8568,7 +9357,7 @@ async function showSyncDiagnostics() {
     return;
   }
   showToast('☁️ 동기화 상태 점검 중...');
-  const [cloudTerms, cloudDrugs, canonicalMeta] = await Promise.all([sbLoadAll(), sbLoadAllDrugs(), sbLoadCanonicalMeta()]);
+  const [cloudTerms, cloudDrugs, cloudFormulas, canonicalMeta] = await Promise.all([sbLoadAll(), sbLoadAllDrugs(), sbLoadAllFormulas(), sbLoadCanonicalMeta()]);
   if (cloudTerms === null || canonicalMeta === null) {
     showToast('⚠️ 클라우드 상태 확인 실패 · Supabase 설정을 확인하세요');
     return;
@@ -8579,13 +9368,19 @@ async function showSyncDiagnostics() {
   const cloudDeleted = dedupeTermsById(cloudTerms).filter(t => t.deletedAt);
   const cloudActiveDrugs = Array.isArray(cloudDrugs) ? dedupeDrugsById(cloudDrugs).filter(d => !d.deletedAt) : [];
   const cloudDeletedDrugs = Array.isArray(cloudDrugs) ? dedupeDrugsById(cloudDrugs).filter(d => d.deletedAt) : [];
+  const cloudActiveFormulas = Array.isArray(cloudFormulas) ? dedupeFormulasById(cloudFormulas).filter(f => !f.deletedAt) : [];
+  const cloudDeletedFormulas = Array.isArray(cloudFormulas) ? dedupeFormulasById(cloudFormulas).filter(f => f.deletedAt) : [];
   const cloudIds = new Set(cloudActive.map(t => String(t.id)));
   const localIds = new Set(TERMS.map(t => String(t.id)));
   const localOnly = TERMS.filter(t => !cloudIds.has(String(t.id)));
   const cloudOnly = cloudActive.filter(t => !localIds.has(String(t.id)));
   const localActiveFence = filterLocalRowsAfterCanonicalFence(TERMS, cloudTerms, canonicalMeta);
   const localTombstoneFence = filterLocalRowsAfterCanonicalFence(loadLocalTombstones(), cloudTerms, canonicalMeta);
-  const staleSkipped = localActiveFence.skipped + localTombstoneFence.skipped;
+  const localDrugActiveFence = Array.isArray(cloudDrugs) ? filterLocalRowsAfterCanonicalFence(DRUGS, cloudDrugs, canonicalMeta) : { skipped: 0 };
+  const localDrugTombstoneFence = Array.isArray(cloudDrugs) ? filterLocalRowsAfterCanonicalFence(loadLocalDrugTombstones(), cloudDrugs, canonicalMeta) : { skipped: 0 };
+  const localFormulaActiveFence = Array.isArray(cloudFormulas) ? filterLocalRowsAfterCanonicalFence(FORMULAS, cloudFormulas, canonicalMeta) : { skipped: 0 };
+  const localFormulaTombstoneFence = Array.isArray(cloudFormulas) ? filterLocalRowsAfterCanonicalFence(loadLocalFormulaTombstones(), cloudFormulas, canonicalMeta) : { skipped: 0 };
+  const staleSkipped = localActiveFence.skipped + localTombstoneFence.skipped + localDrugActiveFence.skipped + localDrugTombstoneFence.skipped + localFormulaActiveFence.skipped + localFormulaTombstoneFence.skipped;
   const canonicalMatches = !!canonicalMeta?.version && canonicalMeta.version === localMeta.canonicalVersion;
   const probableReason = TERMS.length === cloudActive.length
     ? '로컬과 클라우드 활성 용어 수가 같습니다.'
@@ -8609,12 +9404,15 @@ async function showSyncDiagnostics() {
           <div class="data-status-box"><div class="data-status-label">클라우드 활성</div><div class="data-status-value">${cloudActive.length}개</div></div>
           <div class="data-status-box"><div class="data-status-label">이 기기 약물</div><div class="data-status-value">${DRUGS.length}개</div></div>
           <div class="data-status-box"><div class="data-status-label">클라우드 약물</div><div class="data-status-value">${cloudDrugs === null ? '확인 실패' : `${cloudActiveDrugs.length}개`}</div></div>
+          <div class="data-status-box"><div class="data-status-label">이 기기 공식</div><div class="data-status-value">${FORMULAS.length}개</div></div>
+          <div class="data-status-box"><div class="data-status-label">클라우드 공식</div><div class="data-status-value">${cloudFormulas === null ? '확인 실패' : `${cloudActiveFormulas.length}개`}</div></div>
           <div class="data-status-box"><div class="data-status-label">클라우드 삭제 표시</div><div class="data-status-value">${cloudDeleted.length}개</div></div>
           <div class="data-status-box"><div class="data-status-label">약물 삭제 표시</div><div class="data-status-value">${cloudDrugs === null ? '확인 실패' : `${cloudDeletedDrugs.length}개`}</div></div>
+          <div class="data-status-box"><div class="data-status-label">공식 삭제 표시</div><div class="data-status-value">${cloudFormulas === null ? '확인 실패' : `${cloudDeletedFormulas.length}개`}</div></div>
           <div class="data-status-box"><div class="data-status-label">오래된 로컬 전용 제외 예정</div><div class="data-status-value">${staleSkipped}개</div></div>
         </div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px">
-          <b style="color:var(--text)">판정</b><br>
+          <b style="color:var(--text)">판정 · 일반용어 기준</b><br>
           ${escapeHtml(probableReason)}<br>
           canonical_version: <span style="color:${canonicalMatches ? '#4ade80' : '#fbbf24'}">${canonicalMatches ? '이 기기와 일치' : '이 기기와 다름 또는 미적용'}</span><br>
           클라우드 기준 시각: ${escapeHtml(formatDataDate(canonicalMeta.updatedAt) || '알 수 없음')}
@@ -8646,11 +9444,12 @@ async function showSavedVersionInfo() {
     return;
   }
   showToast('🔎 저장본 버전 확인 중...');
-  let cloudTerms, cloudDrugs, canonicalMeta, metaMap;
+  let cloudTerms, cloudDrugs, cloudFormulas, canonicalMeta, metaMap;
   try {
-    [cloudTerms, cloudDrugs, canonicalMeta, metaMap] = await Promise.all([
+    [cloudTerms, cloudDrugs, cloudFormulas, canonicalMeta, metaMap] = await Promise.all([
       sbLoadAll(),
       sbLoadAllDrugs(),
+      sbLoadAllFormulas(),
       sbLoadCanonicalMeta(),
       sbLoadSyncMetaMap()
     ]);
@@ -8659,7 +9458,7 @@ async function showSavedVersionInfo() {
     showToast('⚠️ 저장본 메타를 불러오지 못했습니다');
     return;
   }
-  if (cloudTerms === null || cloudDrugs === null || canonicalMeta === null) {
+  if (cloudTerms === null || cloudDrugs === null || cloudFormulas === null || canonicalMeta === null) {
     showToast('⚠️ 클라우드 저장본 상태 확인 실패');
     return;
   }
@@ -8670,26 +9469,38 @@ async function showSavedVersionInfo() {
   const cloudDeleted = dedupeTermsById(cloudTerms).filter(t => t.deletedAt);
   const cloudActiveDrugs = dedupeDrugsById(cloudDrugs).filter(d => !d.deletedAt);
   const cloudDeletedDrugs = dedupeDrugsById(cloudDrugs).filter(d => d.deletedAt);
+  const cloudActiveFormulas = dedupeFormulasById(cloudFormulas).filter(f => !f.deletedAt);
+  const cloudDeletedFormulas = dedupeFormulasById(cloudFormulas).filter(f => f.deletedAt);
   const localActive = dedupeTermsById(TERMS).filter(t => !t.deletedAt);
   const localActiveDrugs = dedupeDrugsById(DRUGS).filter(d => !d.deletedAt);
+  const localActiveFormulas = dedupeFormulasById(FORMULAS).filter(f => !f.deletedAt);
   const storedSnapshotHash = metaMap[CANONICAL_SNAPSHOT_HASH_META_KEY]?.value || '';
   const storedRecordIdsHash = metaMap[CANONICAL_RECORD_IDS_HASH_META_KEY]?.value || '';
   const storedDrugSnapshotHash = metaMap[DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY]?.value || '';
   const storedDrugRecordIdsHash = metaMap[DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY]?.value || '';
+  const storedFormulaSnapshotHash = metaMap[FORMULA_CANONICAL_SNAPSHOT_HASH_META_KEY]?.value || '';
+  const storedFormulaRecordIdsHash = metaMap[FORMULA_CANONICAL_RECORD_IDS_HASH_META_KEY]?.value || '';
   const cloudSnapshotHash = computeSnapshotHash(cloudActive);
   const cloudRecordIdsHash = computeRecordIdsHash(cloudActive);
   const cloudDrugSnapshotHash = computeDrugSnapshotHash(cloudActiveDrugs);
   const cloudDrugRecordIdsHash = computeDrugRecordIdsHash(cloudActiveDrugs);
+  const cloudFormulaSnapshotHash = computeFormulaSnapshotHash(cloudActiveFormulas);
+  const cloudFormulaRecordIdsHash = computeFormulaRecordIdsHash(cloudActiveFormulas);
   const localSnapshotHash = computeSnapshotHash(localActive);
   const localRecordIdsHash = computeRecordIdsHash(localActive);
   const localDrugSnapshotHash = computeDrugSnapshotHash(localActiveDrugs);
   const localDrugRecordIdsHash = computeDrugRecordIdsHash(localActiveDrugs);
+  const localFormulaSnapshotHash = computeFormulaSnapshotHash(localActiveFormulas);
+  const localFormulaRecordIdsHash = computeFormulaRecordIdsHash(localActiveFormulas);
   const snapshotOk = storedSnapshotHash && storedSnapshotHash === cloudSnapshotHash;
   const idsOk = storedRecordIdsHash && storedRecordIdsHash === cloudRecordIdsHash;
   const drugSnapshotOk = storedDrugSnapshotHash && storedDrugSnapshotHash === cloudDrugSnapshotHash;
   const drugIdsOk = storedDrugRecordIdsHash && storedDrugRecordIdsHash === cloudDrugRecordIdsHash;
+  const formulaSnapshotOk = storedFormulaSnapshotHash && storedFormulaSnapshotHash === cloudFormulaSnapshotHash;
+  const formulaIdsOk = storedFormulaRecordIdsHash && storedFormulaRecordIdsHash === cloudFormulaRecordIdsHash;
   const localMatchesCloud = localActive.length === cloudActive.length && localSnapshotHash === cloudSnapshotHash;
   const localDrugsMatchCloud = localActiveDrugs.length === cloudActiveDrugs.length && localDrugSnapshotHash === cloudDrugSnapshotHash;
+  const localFormulasMatchCloud = localActiveFormulas.length === cloudActiveFormulas.length && localFormulaSnapshotHash === cloudFormulaSnapshotHash;
   const savedDeviceId = metaMap[CANONICAL_DEVICE_ID_META_KEY]?.value || '';
   const savedDeviceLabel = metaMap[CANONICAL_DEVICE_LABEL_META_KEY]?.value || '기록 없음';
   const currentDeviceId = getDeviceId();
@@ -8701,6 +9512,8 @@ async function showSavedVersionInfo() {
   const storedDeletedCount = metaMap[CANONICAL_DELETED_COUNT_META_KEY]?.value || String(cloudDeleted.length);
   const storedDrugActiveCount = metaMap[DRUG_CANONICAL_ACTIVE_COUNT_META_KEY]?.value || String(cloudActiveDrugs.length);
   const storedDrugDeletedCount = metaMap[DRUG_CANONICAL_DELETED_COUNT_META_KEY]?.value || String(cloudDeletedDrugs.length);
+  const storedFormulaActiveCount = metaMap[FORMULA_CANONICAL_ACTIVE_COUNT_META_KEY]?.value || String(cloudActiveFormulas.length);
+  const storedFormulaDeletedCount = metaMap[FORMULA_CANONICAL_DELETED_COUNT_META_KEY]?.value || String(cloudDeletedFormulas.length);
 
   document.getElementById('savedVersionModal')?.remove();
   const overlay = document.createElement('div');
@@ -8718,19 +9531,20 @@ async function showSavedVersionInfo() {
           기준본을 저장한 기기 = 이 클라우드 기준본을 만든 당시의 브라우저입니다. 지금 접속한 기기 = 현재 이 HTML을 열고 있는 브라우저입니다.
         </div>
         <div class="developer-grid">
-          <div class="developer-field"><div class="developer-field-label">클라우드 저장 위치</div><div class="developer-field-value">Supabase<br>${escapeHtml(cfg.url || '')}<br>medical_terms · medical_drugs · language_sync_meta</div></div>
+          <div class="developer-field"><div class="developer-field-label">클라우드 저장 위치</div><div class="developer-field-value">Supabase<br>${escapeHtml(cfg.url || '')}<br>medical_terms · medical_drugs · medical_formulas · language_sync_meta</div></div>
           <div class="developer-field"><div class="developer-field-label">기준본 버전</div><div class="developer-field-value" style="overflow-wrap:anywhere">${escapeHtml(canonicalVersion)}</div></div>
           <div class="developer-field"><div class="developer-field-label">revision</div><div class="developer-field-value">${escapeHtml(revision)}</div></div>
           <div class="developer-field"><div class="developer-field-label">기준본 저장 시각</div><div class="developer-field-value">${escapeHtml(formatDataDate(canonicalTime))}</div></div>
           <div class="developer-field"><div class="developer-field-label">기준본 활성화 시각</div><div class="developer-field-value">${escapeHtml(formatDataDate(canonicalTime))}</div></div>
-          <div class="developer-field"><div class="developer-field-label">클라우드 저장본 항목 수</div><div class="developer-field-value">용어 ${cloudActive.length}개 · 저장메타 ${escapeHtml(storedActiveCount)}개<br>약물 ${cloudActiveDrugs.length}개 · 저장메타 ${escapeHtml(storedDrugActiveCount)}개<br>용어 삭제 표시 ${cloudDeleted.length}개 · 저장메타 ${escapeHtml(storedDeletedCount)}개<br>약물 삭제 표시 ${cloudDeletedDrugs.length}개 · 저장메타 ${escapeHtml(storedDrugDeletedCount)}개</div></div>
+          <div class="developer-field"><div class="developer-field-label">클라우드 저장본 항목 수</div><div class="developer-field-value">용어 ${cloudActive.length}개 · 저장메타 ${escapeHtml(storedActiveCount)}개<br>약물 ${cloudActiveDrugs.length}개 · 저장메타 ${escapeHtml(storedDrugActiveCount)}개<br>공식 ${cloudActiveFormulas.length}개 · 저장메타 ${escapeHtml(storedFormulaActiveCount)}개<br>용어 삭제 표시 ${cloudDeleted.length}개 · 저장메타 ${escapeHtml(storedDeletedCount)}개<br>약물 삭제 표시 ${cloudDeletedDrugs.length}개 · 저장메타 ${escapeHtml(storedDrugDeletedCount)}개<br>공식 삭제 표시 ${cloudDeletedFormulas.length}개 · 저장메타 ${escapeHtml(storedFormulaDeletedCount)}개</div></div>
           <div class="developer-field"><div class="developer-field-label">기준본을 저장한 기기</div><div class="developer-field-value">${escapeHtml(savedDeviceLabel)}${sameDevice ? '<br><span style="color:#4ade80">현재 이 브라우저와 같음</span>' : ''}</div></div>
           <div class="developer-field"><div class="developer-field-label">지금 접속한 기기</div><div class="developer-field-value">${escapeHtml(getDeviceReadableLabel())}</div></div>
-          <div class="developer-field"><div class="developer-field-label">manifest/hash 검증</div><div class="developer-field-value" style="color:${snapshotOk && idsOk && drugSnapshotOk && drugIdsOk ? '#4ade80' : '#fbbf24'}">용어 ${snapshotOk && idsOk ? '통과' : '저장 메타 없음 또는 불일치'}<br>약물 ${drugSnapshotOk && drugIdsOk ? '통과' : '저장 메타 없음 또는 불일치'}</div></div>
+          <div class="developer-field"><div class="developer-field-label">manifest/hash 검증</div><div class="developer-field-value" style="color:${snapshotOk && idsOk && drugSnapshotOk && drugIdsOk && formulaSnapshotOk && formulaIdsOk ? '#4ade80' : '#fbbf24'}">용어 ${snapshotOk && idsOk ? '통과' : '저장 메타 없음 또는 불일치'}<br>약물 ${drugSnapshotOk && drugIdsOk ? '통과' : '저장 메타 없음 또는 불일치'}<br>공식 ${formulaSnapshotOk && formulaIdsOk ? '통과' : '저장 메타 없음 또는 불일치'}</div></div>
           <div class="developer-field"><div class="developer-field-label">record ids hash</div><div class="developer-field-value">${escapeHtml(compactHash(cloudRecordIdsHash))}${storedRecordIdsHash ? `<br><span style="color:${idsOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedRecordIdsHash))}</span>` : ''}</div></div>
           <div class="developer-field"><div class="developer-field-label">snapshot hash</div><div class="developer-field-value">${escapeHtml(compactHash(cloudSnapshotHash))}${storedSnapshotHash ? `<br><span style="color:${snapshotOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedSnapshotHash))}</span>` : ''}</div></div>
           <div class="developer-field"><div class="developer-field-label">약물 ids/snapshot hash</div><div class="developer-field-value">ids ${escapeHtml(compactHash(cloudDrugRecordIdsHash))}${storedDrugRecordIdsHash ? `<br><span style="color:${drugIdsOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedDrugRecordIdsHash))}</span>` : ''}<br>snapshot ${escapeHtml(compactHash(cloudDrugSnapshotHash))}${storedDrugSnapshotHash ? `<br><span style="color:${drugSnapshotOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedDrugSnapshotHash))}</span>` : ''}</div></div>
-          <div class="developer-field"><div class="developer-field-label">지금 화면의 로컬 캐시</div><div class="developer-field-value" style="color:${localMatchesCloud && localDrugsMatchCloud ? '#4ade80' : '#fbbf24'}">용어 ${localActive.length}개 · ${localMatchesCloud ? '일치' : '다름'}<br>약물 ${localActiveDrugs.length}개 · ${localDrugsMatchCloud ? '일치' : '다름'}<br>term ids ${escapeHtml(compactHash(localRecordIdsHash))}<br>drug ids ${escapeHtml(compactHash(localDrugRecordIdsHash))}</div></div>
+          <div class="developer-field"><div class="developer-field-label">공식 ids/snapshot hash</div><div class="developer-field-value">ids ${escapeHtml(compactHash(cloudFormulaRecordIdsHash))}${storedFormulaRecordIdsHash ? `<br><span style="color:${formulaIdsOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedFormulaRecordIdsHash))}</span>` : ''}<br>snapshot ${escapeHtml(compactHash(cloudFormulaSnapshotHash))}${storedFormulaSnapshotHash ? `<br><span style="color:${formulaSnapshotOk ? '#4ade80' : '#fbbf24'}">저장메타 ${escapeHtml(compactHash(storedFormulaSnapshotHash))}</span>` : ''}</div></div>
+          <div class="developer-field"><div class="developer-field-label">지금 화면의 로컬 캐시</div><div class="developer-field-value" style="color:${localMatchesCloud && localDrugsMatchCloud && localFormulasMatchCloud ? '#4ade80' : '#fbbf24'}">용어 ${localActive.length}개 · ${localMatchesCloud ? '일치' : '다름'}<br>약물 ${localActiveDrugs.length}개 · ${localDrugsMatchCloud ? '일치' : '다름'}<br>공식 ${localActiveFormulas.length}개 · ${localFormulasMatchCloud ? '일치' : '다름'}<br>term ids ${escapeHtml(compactHash(localRecordIdsHash))}<br>drug ids ${escapeHtml(compactHash(localDrugRecordIdsHash))}<br>formula ids ${escapeHtml(compactHash(localFormulaRecordIdsHash))}</div></div>
         </div>
       </div>
     </section>`;
@@ -8781,17 +9595,23 @@ async function readDataImportFile(file, kind) {
     if (!parsed || !Array.isArray(parsed.terms)) throw new Error('지원되는 전체 백업 JSON이 아닙니다.');
     const hasDrugPayload = Object.prototype.hasOwnProperty.call(parsed, 'drugs') && Array.isArray(parsed.drugs);
     const hasDrugTombstonePayload = Object.prototype.hasOwnProperty.call(parsed, 'drugTombstones') && Array.isArray(parsed.drugTombstones);
+    const hasFormulaPayload = Object.prototype.hasOwnProperty.call(parsed, 'formulas') && Array.isArray(parsed.formulas);
+    const hasFormulaTombstonePayload = Object.prototype.hasOwnProperty.call(parsed, 'formulaTombstones') && Array.isArray(parsed.formulaTombstones);
     return {
       kind,
       fileName: file.name,
       terms: dedupeTermsById(parsed.terms),
       drugs: hasDrugPayload ? dedupeDrugsById(parsed.drugs) : [],
+      formulas: hasFormulaPayload ? dedupeFormulasById(parsed.formulas) : [],
       learningStates: parsed.learningStates || {},
       tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : [],
       drugTombstones: hasDrugTombstonePayload ? parsed.drugTombstones : [],
+      formulaTombstones: hasFormulaTombstonePayload ? parsed.formulaTombstones : [],
       syncMeta: parsed.syncMeta || {},
       hasDrugPayload,
       hasDrugTombstonePayload,
+      hasFormulaPayload,
+      hasFormulaTombstonePayload,
     };
   }
 
@@ -8804,7 +9624,7 @@ async function readDataImportFile(file, kind) {
     const workbook = XLSX.read(text, { type: 'string' });
     rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
   }
-  return { kind, fileName: file.name, terms: normalizeImportedTableRows(rows), drugs: [], learningStates: {}, tombstones: [], drugTombstones: [], hasDrugPayload: false, hasDrugTombstonePayload: false };
+  return { kind, fileName: file.name, terms: normalizeImportedTableRows(rows), drugs: [], formulas: [], learningStates: {}, tombstones: [], drugTombstones: [], formulaTombstones: [], hasDrugPayload: false, hasDrugTombstonePayload: false, hasFormulaPayload: false, hasFormulaTombstonePayload: false };
 }
 
 function calculateImportPreview(importData) {
@@ -8825,7 +9645,13 @@ function calculateImportPreview(importData) {
   const drugAdded = importData.hasDrugPayload ? incomingDrugs.filter(d => !existingDrugIds.has(String(d.id))).length : 0;
   const drugUpdated = importData.hasDrugPayload ? incomingDrugs.length - drugAdded : 0;
   const drugReplaced = importData.kind === 'json' && importData.hasDrugPayload ? DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).length : 0;
-  return { added, updated, replaced, drugAdded, drugUpdated, drugReplaced, hasDrugPayload: !!importData.hasDrugPayload };
+  const existingFormulaIds = new Set(FORMULAS.map(f => String(f.id)));
+  const incomingFormulas = Array.isArray(importData.formulas) ? importData.formulas : [];
+  const incomingFormulaIds = new Set(incomingFormulas.map(f => String(f.id)));
+  const formulaAdded = importData.hasFormulaPayload ? incomingFormulas.filter(f => !existingFormulaIds.has(String(f.id))).length : 0;
+  const formulaUpdated = importData.hasFormulaPayload ? incomingFormulas.length - formulaAdded : 0;
+  const formulaReplaced = importData.kind === 'json' && importData.hasFormulaPayload ? FORMULAS.filter(f => !incomingFormulaIds.has(String(f.id))).length : 0;
+  return { added, updated, replaced, drugAdded, drugUpdated, drugReplaced, formulaAdded, formulaUpdated, formulaReplaced, hasDrugPayload: !!importData.hasDrugPayload, hasFormulaPayload: !!importData.hasFormulaPayload };
 }
 
 async function previewDataImport(event, kind) {
@@ -8847,6 +9673,11 @@ async function previewDataImport(event, kind) {
               ? `<span style="font-size:10px;color:#fbbf24">약물 추가 ${preview.drugAdded}</span><span style="font-size:10px;color:#9cc7ff">약물 갱신 ${preview.drugUpdated}</span><span style="font-size:10px;color:#f87171">약물 교체 시 제거 ${preview.drugReplaced}</span>`
               : `<span style="font-size:10px;color:var(--text3)">약물 데이터 없음 · 현재 약물 보존</span>`
           ) : ''}
+          ${pendingDataImport.kind === 'json' ? (
+            preview.hasFormulaPayload
+              ? `<span style="font-size:10px;color:#c084fc">공식 추가 ${preview.formulaAdded}</span><span style="font-size:10px;color:#9cc7ff">공식 갱신 ${preview.formulaUpdated}</span><span style="font-size:10px;color:#f87171">공식 교체 시 제거 ${preview.formulaReplaced}</span>`
+              : `<span style="font-size:10px;color:var(--text3)">공식 데이터 없음 · 현재 공식 보존</span>`
+          ) : ''}
         </div>
         <select id="dataImportMode" class="data-select">
           <option value="merge">최신 항목 병합</option>
@@ -8867,7 +9698,9 @@ async function applyPendingDataImport() {
   const mode = document.getElementById('dataImportMode')?.value || 'merge';
   const incoming = dedupeTermsById(pendingDataImport.terms);
   const incomingDrugs = dedupeDrugsById(pendingDataImport.drugs || []);
+  const incomingFormulas = dedupeFormulasById(pendingDataImport.formulas || []);
   const hasDrugPayload = !!pendingDataImport.hasDrugPayload;
+  const hasFormulaPayload = !!pendingDataImport.hasFormulaPayload;
 
   if (mode === 'replace') {
     exportCompleteJsonBackup();
@@ -8877,16 +9710,26 @@ async function applyPendingDataImport() {
     TERMS.push(...incoming.filter(t => !t.deletedAt));
     if (pendingDataImport.kind === 'json') {
       let removedDrugs = [];
+      let removedFormulas = [];
       if (hasDrugPayload) {
         const incomingDrugIds = new Set(incomingDrugs.map(d => String(d.id)));
         removedDrugs = DRUGS.filter(d => !incomingDrugIds.has(String(d.id))).map(recordLocalDrugTombstone).filter(Boolean);
         DRUGS.length = 0;
         DRUGS.push(...incomingDrugs.filter(d => !d.deletedAt));
       }
+      if (hasFormulaPayload) {
+        const incomingFormulaIds = new Set(incomingFormulas.map(f => String(f.id)));
+        removedFormulas = FORMULAS.filter(f => !incomingFormulaIds.has(String(f.id))).map(recordLocalFormulaTombstone).filter(Boolean);
+        FORMULAS.length = 0;
+        FORMULAS.push(...incomingFormulas.filter(f => !f.deletedAt));
+      }
       saveLearningStateMap(pendingDataImport.learningStates);
       saveLocalTombstones([...(pendingDataImport.tombstones || []), ...removed.filter(Boolean)]);
       if (hasDrugPayload || pendingDataImport.hasDrugTombstonePayload) {
         saveLocalDrugTombstones([...(pendingDataImport.drugTombstones || []), ...removedDrugs]);
+      }
+      if (hasFormulaPayload || pendingDataImport.hasFormulaTombstonePayload) {
+        saveLocalFormulaTombstones([...(pendingDataImport.formulaTombstones || []), ...removedFormulas]);
       }
       if (pendingDataImport.syncMeta?.canonicalVersion) saveLocalSyncMeta(pendingDataImport.syncMeta);
     } else {
@@ -8916,6 +9759,15 @@ async function applyPendingDataImport() {
         DRUGS.push(...mergedDrugs.filter(d => !d.deletedAt));
         saveLocalDrugTombstones(mergedDrugs.filter(d => d.deletedAt));
       }
+      if (hasFormulaPayload || pendingDataImport.hasFormulaTombstonePayload) {
+        const mergedFormulas = mergeFormulasForSync(hasFormulaPayload ? incomingFormulas : [], FORMULAS, [
+          ...loadLocalFormulaTombstones(),
+          ...(pendingDataImport.formulaTombstones || [])
+        ]);
+        FORMULAS.length = 0;
+        FORMULAS.push(...mergedFormulas.filter(f => !f.deletedAt));
+        saveLocalFormulaTombstones(mergedFormulas.filter(f => f.deletedAt));
+      }
     } else if (pendingDataImport.kind === 'json' && mode === 'append') {
       if (hasDrugPayload) {
         const drugIds = new Set(DRUGS.map(d => String(d.id)));
@@ -8926,11 +9778,21 @@ async function applyPendingDataImport() {
           }
         });
       }
+      if (hasFormulaPayload) {
+        const formulaIds = new Set(FORMULAS.map(f => String(f.id)));
+        incomingFormulas.forEach(formula => {
+          if (!formulaIds.has(String(formula.id)) && !formula.deletedAt) {
+            FORMULAS.push(formula);
+            formulaIds.add(String(formula.id));
+          }
+        });
+      }
     }
   }
 
   saveTermsToLocalStorage();
   saveDrugsToLocalStorage();
+  saveFormulasToLocalStorage();
   updateBookmarkCount();
   pendingDataImport = null;
   const syncHint = getSupabaseConfig()
@@ -8938,7 +9800,7 @@ async function applyPendingDataImport() {
       ? ' · 다른 기기도 맞추려면 상단 최종상태 저장을 실행하세요'
       : ' · 클라우드 반영은 일반 양방향 동기화를 실행하세요')
     : '';
-  showToast(`✅ 가져오기 완료 · 현재 용어 ${TERMS.length}개 · 약물 ${DRUGS.length}개${syncHint}`);
+  showToast(`✅ 가져오기 완료 · 현재 용어 ${TERMS.length}개 · 약물 ${DRUGS.length}개 · 공식 ${FORMULAS.length}개${syncHint}`);
   showExportMenu();
 }
 
@@ -9041,6 +9903,56 @@ async function restoreTrashDrug(id) {
   showDrugTrashManager();
 }
 
+function showFormulaTrashManager() {
+  const rows = loadLocalFormulaTombstones()
+    .filter(f => !f.hiddenAt)
+    .sort((a, b) => (Date.parse(b.deletedAt) || 0) - (Date.parse(a.deletedAt) || 0));
+  document.getElementById('formulaTrashManagerModal')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'formulaTrashManagerModal';
+  overlay.className = 'developer-modal-overlay';
+  overlay.innerHTML = `
+    <section class="developer-modal" role="dialog" aria-modal="true">
+      <div class="developer-modal-head">
+        <div style="font-size:17px;font-weight:800;color:var(--text)">∑ 삭제된 주요 의학계산공식</div>
+        <button onclick="document.getElementById('formulaTrashManagerModal').remove()" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:16px 20px 22px">
+        ${rows.length ? rows.map(formula => `
+          <div style="display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:11px;margin-bottom:7px">
+            <div style="min-width:0;flex:1">
+              <div style="font-size:12px;color:var(--text);font-weight:700">${escapeHtml(formula.name || formula.short_name || '이름 없음')}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(formula.category || formula.system || '')} · ${formatDataDate(formula.deletedAt)}</div>
+            </div>
+            <button onclick="restoreTrashFormula(${Number(formula.id)})" style="background:rgba(63,185,80,0.1);border:1px solid #238636;border-radius:7px;padding:7px 10px;color:#4ade80;font-size:10px;font-weight:700;cursor:pointer">복원</button>
+          </div>`).join('') : '<div style="padding:30px;text-align:center;color:var(--text3);font-size:12px">공식 휴지통이 비어 있습니다.</div>'}
+      </div>
+    </section>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+async function restoreTrashFormula(id) {
+  const rows = loadLocalFormulaTombstones();
+  const formula = rows.find(f => String(f.id) === String(id));
+  if (!formula) return;
+  const restored = normalizeFormulaForStorage({
+    ...formula,
+    deletedAt: null,
+    hiddenAt: null,
+    updatedAt: new Date().toISOString(),
+  });
+  const existingIndex = FORMULAS.findIndex(f => String(f.id) === String(id));
+  if (existingIndex === -1) FORMULAS.push(restored);
+  else FORMULAS[existingIndex] = restored;
+  saveLocalFormulaTombstones(rows.filter(f => String(f.id) !== String(id)));
+  saveFormulasToLocalStorage();
+  const cloudOk = getSupabaseConfig() ? await sbUpsertFormula(restored) : true;
+  if (cloudOk) showToast(`✅ ${restored.name || restored.short_name} 복원 완료`);
+  else showToast('⚠️ 로컬 공식 복원 완료 · 클라우드 반영은 일반 동기화에서 재시도하세요');
+  showFormulaTrashManager();
+}
+
 function confirmEmptyTrash() {
   const visibleRows = loadLocalTombstones().filter(t => !t.hiddenAt);
   const count = visibleRows.length;
@@ -9059,6 +9971,17 @@ function confirmEmptyDrugTrash() {
   showConfirm(`삭제된 약물 기록 ${count}개를 휴지통 목록에서 숨길까요?<br><span style="font-size:11px;color:var(--text3)">기기 간 부활 방지를 위해 내부 삭제 기록은 보존됩니다.</span>`, () => {
     hideLocalDrugTombstonesFromTrash(visibleRows.map(d => d.id));
     showToast('🗑️ 약물 휴지통 목록 비우기 완료 · 삭제 동기화 기록은 보존됨');
+    showExportMenu();
+  });
+}
+
+function confirmEmptyFormulaTrash() {
+  const visibleRows = loadLocalFormulaTombstones().filter(f => !f.hiddenAt);
+  const count = visibleRows.length;
+  if (!count) { showToast('✅ 공식 휴지통이 비어 있습니다'); return; }
+  showConfirm(`삭제된 공식 기록 ${count}개를 휴지통 목록에서 숨길까요?<br><span style="font-size:11px;color:var(--text3)">기기 간 부활 방지를 위해 내부 삭제 기록은 보존됩니다.</span>`, () => {
+    hideLocalFormulaTombstonesFromTrash(visibleRows.map(f => f.id));
+    showToast('🗑️ 공식 휴지통 목록 비우기 완료 · 삭제 동기화 기록은 보존됨');
     showExportMenu();
   });
 }
@@ -9130,18 +10053,56 @@ async function confirmDangerousDrugDelete() {
   showExportMenu();
 }
 
+async function confirmDangerousFormulaDelete() {
+  const system = document.getElementById('bulkDeleteFormulaSystem')?.value || '__all__';
+  const targets = system === '__all__' ? [...FORMULAS] : FORMULAS.filter(f => (f.system || 'General') === system);
+  if (!targets.length) { showToast('⚠️ 삭제할 주요 의학계산공식이 없습니다'); return; }
+  exportCompleteJsonBackup();
+  const label = system === '__all__' ? '전체 주요 의학계산공식' : categoryDisplay(system);
+  const typed = window.prompt(`자동 백업을 내려받았습니다.\n${label} ${targets.length}개를 삭제하려면 "삭제"를 입력하세요.`);
+  if (typed !== '삭제') { showToast('삭제가 취소되었습니다'); return; }
+
+  const targetIds = new Set(targets.map(f => String(f.id)));
+  const tombstones = targets.map(recordLocalFormulaTombstone).filter(Boolean);
+  for (let i = FORMULAS.length - 1; i >= 0; i--) {
+    if (targetIds.has(String(FORMULAS[i].id))) FORMULAS.splice(i, 1);
+  }
+  saveFormulasToLocalStorage();
+
+  if (getSupabaseConfig()) {
+    try {
+      for (const tombstone of tombstones) await sbDeleteFormula(tombstone.id, tombstone.deletedAt);
+    } catch (e) {
+      console.error(e);
+      showToast('⚠️ 로컬 공식 삭제 완료 · 클라우드 반영은 다음 동기화에서 재시도됩니다');
+      showExportMenu();
+      return;
+    }
+  }
+  showToast(`🗑️ 주요 의학계산공식 ${targets.length}개 삭제 완료`);
+  showExportMenu();
+}
+
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.67',
+  version: '3.68',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 20일 13:02',
+  updatedAt: '2026년 6월 20일 13:09',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 외부 자료 버튼 톤 정리',
+    title: '최신 · 주요 의학계산공식 카드 추가',
+    items: [
+      '일반용어, 약물명 및 정보 옆에 주요 의학계산공식 전환 버튼을 추가해 공식 암기용 카드 화면을 별도 모드로 구성',
+      '공식명, 식, 변수, 해석, 예시, 암기 포인트를 직접 입력해 저장·수정·삭제할 수 있게 하고 검색/필터/추가 버튼을 공식 모드에 맞게 전환',
+      '공식 데이터도 JSON 백업/복원, 휴지통 복원, 일괄삭제, Supabase 최종본 저장, 저장본 버전 hash 검증에 포함',
+    ]
+  },
+  {
+    title: 'v3.67 · 외부 자료 버튼 톤 정리',
     items: [
       'PubMed, YouTube, Google 사용례, ICD-11, MedlinePlus, ClinicalTrials, FDA 버튼의 브랜드색 테두리와 컬러 이모지를 제거',
       '상세 드로어와 카드 확장 영역의 외부 자료 링크를 같은 중립 버튼 스타일로 통일해 라이트모드에서 산만해 보이던 문제를 완화',
@@ -9711,7 +10672,7 @@ const UPDATE_HISTORY = [
 ];
 
 const SUPABASE_SCHEMA_SQL = `-- Dr. Bugeon 의학용어 앱 Supabase 통합 스키마
--- 핵심: medical_terms, medical_drugs, deleted_at, updated_at, language_sync_meta가 반드시 필요합니다.
+-- 핵심: medical_terms, medical_drugs, medical_formulas, deleted_at, updated_at, language_sync_meta가 반드시 필요합니다.
 
 create table if not exists public.medical_terms (
   id bigint primary key,
@@ -9883,6 +10844,78 @@ create index if not exists medical_drugs_generic_name_idx
 create index if not exists medical_drugs_atc_class_idx
   on public.medical_drugs (atc_class);
 
+create table if not exists public.medical_formulas (
+  id bigint primary key,
+  name text default '',
+  short_name text default '',
+  formula text default '',
+  category text default 'General',
+  system text default 'General',
+  use_case text default '',
+  variables text default '',
+  normal_range text default '',
+  interpretation text default '',
+  example text default '',
+  memory_tip text default '',
+  usmle_trap text default '',
+  tags jsonb default '[]'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  deleted_at timestamptz
+);
+
+alter table public.medical_formulas
+  add column if not exists name text default '',
+  add column if not exists short_name text default '',
+  add column if not exists formula text default '',
+  add column if not exists category text default 'General',
+  add column if not exists system text default 'General',
+  add column if not exists use_case text default '',
+  add column if not exists variables text default '',
+  add column if not exists normal_range text default '',
+  add column if not exists interpretation text default '',
+  add column if not exists example text default '',
+  add column if not exists memory_tip text default '',
+  add column if not exists usmle_trap text default '',
+  add column if not exists tags jsonb default '[]'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now(),
+  add column if not exists deleted_at timestamptz;
+
+alter table public.medical_formulas
+  alter column id type bigint using id::bigint,
+  alter column id set not null;
+
+do $$
+begin
+  if exists (
+    select id from public.medical_formulas group by id having count(*) > 1
+  ) then
+    raise exception 'medical_formulas.id 중복이 있어 primary key를 만들 수 없습니다. 중복 id를 먼저 정리하세요.';
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.medical_formulas'::regclass
+      and contype = 'p'
+  ) then
+    alter table public.medical_formulas
+      add constraint medical_formulas_pkey primary key (id);
+  end if;
+end $$;
+
+create index if not exists medical_formulas_updated_at_idx
+  on public.medical_formulas (updated_at desc);
+
+create index if not exists medical_formulas_deleted_at_idx
+  on public.medical_formulas (deleted_at);
+
+create index if not exists medical_formulas_category_idx
+  on public.medical_formulas (category);
+
+create index if not exists medical_formulas_system_idx
+  on public.medical_formulas (system);
+
 create table if not exists public.language_sync_meta (
   key text primary key,
   value text,
@@ -9898,6 +10931,11 @@ values
   ),
   (
     'medical_drugs_canonical_version',
+    'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text,
+    now()
+  ),
+  (
+    'medical_formulas_canonical_version',
     'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text,
     now()
   )
@@ -9938,6 +10976,11 @@ select
       and contype = 'p'
   ) as medical_drugs_has_primary_key,
   exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.medical_formulas'::regclass
+      and contype = 'p'
+  ) as medical_formulas_has_primary_key,
+  exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='medical_terms' and column_name='deleted_at'
   ) as deleted_at_ready,
@@ -9945,6 +10988,10 @@ select
     select 1 from information_schema.columns
     where table_schema='public' and table_name='medical_drugs' and column_name='deleted_at'
   ) as drug_deleted_at_ready,
+  exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='medical_formulas' and column_name='deleted_at'
+  ) as formula_deleted_at_ready,
   exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='medical_drugs' and column_name='same_class_drugs'
@@ -9969,13 +11016,22 @@ select
       and coalesce(value, '') <> ''
       and updated_at is not null
   ) as drug_canonical_meta_ready,
+  exists (
+    select 1 from public.language_sync_meta
+    where key = 'medical_formulas_canonical_version'
+      and coalesce(value, '') <> ''
+      and updated_at is not null
+  ) as formula_canonical_meta_ready,
   (select value from public.language_sync_meta where key = 'medical_terms_canonical_version') as canonical_version,
   (select updated_at from public.language_sync_meta where key = 'medical_terms_canonical_version') as canonical_updated_at,
   (select value from public.language_sync_meta where key = 'medical_drugs_canonical_version') as drug_canonical_version,
+  (select value from public.language_sync_meta where key = 'medical_formulas_canonical_version') as formula_canonical_version,
   (select count(*) from public.medical_terms where deleted_at is null) as active_terms,
   (select count(*) from public.medical_terms where deleted_at is not null) as deleted_tombstones,
   (select count(*) from public.medical_drugs where deleted_at is null) as active_drugs,
-  (select count(*) from public.medical_drugs where deleted_at is not null) as deleted_drug_tombstones;`;
+  (select count(*) from public.medical_drugs where deleted_at is not null) as deleted_drug_tombstones,
+  (select count(*) from public.medical_formulas where deleted_at is null) as active_formulas,
+  (select count(*) from public.medical_formulas where deleted_at is not null) as deleted_formula_tombstones;`;
 
 function currentFileName() {
   const fallback = `${APP_INFO.name}_${(UPDATE_HISTORY[0]?.title || '저장본').replace(/^최신\s*·\s*/, '')}.html`;
@@ -11778,7 +12834,7 @@ document.getElementById('searchInput').addEventListener('input', e => {
 // 앱 초기화: Supabase가 있으면 클라우드를 기준본으로 사용
 async function initApp() {
   applyThemeMode(getSavedThemeMode());
-  const { localCount, drugCount } = await loadLocalCacheForStartup();
+  const { localCount, drugCount, formulaCount } = await loadLocalCacheForStartup();
   const learning = getLearningStateMap();
   const learnedBookmarkIds = Object.values(learning).filter(s => s?.bookmarked).map(s => Number(s.termId)).filter(Number.isFinite);
   if (learnedBookmarkIds.length) bookmarks = new Set([...bookmarks, ...learnedBookmarkIds]);
@@ -11797,11 +12853,11 @@ async function initApp() {
     }
   });
   saveLearningStateMap(learning);
-  if (localCount > 0 || drugCount > 0) {
+  if (localCount > 0 || drugCount > 0 || formulaCount > 0) {
     const cacheLabel = _localCacheBackend.includes('IndexedDB') ? 'IndexedDB 캐시' : '로컬 캐시';
     showToast(getSupabaseConfig()
-      ? `📱 ${cacheLabel} ${localCount}개 · 약물 ${drugCount}개 표시 · 클라우드 기준본 확인 중`
-      : `📱 ${cacheLabel} ${localCount}개 · 약물 ${drugCount}개 복원됨`);
+      ? `📱 ${cacheLabel} ${localCount}개 · 약물 ${drugCount}개 · 공식 ${formulaCount}개 표시 · 클라우드 기준본 확인 중`
+      : `📱 ${cacheLabel} ${localCount}개 · 약물 ${drugCount}개 · 공식 ${formulaCount}개 복원됨`);
     updateBookmarkCount();
     applyFilters();
   }
@@ -11813,7 +12869,7 @@ async function initApp() {
       console.error('Initial sync failed:', e);
       showToast('⚠️ 동기화 실패 · 개발자 정보에서 Supabase 설정 SQL을 확인하세요');
     }
-  } else if (localCount === 0 && drugCount === 0) {
+  } else if (localCount === 0 && drugCount === 0 && formulaCount === 0) {
     applyFilters();
   }
 }
