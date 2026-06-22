@@ -3616,9 +3616,9 @@ document.addEventListener('keydown', e => {
 <div class="library-mode-bar" role="region" aria-label="자료 모드 선택">
   <div class="library-mode-switch" role="tablist" aria-label="자료 유형 전환">
     <button id="libraryModeTermsBtn" class="library-mode-btn active" role="tab" aria-selected="true" onclick="setLibraryMode('terms')">📘 일반용어</button>
+    <button id="libraryModeMicrobesBtn" class="library-mode-btn microbe" role="tab" aria-selected="false" onclick="setLibraryMode('microbes')">🧫 미생물</button>
     <button id="libraryModeDrugsBtn" class="library-mode-btn drug" role="tab" aria-selected="false" onclick="setLibraryMode('drugs')">💊 약물명 및 정보</button>
     <button id="libraryModeFormulasBtn" class="library-mode-btn formula" role="tab" aria-selected="false" onclick="setLibraryMode('formulas')">∑ 주요 의학계산공식</button>
-    <button id="libraryModeMicrobesBtn" class="library-mode-btn microbe" role="tab" aria-selected="false" onclick="setLibraryMode('microbes')">🧫 미생물</button>
   </div>
   <div class="library-mode-hint" id="libraryModeHint">일반 의학용어를 개념분류와 대표 장기계로 봅니다.</div>
 </div>
@@ -9181,9 +9181,9 @@ function showAddTermForm(target = document.getElementById('mainContent')) {
           <div class="add-section-title" style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">저장 항목 선택</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
             <button id="addKind_term" class="add-kind-btn active" onclick="switchAddKind('term')" style="background:var(--add-active-bg);border:1px solid var(--add-active-border);border-radius:10px;padding:11px;color:var(--add-active-text);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">📘 일반 용어</button>
+            <button id="addKind_microbe" class="add-kind-btn" onclick="switchAddKind('microbe')" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🧫 미생물</button>
             <button id="addKind_drug" class="add-kind-btn" onclick="switchAddKind('drug')" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💊 약물명 및 정보</button>
             <button id="addKind_formula" class="add-kind-btn" onclick="switchAddKind('formula')" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">∑ 주요 의학계산공식</button>
-            <button id="addKind_microbe" class="add-kind-btn" onclick="switchAddKind('microbe')" style="background:transparent;border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans KR',sans-serif">🧫 미생물</button>
           </div>
         </div>
         <div id="termAddFields">
@@ -12030,14 +12030,21 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.90',
+  version: '3.91',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 22일 17:57',
+  updatedAt: '2026년 6월 22일 18:26',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 라이브러리 버튼 순서 정리',
+    items: [
+      '메인 라이브러리 전환 버튼을 일반용어, 미생물, 약물명 및 정보, 주요 의학계산공식 순서로 재배치',
+      '용어 추가 모달의 저장 항목 선택도 같은 순서로 맞춰 화면 간 인지 흐름을 통일',
+    ]
+  },
   {
     title: '최신 · 미생물 파트 추가',
     items: [
