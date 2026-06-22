@@ -6463,6 +6463,18 @@ function repositionOpenMedicalSymbolPanels() {
   document.querySelectorAll('.medical-symbol-helper[open]').forEach(positionMedicalSymbolPanel);
 }
 
+function scrollInlineMedicalSymbolPanelIntoView(detailsEl) {
+  if (!detailsEl || document.documentElement.classList.contains('windows-env') && window.innerWidth >= 1024) return;
+  requestAnimationFrame(() => {
+    if (!detailsEl.open) return;
+    const panel = detailsEl.querySelector('.medical-symbol-panel');
+    if (!panel) return;
+    const rect = panel.getBoundingClientRect();
+    const clipped = rect.top < 0 || rect.bottom > window.innerHeight;
+    if (clipped) panel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  });
+}
+
 function handleMedicalSymbolToggle(detailsEl) {
   if (!detailsEl) return;
   if (detailsEl.open) {
@@ -6471,6 +6483,7 @@ function handleMedicalSymbolToggle(detailsEl) {
     });
     activeMedicalSymbolHelper = detailsEl;
     positionMedicalSymbolPanel(detailsEl);
+    scrollInlineMedicalSymbolPanelIntoView(detailsEl);
   } else if (activeMedicalSymbolHelper === detailsEl) {
     activeMedicalSymbolHelper = null;
     hideFloatingMedicalSymbolPanel();
@@ -11262,16 +11275,24 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.87',
+  version: '3.88',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 22일 09:19',
+  updatedAt: '2026년 6월 22일 09:29',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · 입력기플로팅패널안정화',
+    title: '최신 · 모바일태블릿입력기점검보강',
+    items: [
+      '모바일 390px, 태블릿 768px/1024px, 데스크톱 1366px 폭에서 추가 모달, 특수문자 입력기, 상세 서랍의 수평 스크롤 여부를 재점검',
+      '모바일·태블릿에서 특수문자 입력기를 펼쳤을 때 열린 패널이 화면 아래로 걸치면 자동으로 가까운 위치까지 스크롤되도록 보강',
+      '샘플 용어와 약물 데이터를 주입해 일반 용어/약물명 및 정보 상세 서랍이 각 폭에서 화면 안에 들어오는지 확인',
+    ]
+  },
+  {
+    title: 'v3.87 · 입력기플로팅패널안정화',
     items: [
       'Windows 우측 특수문자 입력기를 모달 내부 fixed 요소가 아니라 body 기준 플로팅 패널로 렌더링해 스크롤 컨텍스트에서 위치가 깨지는 문제를 수정',
       '용어, 약물명 및 정보, 주요 의학계산공식 입력칸 포커스 기준으로 패널이 따라오도록 유지',
