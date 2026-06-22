@@ -2119,17 +2119,24 @@ document.addEventListener('keydown', e => {
       z-index: 1200;
     }
 
-    html.windows-env .medical-symbol-helper[open] .medical-symbol-panel {
+    html.windows-env .medical-symbol-helper[open] > .medical-symbol-panel {
+      display: none;
+    }
+
+    html.windows-env .medical-symbol-floating-panel {
       position: fixed;
-      top: var(--symbol-panel-top, 96px);
-      left: var(--symbol-panel-left, auto);
-      width: clamp(360px, 30vw, 520px);
-      max-height: min(560px, calc(100vh - var(--symbol-panel-top, 96px) - 24px));
+      top: 96px;
+      left: auto;
+      width: clamp(340px, 28vw, 480px);
+      max-height: min(560px, calc(100vh - 120px));
       border: 1px solid var(--border);
       border-radius: 14px;
       background: var(--surface);
       box-shadow: -8px 18px 40px rgba(0,0,0,0.28);
       padding: 12px;
+      z-index: 1400;
+      display: grid;
+      gap: 10px;
     }
   }
 
@@ -6399,6 +6406,7 @@ function insertTextIntoTextarea(id, rawText) {
 }
 
 let lastMedicalSymbolTarget = null;
+let activeMedicalSymbolHelper = null;
 
 (function markWindowsEnvironment() {
   const ua = `${navigator.userAgent || ''} ${navigator.platform || ''}`;
@@ -6421,31 +6429,88 @@ function isMedicalSymbolTextTarget(el) {
 }
 
 document.addEventListener('focusin', event => {
-  if (isMedicalSymbolTextTarget(event.target)) lastMedicalSymbolTarget = event.target;
+  if (isMedicalSymbolTextTarget(event.target)) {
+    lastMedicalSymbolTarget = event.target;
+    repositionOpenMedicalSymbolPanels();
+  }
 });
 
 function positionMedicalSymbolPanel(detailsEl) {
-  if (!detailsEl || !document.documentElement.classList.contains('windows-env') || window.innerWidth < 1024) return;
+  if (!detailsEl || !document.documentElement.classList.contains('windows-env') || window.innerWidth < 1024) {
+    hideFloatingMedicalSymbolPanel();
+    return;
+  }
   const summary = detailsEl.querySelector('summary');
   if (!summary) return;
-  const rect = summary.getBoundingClientRect();
-  const panelWidth = Math.min(Math.max(360, window.innerWidth * 0.30), 520);
+  const target = lastMedicalSymbolTarget && document.contains(lastMedicalSymbolTarget) ? lastMedicalSymbolTarget : null;
+  const anchor = target || summary;
+  const rect = anchor.getBoundingClientRect();
+  const panelWidth = Math.min(Math.max(340, window.innerWidth * 0.28), 480);
   const gap = 12;
   let left = rect.right + gap;
   if (left + panelWidth + 16 > window.innerWidth) {
     left = Math.max(16, window.innerWidth - panelWidth - 16);
   }
-  const top = Math.max(16, Math.min(rect.top, window.innerHeight - 160));
-  detailsEl.style.setProperty('--symbol-panel-left', `${Math.round(left)}px`);
-  detailsEl.style.setProperty('--symbol-panel-top', `${Math.round(top)}px`);
+  const top = Math.max(16, Math.min(rect.top, window.innerHeight - 180));
+  const panel = ensureFloatingMedicalSymbolPanel();
+  panel.style.left = `${Math.round(left)}px`;
+  panel.style.top = `${Math.round(top)}px`;
+  panel.style.maxHeight = `${Math.max(180, Math.round(window.innerHeight - top - 24))}px`;
+  panel.style.display = 'grid';
 }
 
 function repositionOpenMedicalSymbolPanels() {
   document.querySelectorAll('.medical-symbol-helper[open]').forEach(positionMedicalSymbolPanel);
 }
 
+function handleMedicalSymbolToggle(detailsEl) {
+  if (!detailsEl) return;
+  if (detailsEl.open) {
+    document.querySelectorAll('.medical-symbol-helper[open]').forEach(other => {
+      if (other !== detailsEl) other.open = false;
+    });
+    activeMedicalSymbolHelper = detailsEl;
+    positionMedicalSymbolPanel(detailsEl);
+  } else if (activeMedicalSymbolHelper === detailsEl) {
+    activeMedicalSymbolHelper = null;
+    hideFloatingMedicalSymbolPanel();
+  }
+}
+
 window.addEventListener('resize', repositionOpenMedicalSymbolPanels);
 document.addEventListener('scroll', repositionOpenMedicalSymbolPanels, true);
+
+function medicalSymbolPanelContentHtml() {
+  const groups = MEDICAL_SYMBOL_GROUPS.map(group => `
+    <div>
+      <div class="formula-input-group-title">${escapeHtml(group.title)}</div>
+      <div class="formula-input-chip-row">
+        ${group.chips.map(chip => `<button type="button" class="formula-input-chip" onmousedown="event.preventDefault()" onclick="insertMedicalSymbol('${escapeJsString(chip)}')" title="${escapeHtml(chip)} 삽입">${escapeHtml(chip)}</button>`).join('')}
+      </div>
+    </div>`).join('');
+  return `
+    <div class="medical-symbol-note">입력할 칸을 먼저 클릭한 뒤 필요한 문자를 누르세요. 용어, 약물명 및 정보, 주요 의학계산공식 입력칸에서 공통으로 사용할 수 있습니다.</div>
+    ${groups}`;
+}
+
+function ensureFloatingMedicalSymbolPanel() {
+  let panel = document.getElementById('medicalSymbolFloatingPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'medicalSymbolFloatingPanel';
+    panel.className = 'formula-input-panel medical-symbol-panel medical-symbol-floating-panel';
+    panel.setAttribute('role', 'group');
+    panel.setAttribute('aria-label', '특수문자 입력기');
+    panel.innerHTML = medicalSymbolPanelContentHtml();
+    document.body.appendChild(panel);
+  }
+  return panel;
+}
+
+function hideFloatingMedicalSymbolPanel() {
+  const panel = document.getElementById('medicalSymbolFloatingPanel');
+  if (panel) panel.style.display = 'none';
+}
 
 function insertMedicalSymbol(symbol) {
   const active = isMedicalSymbolTextTarget(document.activeElement)
@@ -6470,19 +6535,11 @@ function insertMedicalSymbol(symbol) {
 }
 
 function medicalSymbolInputHelperHtml() {
-  const groups = MEDICAL_SYMBOL_GROUPS.map(group => `
-    <div>
-      <div class="formula-input-group-title">${escapeHtml(group.title)}</div>
-      <div class="formula-input-chip-row">
-        ${group.chips.map(chip => `<button type="button" class="formula-input-chip" onmousedown="event.preventDefault()" onclick="insertMedicalSymbol('${escapeJsString(chip)}')" title="${escapeHtml(chip)} 삽입">${escapeHtml(chip)}</button>`).join('')}
-      </div>
-    </div>`).join('');
   return `
-    <details class="formula-input-helper medical-symbol-helper" ontoggle="if(this.open) positionMedicalSymbolPanel(this)">
+    <details class="formula-input-helper medical-symbol-helper" ontoggle="handleMedicalSymbolToggle(this)">
       <summary>특수문자 입력기 <span style="font-weight:600;color:var(--text3)">현재 커서 위치에 삽입</span></summary>
       <div class="formula-input-panel medical-symbol-panel">
-        <div class="medical-symbol-note">입력할 칸을 먼저 클릭한 뒤 필요한 문자를 누르세요. 용어, 약물명 및 정보, 주요 의학계산공식 입력칸에서 공통으로 사용할 수 있습니다.</div>
-        ${groups}
+        ${medicalSymbolPanelContentHtml()}
       </div>
     </details>`;
 }
@@ -11205,16 +11262,32 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.85',
+  version: '3.87',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 22일 09:07',
+  updatedAt: '2026년 6월 22일 09:19',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · Windows입력기우측펼침',
+    title: '최신 · 입력기플로팅패널안정화',
+    items: [
+      'Windows 우측 특수문자 입력기를 모달 내부 fixed 요소가 아니라 body 기준 플로팅 패널로 렌더링해 스크롤 컨텍스트에서 위치가 깨지는 문제를 수정',
+      '용어, 약물명 및 정보, 주요 의학계산공식 입력칸 포커스 기준으로 패널이 따라오도록 유지',
+      '여러 입력기가 동시에 열리지 않도록 새 입력기를 열 때 기존 열린 입력기를 닫아 겹침을 방지',
+    ]
+  },
+  {
+    title: 'v3.86 · 입력기포커스추적보정',
+    items: [
+      'Windows 우측 특수문자 입력기가 입력기 버튼이 아니라 현재 포커스된 입력칸 오른쪽을 기준으로 열리도록 보정',
+      '모달 스크롤, 창 크기 변경, 입력칸 포커스 이동 시 열린 입력기 위치를 다시 계산해 입력 중인 칸을 따라오도록 개선',
+      '패널 폭 계산과 CSS 폭을 맞춰 오른쪽 플로팅 입력기가 화면 밖으로 어긋나거나 과하게 넓어지는 문제를 줄임',
+    ]
+  },
+  {
+    title: 'v3.85 · Windows입력기우측펼침',
     items: [
       'Windows 환경의 넓은 화면에서는 특수문자 입력기가 아래 입력칸을 밀지 않고 오른쪽 플로팅 패널로 열리도록 조정',
       '모바일과 좁은 화면은 기존처럼 아래 접힘 방식을 유지해 터치 환경의 사용성을 보존',
