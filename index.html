@@ -433,13 +433,15 @@ function microbeDrawerOpenEdit() {
   setTimeout(() => openMicrobeEditModal({ stopPropagation: () => {} }, id), 120);
 }
 
-function microbeDetailLine(label, value) {
-  if (!value) return '';
-  return `
-    <div class="drug-detail-card">
-      <b>${escapeHtml(label)}</b>
-      <p>${escapeHtml(String(value))}</p>
-    </div>`;
+function microbeDetailLine(label, value, extraClass = '') {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return [
+    `<div class="microbe-info-card ${extraClass}">`,
+    `<div class="microbe-info-label">${escapeHtml(label)}</div>`,
+    `<div class="microbe-info-value">${escapeHtml(text)}</div>`,
+    `</div>`
+  ].join('');
 }
 
 function _renderMicrobeDrawerContent(m) {
@@ -452,41 +454,49 @@ function _renderMicrobeDrawerContent(m) {
   if (titleEl) titleEl.textContent = title;
   if (subEl) subEl.textContent = subtitle || '미생물';
   if (!body) return;
+  const systemTags = Array.isArray(m.system_tags) ? m.system_tags.join(', ') : m.system_tags;
   body.innerHTML = `
-    <div class="drawer-section" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 18px">
-      ${chips.map(chip => `<span class="drug-chip">${escapeHtml(chip)}</span>`).join('')}
-      ${m.ipa ? `<span class="drug-chip">IPA ${escapeHtml(m.ipa)}</span>` : ''}
-    </div>
     <div class="drawer-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-        <div class="drawer-lang-badge" style="background:rgba(34,197,94,0.11);color:var(--accent2);border:1px solid rgba(34,197,94,0.35);margin-bottom:0">EN 발음</div>
-        <button class="speak-btn" id="speak-microbe-drawer-${Number(m.id)}" onclick="speakMicrobeName(event,${Number(m.id)},'microbe-drawer')" title="미생물명 영어 발음 듣기" aria-label="미생물명 영어 발음 듣기">
-          <div class="wave"><span></span><span></span><span></span><span></span></div>
-          발음 듣기
-        </button>
-      </div>
-      <div class="drawer-term-main">${escapeHtml(title)}</div>
-      ${subtitle ? `<div class="drawer-term-def" style="margin-top:6px">${escapeHtml(subtitle)}</div>` : ''}
-      ${m.ipa ? `<div class="drug-chip-row" style="margin-top:10px"><span class="drug-chip">IPA ${escapeHtml(m.ipa)}</span></div>` : ''}
-      <div class="tts-speed-row" style="margin-top:10px">
-        <span class="tts-speed-label">속도</span>
-        <input class="tts-speed-slider" type="range" min="0.5" max="1.5" step="0.1" value="${ttsSpeed}" oninput="ttsSpeed=parseFloat(this.value);document.querySelectorAll('.tts-speed-val').forEach(el=>el.textContent=ttsSpeed.toFixed(1)+'×')">
-        <span class="tts-speed-val">${ttsSpeed.toFixed(1)}×</span>
+      <div class="microbe-overview-card">
+        <div class="microbe-overview-top">
+          <div>
+            <div class="drawer-lang-badge" style="background:rgba(34,197,94,0.11);color:var(--accent2);border:1px solid rgba(34,197,94,0.35);margin-bottom:8px">EN 발음</div>
+            <div class="microbe-title">${escapeHtml(title)}</div>
+            ${subtitle ? `<div class="microbe-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+          </div>
+          <button class="speak-btn" id="speak-microbe-drawer-${Number(m.id)}" onclick="speakMicrobeName(event,${Number(m.id)},'microbe-drawer')" title="미생물명 영어 발음 듣기" aria-label="미생물명 영어 발음 듣기">
+            <div class="wave"><span></span><span></span><span></span><span></span></div>
+            발음 듣기
+          </button>
+        </div>
+        <div class="microbe-chip-row">
+          ${chips.map(chip => `<span class="drug-chip">${escapeHtml(chip)}</span>`).join('')}
+          ${m.ipa ? `<span class="drug-chip">IPA ${escapeHtml(m.ipa)}</span>` : ''}
+        </div>
+        <div class="microbe-tts-row">
+          <span class="tts-speed-label">속도</span>
+          <input class="tts-speed-slider" type="range" min="0.5" max="1.5" step="0.1" value="${ttsSpeed}" oninput="ttsSpeed=parseFloat(this.value);document.querySelectorAll('.tts-speed-val').forEach(el=>el.textContent=ttsSpeed.toFixed(1)+'×')">
+          <span class="tts-speed-val">${ttsSpeed.toFixed(1)}×</span>
+        </div>
       </div>
     </div>
+
     <div class="drawer-section">
-      <div class="drug-detail-grid">
+      <div class="microbe-section-title">기본 분류 · 구조 정보</div>
+      <div class="microbe-info-grid">
         ${microbeDetailLine('유형', m.microbe_type)}
         ${microbeDetailLine('Gram / 염색', m.gram_stain)}
         ${microbeDetailLine('형태', m.shape)}
         ${microbeDetailLine('산소요구성', m.oxygen)}
-        ${microbeDetailLine('유전체/특징', m.genome)}
+        ${microbeDetailLine('유전체 / 특징', m.genome)}
         ${microbeDetailLine('대표 장기계', m.category)}
-        ${microbeDetailLine('시스템 태그', Array.isArray(m.system_tags) ? m.system_tags.join(', ') : m.system_tags)}
+        ${microbeDetailLine('시스템 태그', systemTags, 'microbe-card-wide')}
       </div>
     </div>
+
     <div class="drawer-section">
-      <div class="drug-advanced-grid">
+      <div class="microbe-section-title">임상 단서 · 시험 포인트</div>
+      <div class="microbe-clinical-stack">
         ${microbeDetailLine('병독성 / 핵심 인자', m.virulence)}
         ${microbeDetailLine('대표 질환 / 임상 단서', m.diseases)}
         ${microbeDetailLine('진단', m.diagnosis)}
@@ -498,7 +508,6 @@ function _renderMicrobeDrawerContent(m) {
     </div>
   `;
 }
-
 function speakMicrobeName(event, id, slot = 'microbe-card') {
   if (event) event.stopPropagation();
   const m = MICROBES.find(x => Number(x.id) === Number(id));
@@ -1964,6 +1973,116 @@ document.addEventListener('keydown', e => {
     background: rgba(88,166,255,0.08);
     font-size: 11px;
     white-space: nowrap;
+  }
+
+  .microbe-overview-card {
+    border: 1px solid rgba(88,166,255,0.22);
+    background: linear-gradient(180deg, rgba(88,166,255,0.07), rgba(0,0,0,0.02));
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+
+  .microbe-overview-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .microbe-title {
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  .microbe-subtitle {
+    color: var(--text2);
+    font-size: 14px;
+    line-height: 1.45;
+    margin-top: 5px;
+  }
+
+  .microbe-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+  }
+
+  .microbe-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .microbe-info-card {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 11px 12px;
+    min-width: 0;
+  }
+
+  .microbe-info-label {
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 850;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .microbe-info-value {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.42;
+    white-space: pre-wrap;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .microbe-section-title {
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 900;
+    margin: 0 0 10px;
+  }
+
+  .microbe-clinical-stack {
+    display: grid;
+    gap: 10px;
+  }
+
+  .microbe-card-wide {
+    grid-column: 1 / -1;
+  }
+
+  .microbe-tts-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .microbe-overview-top {
+      flex-direction: column;
+    }
+
+    .microbe-title {
+      font-size: 19px;
+    }
+
+    .microbe-info-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .microbe-info-card {
+      padding: 10px 11px;
+    }
   }
 
   html[data-theme="light"] header {
@@ -12549,14 +12668,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.97',
+  version: '3.98',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 23일 07:12',
+  updatedAt: '2026년 6월 23일 07:22',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 미생물 상세 카드 정돈',
+    items: [
+      '미생물 상세 드로어의 기본 분류 정보를 전용 2열 카드 그리드로 정리해 줄간격과 가독성을 개선',
+      '발음, IPA, 핵심 태그를 상단 개요 카드 안으로 묶어 중복 구획처럼 보이던 흐름을 완화',
+      '모바일에서는 미생물 정보 카드가 1열로 접히도록 반응형 배치를 보강',
+    ]
+  },
   {
     title: '최신 · 추가 버튼 우측 정렬',
     items: [
