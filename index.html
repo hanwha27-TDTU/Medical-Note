@@ -7,6 +7,444 @@
 <title>Dr Bugeon 의학용어</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  .library-mode-btn.note.active {
+    color: #7c3aed;
+    border-color: rgba(124,58,237,0.55);
+    background: rgba(124,58,237,0.12);
+  }
+  .note-frame {
+    display: grid;
+    gap: 12px;
+  }
+  .note-frame-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text2);
+    font-size: 12px;
+    padding: 3px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .note-frame-title strong {
+    color: var(--text);
+    font-size: 15px;
+  }
+  .note-card {
+    border: 1px solid rgba(124,58,237,0.22);
+    background: linear-gradient(180deg, rgba(124,58,237,0.07), rgba(0,0,0,0.02));
+    border-radius: 13px;
+    padding: 15px 17px;
+    display: grid;
+    gap: 10px;
+  }
+  .note-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .note-title {
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1.3;
+  }
+  .note-meta {
+    margin-top: 4px;
+    color: var(--text3);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .note-actions {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+  .bookmark-btn.danger {
+    color: #f87171;
+    border-color: rgba(248,81,73,0.32);
+  }
+  .note-summary {
+    color: var(--text2);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .note-keyline {
+    border: 1px solid rgba(251,191,36,0.28);
+    background: rgba(251,191,36,0.075);
+    color: var(--text);
+    border-radius: 11px;
+    padding: 9px 11px;
+    font-size: 13px;
+    font-weight: 620;
+    line-height: 1.55;
+  }
+  .note-keyline span {
+    display: inline-flex;
+    margin-right: 7px;
+    color: #d29922;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .note-comparison {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 11px;
+    padding: 10px 12px;
+    color: var(--text2);
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+  .note-body-render {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 13px 14px;
+    color: var(--text2);
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .note-body-render h3,
+  .note-body-render h4 {
+    color: var(--text);
+    margin: 10px 0 6px;
+    line-height: 1.35;
+  }
+  .note-body-render p { margin: 6px 0; }
+  .note-body-render ul,
+  .note-body-render ol {
+    margin: 6px 0 8px 20px;
+    padding: 0;
+  }
+  .note-body-render table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 12px;
+  }
+  .note-body-render th,
+  .note-body-render td {
+    border: 1px solid var(--border);
+    padding: 7px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .note-body-render th {
+    color: var(--text);
+    background: rgba(88,166,255,0.08);
+  }
+  .note-auto-link {
+    border: 0;
+    border-bottom: 1px dotted rgba(88,166,255,0.8);
+    background: rgba(88,166,255,0.08);
+    color: #9cc7ff;
+    border-radius: 5px;
+    padding: 0 3px;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+  .note-auto-link:hover {
+    background: rgba(88,166,255,0.16);
+  }
+  html[data-theme="light"] .note-auto-link {
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-bottom-color: #60a5fa;
+  }
+  .note-callout {
+    border: 1px solid rgba(251,191,36,0.30);
+    border-left: 3px solid #d29922;
+    background: rgba(251,191,36,0.09);
+    border-radius: 0 10px 10px 0;
+    padding: 9px 12px;
+    margin: 10px 0;
+  }
+  .note-warning {
+    border: 1px solid rgba(248,81,73,0.28);
+    border-left: 3px solid #f85149;
+    background: rgba(248,81,73,0.08);
+    border-radius: 0 10px 10px 0;
+    padding: 9px 12px;
+    margin: 10px 0;
+  }
+  .note-editor-wrap {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 13px;
+    overflow: hidden;
+  }
+  .note-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(88,166,255,0.05);
+  }
+  .note-editor-toolbar button {
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    border-radius: 8px;
+    padding: 6px 9px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .note-editor-toolbar button:hover {
+    color: var(--text);
+    border-color: rgba(88,166,255,0.45);
+  }
+  .note-editor {
+    min-height: 300px;
+    padding: 14px 15px;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.7;
+    outline: none;
+    overflow-wrap: anywhere;
+  }
+  .note-editor:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text3);
+  }
+  .note-template-hint {
+    color: var(--text3);
+    font-size: 11px;
+    line-height: 1.5;
+    margin-top: 5px;
+  }
+  /* ── 단권화 노트 본문 위계 · 의미색 (에디터 + 카드 렌더 공통) ── */
+  .note-editor h3, .note-body-render h3 {
+    font-size: 16px; font-weight: 800; color: var(--text);
+    margin: 4px 0 13px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: -0.01em;
+  }
+  .note-editor h4, .note-body-render h4 {
+    font-size: 13.5px; font-weight: 800; color: var(--text);
+    margin: 17px 0 7px; padding-left: 11px;
+    border-left: 3px solid var(--text3);
+    line-height: 1.4;
+  }
+  .note-editor h4:first-child, .note-body-render h4:first-child { margin-top: 2px; }
+  .note-editor h4.note-sec-path, .note-body-render h4.note-sec-path { border-left-color: var(--accent); color: var(--accent); }
+  .note-editor h4.note-sec-usmle, .note-body-render h4.note-sec-usmle { border-left-color: #a78bfa; color: #a78bfa; }
+  .note-editor h4.note-sec-link, .note-body-render h4.note-sec-link { border-left-color: var(--accent2); color: var(--accent2); }
+  .note-editor p, .note-body-render p { margin: 6px 0; }
+  .note-editor ul, .note-editor ol, .note-body-render ul, .note-body-render ol { margin: 6px 0; padding-left: 22px; }
+  .note-editor li, .note-body-render li { margin: 3px 0; }
+  .note-editor table, .note-body-render table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px;
+  }
+  .note-editor th, .note-editor td, .note-body-render th, .note-body-render td {
+    border: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top;
+  }
+  .note-editor th, .note-body-render th {
+    background: var(--surface2); color: var(--text2); font-weight: 700;
+  }
+  .note-editor tbody tr:nth-child(even) td, .note-body-render tbody tr:nth-child(even) td {
+    background: rgba(127,127,127,0.045);
+  }
+  /* ── 툴바 그룹 구분선 · 의미색 버튼 ── */
+  .note-tool-sep {
+    width: 1px; height: 18px; background: var(--border); margin: 0 2px; align-self: center;
+  }
+  .note-editor-toolbar button.note-tool-callout {
+    border-color: rgba(251,191,36,0.42); color: #d29922; background: rgba(251,191,36,0.09);
+  }
+  .note-editor-toolbar button.note-tool-warning {
+    border-color: rgba(248,81,73,0.42); color: #f85149; background: rgba(248,81,73,0.09);
+  }
+  .note-editor-toolbar button:active { transform: scale(0.96); }
+  .note-table-menu {
+    position: fixed; z-index: 99999;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 11px; padding: 5px; min-width: 172px;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+  }
+  .note-table-menu button {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: 0; color: var(--text);
+    padding: 9px 11px; border-radius: 8px; font-size: 13px;
+    font-family: inherit; cursor: pointer; line-height: 1.2;
+  }
+  .note-table-menu button:hover { background: var(--surface2); }
+  .note-table-menu button.danger { color: #f85149; }
+  .note-table-menu .note-table-menu-sep { height: 1px; background: var(--border); margin: 4px 3px; }
+  .note-wrong-box {
+    display: grid;
+    gap: 5px;
+    border: 1px solid rgba(248,81,73,0.24);
+    background: rgba(248,81,73,0.055);
+    border-radius: 11px;
+    padding: 10px 12px;
+    color: var(--text2);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .note-wrong-label {
+    color: #f87171;
+    font-size: 11px;
+    font-weight: 900;
+  }
+  .note-links {
+    display: grid;
+    gap: 8px;
+  }
+  .note-link-group {
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    gap: 8px;
+    align-items: start;
+  }
+  .note-link-label {
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 850;
+    padding-top: 5px;
+  }
+  .note-link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .note-link-chip {
+    border: 1px solid rgba(88,166,255,0.32);
+    background: rgba(88,166,255,0.08);
+    color: #9cc7ff;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .note-link-chip.drugs { border-color: rgba(251,191,36,0.34); color: #d29922; background: rgba(251,191,36,0.08); }
+  .note-link-chip.microbes { border-color: rgba(34,197,94,0.32); color: var(--accent2); background: rgba(34,197,94,0.08); }
+  .note-link-chip.formulas { border-color: rgba(167,139,250,0.34); color: #a78bfa; background: rgba(167,139,250,0.08); }
+  .note-empty-card {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 13px;
+    padding: 28px 18px;
+    text-align: center;
+    color: var(--text2);
+  }
+  .note-empty-card .icon {
+    font-size: 30px;
+    margin-bottom: 8px;
+  }
+  .note-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(0,0,0,0.58);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 14px;
+    overflow: auto;
+  }
+  .note-modal {
+    width: min(980px, 96vw);
+    max-height: 92vh;
+    overflow: auto;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.38);
+  }
+  .note-modal-head,
+  .note-modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .note-modal-foot {
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    justify-content: flex-end;
+  }
+  .note-modal-head h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 20px;
+  }
+  .note-modal-head p {
+    margin: 5px 0 0;
+    color: var(--text3);
+    font-size: 12px;
+  }
+  .note-modal-body {
+    padding: 16px 18px;
+    display: grid;
+    gap: 12px;
+  }
+  .note-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .note-modal-field label {
+    display: block;
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 750;
+    margin-bottom: 5px;
+  }
+  .note-modal-section-title {
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 900;
+    margin-top: 4px;
+  }
+  html[data-theme="light"] .note-card,
+  html[data-theme="light"] .note-empty-card,
+  html[data-theme="light"] .note-modal {
+    background: #ffffff;
+  }
+  html[data-theme="light"] .note-link-chip {
+    color: #2563eb;
+    background: #f8fafc;
+  }
+  @media (max-width: 640px) {
+    .library-mode-switch {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .library-mode-btn {
+      width: 100%;
+      min-width: 0;
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .note-frame-title,
+    .note-card-head,
+    .note-modal-head,
+    .note-modal-foot {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .note-modal-grid {
+      grid-template-columns: 1fr;
+    }
+    .note-link-group {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
 <script>
 // ═══════════════════════════════════════════════════════
 //  TERM DRAWER
@@ -1633,6 +2071,25 @@ document.addEventListener('keydown', e => {
     line-height: 1.5;
     min-width: 180px;
     flex: 1;
+  }
+
+  @media (max-width: 640px) {
+    .library-mode-switch {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .library-mode-btn {
+      width: 100%;
+      min-width: 0;
+      white-space: normal;
+      line-height: 1.25;
+    }
+
+    .library-mode-btn.note {
+      grid-column: 1 / -1;
+    }
   }
 
   .top-tool-row {
@@ -11187,7 +11644,7 @@ function showGuide() {
       icon: '📁', title: '데이터 관리와 백업',
       color: '#f87171',
       items: [
-        '전체 JSON 백업에는 일반용어, 미생물, 약물명 및 정보, 주요 의학계산공식, 학습상태, 삭제 보호 기록, 동기화 메타가 포함됩니다',
+        '전체 JSON 백업에는 일반용어, 미생물, 약물명 및 정보, 주요 의학계산공식, 단권화 노트, 학습상태, 삭제 보호 기록, 동기화 메타가 포함됩니다',
         '구형 JSON처럼 약물 배열이 없는 백업을 복원해도 현재 약물 데이터는 보존됩니다',
         '일반용어 Excel/CSV/Anki와 미생물, 약물명 및 정보, 주요 의학계산공식 Excel/CSV를 구분해 내보냅니다',
         '가져오기는 미리보기 후 최신 병합, 신규만 추가, 현재 데이터 교체 중에서 선택합니다',
@@ -12792,14 +13249,74 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.00',
+  version: '4.07',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 23일 08:07',
+  updatedAt: '2026년 6월 23일 15:05',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 단권화 노트 표 편집(워드형)',
+    items: [
+      '표 삽입 시 빈 셀에 커서가 들어가도록 보강하고 표 뒤에 단락을 자동 추가해 표 다음으로 글을 이어 쓸 수 있도록 개선',
+      '셀에서 우클릭(PC) 또는 길게 누르기(모바일)로 행·열 삽입과 행·열·표 삭제를 실행하는 컨텍스트 메뉴 추가',
+      'Tab으로 셀을 이동하고 마지막 셀에서 Tab을 누르면 새 행이 추가되도록 워드식 동작 적용',
+      '마지막 1행·1열은 삭제를 막아 빈 표가 생기지 않도록 하고, 편집 위젯은 본문에 저장되지 않아 정화·자동링크·동기화와 충돌하지 않음',
+    ]
+  },
+  {
+    title: '최신 · 단권화 노트 본문 디자인 정비',
+    items: [
+      '본문 섹션 머리글(H3·H4)에 위계와 의미색 강조선을 적용 — 정의=중립, 병태생리=파랑, USMLE 포인트=보라, 연결 자료=초록으로 스크롤만으로 구조가 보이도록 개선',
+      '핵심·주의 박스를 왼쪽 강조선 형태로 다듬고, 비교표에 머리행 음영과 줄무늬를 적용해 가독성을 높임',
+      '편집기 툴바를 글자서식 · 블록 · 삽입 · 템플릿 그룹으로 구분선 처리하고 핵심·주의 버튼에 의미색을 부여',
+      '섹션 의미색 클래스를 정화 화이트리스트에 추가해 저장·복원 후에도 스타일이 유지되며, 카드 표시와 편집기 양쪽에 동일 적용(라이트·다크 공통)',
+    ]
+  },
+  {
+    title: '최신 · 단권화 노트 저장·링크 안정화',
+    items: [
+      '노트 저장을 단일 localStorage(약 5MB) 대신 용어·약물·공식과 동일한 large-cache(IndexedDB) 경로로 이전해 장문 노트 용량 초과로 인한 손실을 방지(기존 노트는 자동 이전)',
+      '저장공간이 부족하면 저장 실패를 정직하게 알리도록 변경해 "저장 완료" 오안내를 제거',
+      '연결 자료 칩의 onclick을 큰따옴표 속성으로 고쳐 Oʻzbek 등 아포스트로피가 든 자료명에서 버튼이 깨지지 않도록 수정',
+      '본문 자동 링크에 단어 경계를 적용해 짧은 영문 이름이 더 긴 단어 안에서 잘못 링크되는 오탐을 제거',
+      '자동 링크 대상 목록과 정규식을 카드마다 만들지 않고 렌더 1회만 생성해 노트가 많을 때의 렌더 지연을 개선',
+    ]
+  },
+  {
+    title: '최신 · 노트 본문 자동 링크',
+    items: [
+      '단권화 노트 본문에 저장된 용어, 미생물, 약물명 및 정보, 주요 의학계산공식 이름이 들어가면 표시 단계에서 자동 링크로 전환',
+      '노트 저장 시 본문과 제목, 요약, 핵심 문장에서 기존 자료명을 감지해 관련 자료 칩을 자동 보강',
+      '편집 중 커서가 튀지 않도록 본문 HTML은 그대로 저장하고 카드 렌더링 단계에서만 링크를 적용',
+    ]
+  },
+  {
+    title: '최신 · 오답노트 중복 입력 정리',
+    items: [
+      '단권화 노트의 오답노트 전용 고정 입력칸을 제거해 장문 편집기 템플릿 중심으로 입력 흐름을 단순화',
+      '기존 오답 필드 데이터는 카드 표시와 백업 호환성을 위해 보존하고 새 저장 시 임의로 지우지 않도록 처리',
+      '개념노트와 오답노트 선택, 템플릿 적용, 본문 저장 흐름이 한 편집기 안에서 이어지도록 정돈',
+    ]
+  },
+  {
+    title: '최신 · 단권화 노트 편집기',
+    items: [
+      '단권화 노트에 장문 개념 정리를 위한 가벼운 워드형 본문 편집기를 추가',
+      '노트 유형을 개념노트와 오답노트로 분리하고 유형 선택 시 해당 템플릿을 자동 적용',
+      '본문 편집기에 굵게, 기울임, 제목, 목록, 표, 핵심/주의 박스 삽입 기능을 추가',
+    ]
+  },
+  {
+    title: '최신 · 단권화 노트 MVP',
+    items: [
+      '의학용어앱 프레임 안에 단권화 노트 탭을 추가해 개념 정리와 오답 블록을 한 카드에서 관리',
+      '단권화 노트에서 관련 용어, 약물명 및 정보, 미생물, 주요 의학계산공식을 검색 칩으로 연결',
+      '이번 버전은 단일 HTML 안정성을 위해 로컬 저장/전체 JSON 백업 포함 MVP로 시작하고, Supabase 완전 동기화는 후속 단계로 분리',
+    ]
+  },
   {
     title: '최신 · 미생물 질환 단서 카드 정돈',
     items: [
@@ -16323,6 +16840,985 @@ initApp();
     </div>
     <div class="drawer-body" id="microbeDrawerBody"></div>
   </div>
+
+<script>
+/* ─────────────────────────────────────────────
+   단권화 노트 MVP
+   - 의학용어앱 프레임 안에서 개념노트 + 오답블록 + 연결자료를 관리
+   - 이번 단계는 로컬 저장/전체 JSON 백업 포함 MVP이며 Supabase 직접 동기화는 후속 단계에서 분리
+───────────────────────────────────────────── */
+(function installIntegratedNotesMvp() {
+  const NOTE_STORAGE_KEY = 'dr_bugeon_integrated_notes_v1';
+  const NOTE_STORAGE_META_KEY = 'dr_bugeon_integrated_notes_v1_meta';
+  const NOTE_TOMBSTONE_KEY = 'dr_bugeon_integrated_note_tombstones_v1';
+  const noteInputStyle = 'width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;line-height:1.45';
+  // 노트는 가장 긴 콘텐츠라 단일 localStorage 키(약 5MB) 대신 용어·약물·공식과 동일한 large-cache(IndexedDB) 경로를 사용합니다.
+  const NOTEBOOK = [];
+  window.NOTEBOOK = NOTEBOOK;
+  let _notebookLoaded = false;
+  async function bootstrapIntegratedNotes() {
+    try {
+      const rows = await loadIntegratedNotes();
+      NOTEBOOK.length = 0;
+      NOTEBOOK.push(...rows);
+    } catch (err) {
+      console.warn('Integrated notes load failed', err);
+    } finally {
+      _notebookLoaded = true;
+      window.NOTEBOOK = NOTEBOOK;
+      if (currentLibraryMode === 'notes') renderIntegratedNoteFrame();
+    }
+  }
+
+  function noteNow() { return new Date().toISOString(); }
+  function noteListFromText(text) {
+    return String(text || '').split(/[,;\n]/).map(v => v.trim()).filter(Boolean);
+  }
+  function noteCsv(value) {
+    return Array.isArray(value) ? value.join(', ') : String(value || '');
+  }
+  function sanitizeNoteHtml(html = '') {
+    const raw = String(html || '').trim();
+    if (!raw) return '';
+    if (typeof document === 'undefined') return raw.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+    const template = document.createElement('template');
+    template.innerHTML = raw.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+    const allowed = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'BR', 'P', 'DIV', 'H3', 'H4', 'UL', 'OL', 'LI', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'SPAN']);
+    const walk = node => {
+      [...node.children].forEach(child => {
+        walk(child);
+        if (!allowed.has(child.tagName)) {
+          child.replaceWith(...child.childNodes);
+          return;
+        }
+        [...child.attributes].forEach(attr => {
+          const name = attr.name.toLowerCase();
+          if (!['class', 'colspan', 'rowspan'].includes(name)) child.removeAttribute(attr.name);
+        });
+        if (child.className) {
+          const ALLOWED_NOTE_CLASSES = new Set(['note-callout', 'note-warning', 'note-sec-def', 'note-sec-path', 'note-sec-usmle', 'note-sec-link']);
+          const kept = String(child.className).split(/\s+/).filter(c => ALLOWED_NOTE_CLASSES.has(c));
+          if (kept.length) child.setAttribute('class', kept.join(' '));
+          else child.removeAttribute('class');
+        }
+      });
+    };
+    walk(template.content);
+    return template.innerHTML.trim();
+  }
+  function noteHtmlToText(html = '') {
+    if (!html) return '';
+    if (typeof document === 'undefined') return String(html).replace(/<[^>]+>/g, ' ');
+    const div = document.createElement('div');
+    div.innerHTML = sanitizeNoteHtml(html);
+    return div.textContent || '';
+  }
+  function noteAutoLinkCandidateAllowed(label = '') {
+    const clean = String(label || '').trim();
+    if (!clean) return false;
+    const condensed = clean.replace(/\s+/g, '');
+    if (/^[A-Za-z0-9\s\-+/.()]+$/.test(clean)) return condensed.length >= 4;
+    return condensed.length >= 2;
+  }
+  function noteAutoLinkTargetList() {
+    const rows = [];
+    const add = (kind, label) => {
+      const clean = String(label || '').trim();
+      if (!noteAutoLinkCandidateAllowed(clean)) return;
+      rows.push({ kind, label: clean, key: clean.toLowerCase() });
+    };
+    dedupeTermsById(TERMS).filter(t => !t.deletedAt).forEach(t => {
+      [t.ko, t.en, t.uz].forEach(label => add('terms', label));
+    });
+    getActiveMicrobes().forEach(m => {
+      [m.organism, m.ko_name, m.latin_name].forEach(label => add('microbes', label));
+    });
+    getActiveDrugs().forEach(d => {
+      [d.generic_name, d.ko_name, d.brand_name].forEach(label => add('drugs', label));
+    });
+    getActiveFormulas().forEach(f => {
+      [f.name, f.short_name, f.formula].forEach(label => add('formulas', label));
+    });
+    const byKey = new Map();
+    rows.forEach(row => {
+      const old = byKey.get(row.key);
+      if (!old || row.label.length > old.label.length) byKey.set(row.key, row);
+    });
+    return [...byKey.values()].sort((a, b) => b.label.length - a.label.length).slice(0, 500);
+  }
+  // ASCII 라벨은 단어경계를 요구해 'urea'가 'Ureaplasma' 안에서 잘못 링크되는 것을 막습니다. (비ASCII=한글/라틴은 그대로 허용)
+  function noteKeyBoundaryHit(haystack, key) {
+    const asciiKey = /^[\x00-\x7f]+$/.test(key);
+    let idx = haystack.indexOf(key);
+    while (idx !== -1) {
+      if (!asciiKey) return true;
+      const before = idx > 0 ? haystack[idx - 1] : '';
+      const after = idx + key.length < haystack.length ? haystack[idx + key.length] : '';
+      if (!/[a-z0-9]/.test(before) && !/[a-z0-9]/.test(after)) return true;
+      idx = haystack.indexOf(key, idx + 1);
+    }
+    return false;
+  }
+  // 자동링크 타깃/정규식은 카드마다 재생성하지 않고 렌더 1회만 만들어 재사용합니다.
+  let _noteLinkCtx = null;
+  function invalidateNoteLinkContext() { _noteLinkCtx = null; }
+  function getNoteLinkContext() {
+    if (_noteLinkCtx) return _noteLinkCtx;
+    const targets = noteAutoLinkTargetList();
+    let pattern = null;
+    if (targets.length) {
+      const escaped = targets.map(t => t.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      pattern = new RegExp(`(${escaped.join('|')})`, 'gi');
+    }
+    _noteLinkCtx = { targets, pattern, targetByKey: new Map(targets.map(t => [t.key, t])) };
+    return _noteLinkCtx;
+  }
+  function detectNoteResourceLinksFromText(text = '') {
+    const haystack = String(text || '').toLowerCase();
+    const found = { terms: [], drugs: [], microbes: [], formulas: [] };
+    if (!haystack) return found;
+    noteAutoLinkTargetList().forEach(target => {
+      if (noteKeyBoundaryHit(haystack, target.key) && !found[target.kind].some(x => x.toLowerCase() === target.key)) {
+        found[target.kind].push(target.label);
+      }
+    });
+    return found;
+  }
+  function mergeNoteLists(...sources) {
+    const map = new Map();
+    sources.flatMap(source => noteListFromText(source)).forEach(item => {
+      const key = item.toLowerCase();
+      if (!map.has(key)) map.set(key, item);
+    });
+    return [...map.values()];
+  }
+  function linkifyNoteBodyHtml(html = '') {
+    if (!html || typeof document === 'undefined') return sanitizeNoteHtml(html);
+    const root = document.createElement('div');
+    root.innerHTML = sanitizeNoteHtml(html);
+    const ctx = getNoteLinkContext();
+    if (!ctx.targets.length || !ctx.pattern) return root.innerHTML;
+    const pattern = ctx.pattern;
+    const targetByKey = ctx.targetByKey;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || ['SCRIPT', 'STYLE', 'BUTTON'].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
+        pattern.lastIndex = 0;
+        return pattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      const frag = document.createDocumentFragment();
+      const text = node.nodeValue || '';
+      let last = 0;
+      pattern.lastIndex = 0;
+      text.replace(pattern, (match, _same, offset) => {
+        const target = targetByKey.get(String(match).toLowerCase());
+        // ASCII 라벨이 더 긴 단어 안에 박힌 경우(예: 'Urea' in 'Ureaplasma')는 링크하지 않음
+        const asciiMatch = /^[\x00-\x7f]+$/.test(match);
+        const before = offset > 0 ? text[offset - 1] : '';
+        const after = offset + match.length < text.length ? text[offset + match.length] : '';
+        const boundaryOk = !asciiMatch || (!/[A-Za-z0-9]/.test(before) && !/[A-Za-z0-9]/.test(after));
+        if (offset > last) frag.appendChild(document.createTextNode(text.slice(last, offset)));
+        if (target && boundaryOk) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `note-auto-link ${target.kind}`;
+          button.textContent = match;
+          button.title = '연결 자료 열기';
+          button.setAttribute('onclick', `openNoteLinkedResource(event,${JSON.stringify(target.kind)},${JSON.stringify(target.label)})`);
+          frag.appendChild(button);
+        } else {
+          frag.appendChild(document.createTextNode(match));
+        }
+        last = offset + match.length;
+        return match;
+      });
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+    return root.innerHTML;
+  }
+  function normalizeIntegratedNote(raw = {}) {
+    const now = noteNow();
+    return {
+      id: Number(raw.id) || Date.now(),
+      title: String(raw.title || '').trim(),
+      system: String(raw.system || 'General').trim() || 'General',
+      noteType: String(raw.noteType || raw.note_type || 'concept').trim() || 'concept',
+      summary: String(raw.summary || '').trim(),
+      keyPoint: String(raw.keyPoint || raw.key_point || '').trim(),
+      comparison: String(raw.comparison || '').trim(),
+      bodyHtml: sanitizeNoteHtml(raw.bodyHtml || raw.body_html || ''),
+      linkedTerms: noteListFromText(raw.linkedTerms || raw.linked_terms),
+      linkedDrugs: noteListFromText(raw.linkedDrugs || raw.linked_drugs),
+      linkedMicrobes: noteListFromText(raw.linkedMicrobes || raw.linked_microbes),
+      linkedFormulas: noteListFromText(raw.linkedFormulas || raw.linked_formulas),
+      wrongStem: String(raw.wrongStem || raw.wrong_stem || '').trim(),
+      myAnswer: String(raw.myAnswer || raw.my_answer || '').trim(),
+      correctAnswer: String(raw.correctAnswer || raw.correct_answer || raw.correct || '').trim(),
+      wrongReason: String(raw.wrongReason || raw.wrong_reason || '').trim(),
+      trap: String(raw.trap || '').trim(),
+      nextCue: String(raw.nextCue || raw.next_cue || '').trim(),
+      tags: noteListFromText(raw.tags),
+      createdAt: raw.createdAt || raw.created_at || now,
+      updatedAt: raw.updatedAt || raw.updated_at || now,
+      deletedAt: raw.deletedAt || raw.deleted_at || null,
+    };
+  }
+  async function loadIntegratedNotes() {
+    const rows = await readLargeCacheValue(NOTE_STORAGE_KEY, []);
+    return Array.isArray(rows) ? rows.map(normalizeIntegratedNote) : [];
+  }
+  function saveIntegratedNotes() {
+    window.NOTEBOOK = NOTEBOOK;
+    return scheduleLargeCacheWrite(NOTE_STORAGE_KEY, NOTEBOOK.map(normalizeIntegratedNote), NOTE_STORAGE_META_KEY, {
+      count: NOTEBOOK.filter(n => !n.deletedAt).length,
+      app: 'DrBugeon Integrated Notes',
+    });
+  }
+  function loadIntegratedNoteTombstones() {
+    try {
+      const rows = JSON.parse(localStorage.getItem(NOTE_TOMBSTONE_KEY) || '[]');
+      return Array.isArray(rows) ? rows.map(normalizeIntegratedNote).filter(n => n.deletedAt) : [];
+    } catch { return []; }
+  }
+  function saveIntegratedNoteTombstones(rows) {
+    safeSetItem(NOTE_TOMBSTONE_KEY, JSON.stringify(rows.map(normalizeIntegratedNote).filter(n => n.deletedAt)));
+  }
+  function mergeIntegratedNotesForImport(incomingRows = [], localRows = [], tombstoneRows = []) {
+    const byId = new Map();
+    [...localRows, ...tombstoneRows, ...incomingRows].map(normalizeIntegratedNote).forEach(row => {
+      if (!row.id) return;
+      const key = String(row.id);
+      const old = byId.get(key);
+      const oldTime = old ? (Date.parse(old.updatedAt) || 0) : -1;
+      const nextTime = Date.parse(row.updatedAt) || 0;
+      if (!old || nextTime >= oldTime) byId.set(key, row);
+    });
+    return [...byId.values()].sort((a, b) => (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0));
+  }
+  function applyIntegratedNotesImport(importData, mode) {
+    if (!importData?.hasNotePayload && !importData?.hasNoteTombstonePayload) return;
+    const incoming = Array.isArray(importData.notes) ? importData.notes.map(normalizeIntegratedNote) : [];
+    const incomingTombstones = Array.isArray(importData.noteTombstones) ? importData.noteTombstones.map(normalizeIntegratedNote) : [];
+    if (mode === 'replace') {
+      const incomingIds = new Set(incoming.map(n => String(n.id)));
+      const removedAt = new Date().toISOString();
+      const removed = NOTEBOOK
+        .filter(n => !incomingIds.has(String(n.id)))
+        .map(n => normalizeIntegratedNote({ ...n, deletedAt: removedAt, updatedAt: removedAt }));
+      NOTEBOOK.length = 0;
+      NOTEBOOK.push(...incoming.filter(n => !n.deletedAt));
+      saveIntegratedNoteTombstones([...incomingTombstones, ...removed]);
+    } else if (mode === 'append') {
+      const ids = new Set(NOTEBOOK.map(n => String(n.id)));
+      incoming.forEach(note => {
+        if (!ids.has(String(note.id)) && !note.deletedAt) {
+          NOTEBOOK.push(note);
+          ids.add(String(note.id));
+        }
+      });
+      if (incomingTombstones.length) {
+        saveIntegratedNoteTombstones(mergeIntegratedNotesForImport([], loadIntegratedNoteTombstones(), incomingTombstones).filter(n => n.deletedAt));
+      }
+    } else {
+      const merged = mergeIntegratedNotesForImport(incoming, NOTEBOOK, [
+        ...loadIntegratedNoteTombstones(),
+        ...incomingTombstones
+      ]);
+      NOTEBOOK.length = 0;
+      NOTEBOOK.push(...merged.filter(n => !n.deletedAt));
+      saveIntegratedNoteTombstones(merged.filter(n => n.deletedAt));
+    }
+    saveIntegratedNotes();
+  }
+  function activeNotes() {
+    return NOTEBOOK.filter(n => !n.deletedAt);
+  }
+  function noteSearchText(n) {
+    return [
+      n.title, n.system, n.noteType, n.summary, n.keyPoint, n.comparison, noteHtmlToText(n.bodyHtml),
+      n.wrongStem, n.myAnswer, n.correctAnswer, n.wrongReason, n.trap, n.nextCue,
+      ...n.linkedTerms, ...n.linkedDrugs, ...n.linkedMicrobes, ...n.linkedFormulas, ...n.tags
+    ].filter(Boolean).join(' ').toLowerCase();
+  }
+  function filterIntegratedNotes(query = '') {
+    const q = String(query || '').trim().toLowerCase();
+    const rows = activeNotes();
+    return q ? rows.filter(n => noteSearchText(n).includes(q)) : rows;
+  }
+  function noteLinkButton(kind, label) {
+    const clean = String(label || '').trim();
+    if (!clean) return '';
+    return `<button class="note-link-chip ${kind}" onclick="openNoteLinkedResource(event,${escapeHtml(JSON.stringify(kind))},${escapeHtml(JSON.stringify(clean))})" title="해당 자료 검색">${escapeHtml(clean)}</button>`;
+  }
+  function noteLinkGroup(title, kind, items) {
+    const chips = (items || []).map(item => noteLinkButton(kind, item)).join('');
+    if (!chips) return '';
+    return `<div class="note-link-group"><div class="note-link-label">${escapeHtml(title)}</div><div class="note-link-row">${chips}</div></div>`;
+  }
+  function renderIntegratedNoteFrame(notes = filterIntegratedNotes(document.getElementById('searchInput')?.value || '')) {
+    ensureIntegratedNoteShell();
+    invalidateNoteLinkContext();
+    ['termList', 'drugFrame', 'formulaFrame', 'microbeFrame'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
+    const empty = document.getElementById('emptyState');
+    if (empty) empty.style.display = 'none';
+    const frame = document.getElementById('noteFrame');
+    if (!frame) return;
+    const rows = Array.isArray(notes) ? notes.filter(n => !n.deletedAt) : [];
+    if (!rows.length) {
+      frame.innerHTML = `
+        <section class="note-frame">
+          <div class="note-frame-title">
+            <strong>🧠 단권화 노트 · 0개</strong>
+            <button class="inline-add-btn" onclick="openIntegratedNoteModal()">+ 노트 추가</button>
+          </div>
+          <div class="note-empty-card">
+            <div class="icon">🧠</div>
+            <h3>단권화 노트가 없습니다</h3>
+            <p>개념, 오답, 비교표, 관련 용어·약물·미생물·공식을 한 카드에 묶어보세요.</p>
+          </div>
+        </section>`;
+    } else {
+      frame.innerHTML = `
+        <section class="note-frame">
+          <div class="note-frame-title">
+            <strong>🧠 단권화 노트 · ${rows.length}개</strong>
+            <span>개념과 오답을 기존 학습자료에 연결</span>
+            <button class="inline-add-btn" onclick="openIntegratedNoteModal()">+ 노트 추가</button>
+          </div>
+          ${rows.map(n => `
+            <article class="note-card" id="note-card-${Number(n.id)}">
+              <div class="note-card-head">
+                <div>
+                  <div class="note-title">${escapeHtml(n.title || '제목 없음')}</div>
+                  <div class="note-meta">${escapeHtml(n.system || 'General')} · ${n.noteType === 'wrong' ? '오답노트' : '개념노트'} · ${escapeHtml((n.tags || []).slice(0, 3).join(', '))}</div>
+                </div>
+                <div class="note-actions">
+                  <button class="bookmark-btn" onclick="openIntegratedNoteModal(${Number(n.id)})" title="단권화 노트 편집" aria-label="단권화 노트 편집">✏️</button>
+                  <button class="bookmark-btn danger" onclick="deleteIntegratedNote(${Number(n.id)})" title="단권화 노트 삭제" aria-label="단권화 노트 삭제">×</button>
+                </div>
+              </div>
+              ${n.summary ? `<div class="note-summary">${escapeHtml(n.summary)}</div>` : ''}
+              ${n.keyPoint ? `<div class="note-keyline"><span>핵심</span>${escapeHtml(n.keyPoint)}</div>` : ''}
+              ${n.bodyHtml ? `<div class="note-body-render">${linkifyNoteBodyHtml(n.bodyHtml)}</div>` : ''}
+              ${n.comparison ? `<div class="note-comparison">${escapeHtml(n.comparison)}</div>` : ''}
+              ${n.wrongStem || n.wrongReason || n.trap || n.nextCue ? `
+                <div class="note-wrong-box">
+                  <div class="note-wrong-label">오답노트</div>
+                  ${n.wrongStem ? `<div><b>문항:</b> ${escapeHtml(n.wrongStem)}</div>` : ''}
+                  ${n.myAnswer || n.correctAnswer ? `<div><b>내 답/정답:</b> ${escapeHtml([n.myAnswer, n.correctAnswer].filter(Boolean).join(' → '))}</div>` : ''}
+                  ${n.wrongReason ? `<div><b>틀린 이유:</b> ${escapeHtml(n.wrongReason)}</div>` : ''}
+                  ${n.trap ? `<div><b>함정:</b> ${escapeHtml(n.trap)}</div>` : ''}
+                  ${n.nextCue ? `<div><b>다음 단서:</b> ${escapeHtml(n.nextCue)}</div>` : ''}
+                </div>` : ''}
+              <div class="note-links">
+                ${noteLinkGroup('용어', 'terms', n.linkedTerms)}
+                ${noteLinkGroup('약물', 'drugs', n.linkedDrugs)}
+                ${noteLinkGroup('미생물', 'microbes', n.linkedMicrobes)}
+                ${noteLinkGroup('공식', 'formulas', n.linkedFormulas)}
+              </div>
+            </article>
+          `).join('')}
+        </section>`;
+    }
+    const sectionLabel = document.getElementById('sectionLabel');
+    if (sectionLabel) sectionLabel.innerHTML = `<div class="section-label-row"><span class="section-label-spacer">전체 단권화 노트 — ${rows.length}개</span><button class="inline-add-btn" onclick="openIntegratedNoteModal()">+ 노트 추가</button></div>`;
+    updateCounts(rows.length, rows.length, 'notes');
+  }
+  function renderIntegratedNoteFilters() {
+    const conceptTitle = document.getElementById('conceptFilterTitle');
+    const systemTitle = document.getElementById('systemFilterTitle');
+    const conceptRow = document.getElementById('conceptFilters');
+    const systemRow = document.getElementById('systemFilters');
+    if (conceptTitle) conceptTitle.innerHTML = '🧠 노트 구성 <span>무엇을 묶었는가?</span>';
+    if (systemTitle) systemTitle.innerHTML = '🔗 연결 자료 <span>어디와 이어지는가?</span>';
+    if (conceptRow) conceptRow.innerHTML = `
+      <button class="filter-btn active">전체</button>
+      <button class="filter-btn">개념노트 ${activeNotes().filter(n => n.noteType !== 'wrong').length}</button>
+      <button class="filter-btn">오답노트 ${activeNotes().filter(n => n.noteType === 'wrong').length}</button>`;
+    if (systemRow) systemRow.innerHTML = `
+      <button class="filter-btn active">전체</button>
+      <button class="filter-btn">용어 연결</button>
+      <button class="filter-btn">약물 연결</button>
+      <button class="filter-btn">미생물 연결</button>
+      <button class="filter-btn">공식 연결</button>`;
+  }
+  function ensureIntegratedNoteShell() {
+    const switcher = document.querySelector('.library-mode-switcher')
+      || document.getElementById('libraryModeFormulasBtn')?.parentElement
+      || document.getElementById('libraryModeDrugsBtn')?.parentElement
+      || document.getElementById('libraryModeTermsBtn')?.parentElement;
+    if (switcher && !document.getElementById('libraryModeNotesBtn')) {
+      switcher.insertAdjacentHTML('beforeend', `<button id="libraryModeNotesBtn" class="library-mode-btn note" role="tab" aria-selected="false" onclick="setLibraryMode('notes')">🧠 단권화 노트</button>`);
+    }
+    const microbeFrame = document.getElementById('microbeFrame');
+    if (microbeFrame && !document.getElementById('noteFrame')) {
+      microbeFrame.insertAdjacentHTML('afterend', `<div id="noteFrame"></div>`);
+    }
+  }
+  function syncIntegratedNoteModeUi() {
+    ensureIntegratedNoteShell();
+    const isNotes = currentLibraryMode === 'notes';
+    [
+      ['libraryModeTermsBtn', currentLibraryMode === 'terms'],
+      ['libraryModeMicrobesBtn', currentLibraryMode === 'microbes'],
+      ['libraryModeDrugsBtn', currentLibraryMode === 'drugs'],
+      ['libraryModeFormulasBtn', currentLibraryMode === 'formulas'],
+      ['libraryModeNotesBtn', isNotes],
+    ].forEach(([id, active]) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.classList.toggle('active', Boolean(active));
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    const hint = document.getElementById('libraryModeHint');
+    if (hint && isNotes) hint.textContent = '개념노트와 오답노트를 용어, 약물, 미생물, 공식에 연결해 단권화합니다.';
+    const search = document.getElementById('searchInput');
+    if (search && isNotes) search.placeholder = '노트 제목, 오답 이유, 연결 자료로 검색...';
+  }
+  function modalField(id, label, value = '', rows = 1, placeholder = '') {
+    const safe = escapeHtml(String(value || ''));
+    const tag = rows > 1
+      ? `<textarea id="${id}" rows="${rows}" placeholder="${escapeHtml(placeholder)}" style="${noteInputStyle};resize:vertical">${safe}</textarea>`
+      : `<input id="${id}" value="${safe.replace(/"/g, '&quot;')}" placeholder="${escapeHtml(placeholder)}" style="${noteInputStyle}">`;
+    return `<div class="note-modal-field"><label>${escapeHtml(label)}</label>${tag}</div>`;
+  }
+  function noteTemplateHtml(type = 'concept') {
+    if (type === 'wrong') {
+      return `
+        <h3>오답노트 템플릿</h3>
+        <p><strong>문제 상황:</strong> </p>
+        <p><strong>내가 고른 답:</strong> </p>
+        <p><strong>정답:</strong> </p>
+        <div class="note-warning"><strong>틀린 이유:</strong><br>개념 착각 / 키워드 미포착 / 계산 실수 / 감별 실패</div>
+        <h4 class="note-sec-usmle">오답 함정</h4>
+        <ul><li>비슷한 선택지와 구별 포인트:</li><li>다음에 보면 바로 잡을 단서:</li></ul>
+        <h4 class="note-sec-link">연결 자료</h4>
+        <p>관련 용어 · 약물 · 미생물 · 공식:</p>
+      `.trim();
+    }
+    return `
+      <h3>개념노트 템플릿</h3>
+      <div class="note-callout"><strong>한 줄 핵심:</strong><br>이 개념을 시험장에서 떠올릴 한 문장</div>
+      <h4 class="note-sec-def">정의</h4>
+      <p>한국어 / English / Oʻzbekcha 정의를 함께 정리합니다.</p>
+      <h4 class="note-sec-path">병태생리 인과사슬</h4>
+      <p>원인 → 기전 → 결과 → 임상 단서</p>
+      <h4 class="note-sec-usmle">USMLE 포인트</h4>
+      <ul><li>정답 단서:</li><li>오답 함정:</li><li>비교 포인트:</li></ul>
+      <h4 class="note-sec-link">연결 자료</h4>
+      <p>관련 용어 · 약물 · 미생물 · 공식:</p>
+    `.trim();
+  }
+  function focusNoteEditor() {
+    const editor = document.getElementById('noteBodyEditor');
+    if (editor) editor.focus();
+    return editor;
+  }
+  window.noteEditorCommand = function noteEditorCommand(command, value = null) {
+    const editor = focusNoteEditor();
+    if (!editor) return;
+    document.execCommand(command, false, value);
+  };
+  window.insertNoteEditorHtml = function insertNoteEditorHtml(html) {
+    const editor = focusNoteEditor();
+    if (!editor) return;
+    document.execCommand('insertHTML', false, html);
+  };
+
+  // ───────── 워드형 표 편집 (셀 우클릭/롱프레스 메뉴 · Tab 이동) ─────────
+  function placeCaretInCell(cell) {
+    if (!cell) return;
+    const editor = document.getElementById('noteBodyEditor');
+    if (editor) editor.focus();
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(cell);
+      range.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (_) {}
+  }
+  function noteCellFromNode(node) {
+    if (!node) return null;
+    const el = node.nodeType === 1 ? node : node.parentElement;
+    const cell = el && el.closest ? el.closest('td,th') : null;
+    const editor = document.getElementById('noteBodyEditor');
+    return cell && editor && editor.contains(cell) ? cell : null;
+  }
+  function insertNoteRow(cell, where) {
+    const row = cell.parentElement;
+    const cols = row.cells.length;
+    const newRow = document.createElement('tr');
+    for (let i = 0; i < cols; i++) {
+      const td = document.createElement('td');
+      td.innerHTML = '<br>';
+      newRow.appendChild(td);
+    }
+    if (where === 'above') row.parentNode.insertBefore(newRow, row);
+    else row.parentNode.insertBefore(newRow, row.nextSibling);
+    placeCaretInCell(newRow.cells[Math.min(cell.cellIndex, cols - 1)]);
+  }
+  function insertNoteCol(cell, where) {
+    const table = cell.closest('table');
+    const colIndex = cell.cellIndex;
+    [...table.rows].forEach(r => {
+      const ref = r.cells[colIndex] || null;
+      const isHeader = ref ? ref.tagName === 'TH' : (r.cells[0] && r.cells[0].tagName === 'TH');
+      const nc = document.createElement(isHeader ? 'th' : 'td');
+      nc.innerHTML = '<br>';
+      if (where === 'left') r.insertBefore(nc, ref);
+      else r.insertBefore(nc, ref ? ref.nextSibling : null);
+    });
+    placeCaretInCell(cell.parentElement.cells[where === 'left' ? colIndex : colIndex + 1]);
+  }
+  function deleteNoteRow(cell) {
+    const row = cell.parentElement;
+    const table = row.closest('table');
+    if (table.rows.length <= 1) { showToast('⚠️ 마지막 행은 삭제할 수 없습니다'); return; }
+    const idx = row.rowIndex;
+    const ci = cell.cellIndex;
+    row.remove();
+    const focusRow = table.rows[Math.min(idx, table.rows.length - 1)];
+    if (focusRow) placeCaretInCell(focusRow.cells[Math.min(ci, focusRow.cells.length - 1)]);
+  }
+  function deleteNoteCol(cell) {
+    const table = cell.closest('table');
+    const colIndex = cell.cellIndex;
+    const maxCols = Math.max(...[...table.rows].map(r => r.cells.length));
+    if (maxCols <= 1) { showToast('⚠️ 마지막 열은 삭제할 수 없습니다'); return; }
+    const rowIdx = cell.parentElement.rowIndex;
+    [...table.rows].forEach(r => { if (r.cells[colIndex]) r.cells[colIndex].remove(); });
+    const r = table.rows[rowIdx];
+    if (r) placeCaretInCell(r.cells[Math.min(colIndex, r.cells.length - 1)]);
+  }
+  function deleteNoteTable(cell) {
+    const table = cell.closest('table');
+    const next = table.nextElementSibling;
+    table.remove();
+    if (next) placeCaretInCell(next);
+  }
+  let _noteTableMenu = null;
+  function closeNoteTableMenu() {
+    if (_noteTableMenu) { _noteTableMenu.remove(); _noteTableMenu = null; }
+    document.removeEventListener('scroll', closeNoteTableMenu, true);
+  }
+  function showNoteTableMenu(x, y, cell) {
+    closeNoteTableMenu();
+    const menu = document.createElement('div');
+    menu.className = 'note-table-menu';
+    const rows = [
+      ['↑ 위에 행 삽입', () => insertNoteRow(cell, 'above')],
+      ['↓ 아래에 행 삽입', () => insertNoteRow(cell, 'below')],
+      ['← 왼쪽에 열 삽입', () => insertNoteCol(cell, 'left')],
+      ['→ 오른쪽에 열 삽입', () => insertNoteCol(cell, 'right')],
+      null,
+      ['행 삭제', () => deleteNoteRow(cell), true],
+      ['열 삭제', () => deleteNoteCol(cell), true],
+      ['표 삭제', () => deleteNoteTable(cell), true],
+    ];
+    rows.forEach(item => {
+      if (!item) {
+        const sep = document.createElement('div');
+        sep.className = 'note-table-menu-sep';
+        menu.appendChild(sep);
+        return;
+      }
+      const [label, action, danger] = item;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = label;
+      if (danger) btn.className = 'danger';
+      btn.addEventListener('click', ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        closeNoteTableMenu();
+        action();
+      });
+      menu.appendChild(btn);
+    });
+    document.body.appendChild(menu);
+    const r = menu.getBoundingClientRect();
+    let nx = x, ny = y;
+    if (nx + r.width > window.innerWidth - 8) nx = window.innerWidth - r.width - 8;
+    if (ny + r.height > window.innerHeight - 8) ny = window.innerHeight - r.height - 8;
+    menu.style.left = Math.max(8, nx) + 'px';
+    menu.style.top = Math.max(8, ny) + 'px';
+    _noteTableMenu = menu;
+    setTimeout(() => document.addEventListener('scroll', closeNoteTableMenu, true), 0);
+  }
+  window.insertNoteTable = function insertNoteTable() {
+    const editor = focusNoteEditor();
+    if (!editor) return;
+    const html = '<table data-just="1"><tbody>'
+      + '<tr><th>구분</th><th>A</th><th>B</th><th>구별포인트</th></tr>'
+      + '<tr><td><br></td><td><br></td><td><br></td><td><br></td></tr>'
+      + '<tr><td><br></td><td><br></td><td><br></td><td><br></td></tr>'
+      + '</tbody></table><p><br></p>';
+    document.execCommand('insertHTML', false, html);
+    const t = editor.querySelector('table[data-just]');
+    if (t) {
+      t.removeAttribute('data-just');
+      const cell = t.querySelector('tbody tr:nth-child(2) td') || t.querySelector('td');
+      if (cell) placeCaretInCell(cell);
+    }
+  };
+  // 전역 리스너 (1회 등록) — #noteBodyEditor 안의 표에서만 동작
+  document.addEventListener('contextmenu', e => {
+    const cell = e.target && e.target.closest ? noteCellFromNode(e.target) : null;
+    if (!cell) return;
+    e.preventDefault();
+    showNoteTableMenu(e.clientX, e.clientY, cell);
+  });
+  document.addEventListener('mousedown', e => {
+    if (_noteTableMenu && !_noteTableMenu.contains(e.target)) closeNoteTableMenu();
+  });
+  let _noteLpTimer = null, _noteLpCell = null;
+  document.addEventListener('touchstart', e => {
+    const cell = e.target && e.target.closest ? noteCellFromNode(e.target) : null;
+    if (!cell) return;
+    _noteLpCell = cell;
+    const t = e.touches[0];
+    const px = t.clientX, py = t.clientY;
+    clearTimeout(_noteLpTimer);
+    _noteLpTimer = setTimeout(() => { if (_noteLpCell) showNoteTableMenu(px, py, _noteLpCell); }, 500);
+  }, { passive: true });
+  ['touchend', 'touchmove', 'touchcancel'].forEach(ev =>
+    document.addEventListener(ev, () => { clearTimeout(_noteLpTimer); _noteLpCell = null; }, { passive: true }));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _noteTableMenu) { closeNoteTableMenu(); return; }
+    if (e.key !== 'Tab' || e.shiftKey) return;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const cell = noteCellFromNode(sel.anchorNode);
+    if (!cell) return;
+    e.preventDefault();
+    const row = cell.parentElement;
+    const table = row.closest('table');
+    const isLastCell = cell.cellIndex === row.cells.length - 1;
+    const isLastRow = row.rowIndex === table.rows.length - 1;
+    if (isLastCell && isLastRow) {
+      insertNoteRow(cell, 'below');
+      const newRow = table.rows[row.rowIndex + 1];
+      if (newRow) placeCaretInCell(newRow.cells[0]);
+    } else {
+      let next = cell.nextElementSibling;
+      if (!next) { const nr = table.rows[row.rowIndex + 1]; next = nr ? nr.cells[0] : null; }
+      if (next) placeCaretInCell(next);
+    }
+  });
+  window.applyNoteTypeTemplateFromSelect = function applyNoteTypeTemplateFromSelect(force = false) {
+    const type = document.getElementById('noteType')?.value || 'concept';
+    const editor = document.getElementById('noteBodyEditor');
+    if (!editor) return;
+    const hasContent = (editor.textContent || '').trim() || editor.querySelector('table,.note-callout,.note-warning');
+    if (!force && hasContent && !confirm('현재 본문을 선택한 노트 템플릿으로 교체할까요?')) return;
+    editor.innerHTML = noteTemplateHtml(type);
+    editor.focus();
+  };
+  function noteEditorHtml(value = '', type = 'concept', useDefault = false) {
+    const body = sanitizeNoteHtml(value || (useDefault ? noteTemplateHtml(type) : ''));
+    return `
+      <div class="note-modal-field" style="grid-column:1 / -1">
+        <label>본문 편집기</label>
+        <div class="note-editor-wrap">
+          <div class="note-editor-toolbar" aria-label="단권화 노트 편집 도구">
+            <button type="button" onclick="noteEditorCommand('bold')">B</button>
+            <button type="button" onclick="noteEditorCommand('italic')">I</button>
+            <button type="button" onclick="noteEditorCommand('underline')">U</button>
+            <span class="note-tool-sep" aria-hidden="true"></span>
+            <button type="button" onclick="noteEditorCommand('formatBlock','H3')">제목</button>
+            <button type="button" onclick="noteEditorCommand('insertUnorderedList')">목록</button>
+            <span class="note-tool-sep" aria-hidden="true"></span>
+            <button type="button" class="note-tool-callout" onclick="insertNoteEditorHtml('<div class=&quot;note-callout&quot;><strong>핵심:</strong><br></div>')">핵심박스</button>
+            <button type="button" class="note-tool-warning" onclick="insertNoteEditorHtml('<div class=&quot;note-warning&quot;><strong>주의:</strong><br></div>')">주의박스</button>
+            <button type="button" onclick="insertNoteTable()">표</button>
+            <span class="note-tool-sep" aria-hidden="true"></span>
+            <button type="button" onclick="applyNoteTypeTemplateFromSelect(true)">템플릿 다시 적용</button>
+          </div>
+          <div id="noteBodyEditor" class="note-editor" contenteditable="true" data-placeholder="개념 흐름, 표, 오답 함정, 암기 포인트를 자유롭게 정리하세요.">${body}</div>
+        </div>
+        <div class="note-template-hint">노트 유형을 바꾸면 개념노트/오답노트에 맞는 기본 템플릿을 적용할 수 있습니다.</div>
+      </div>`;
+  }
+  window.openIntegratedNoteModal = function openIntegratedNoteModal(id = null) {
+    const existing = id ? NOTEBOOK.find(n => Number(n.id) === Number(id)) : null;
+    const n = existing || normalizeIntegratedNote({ id: Date.now(), noteType: 'concept' });
+    document.getElementById('integratedNoteModal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="note-modal-overlay" id="integratedNoteModal">
+        <div class="note-modal" role="dialog" aria-modal="true" aria-label="단권화 노트 편집">
+          <div class="note-modal-head">
+            <div><h2>🧠 단권화 노트</h2><p>개념노트와 오답노트를 기존 학습자료에 연결합니다.</p></div>
+            <button class="drawer-close-btn" onclick="closeIntegratedNoteModal()" aria-label="닫기">×</button>
+          </div>
+          <div class="note-modal-body">
+            <div class="note-modal-grid">
+              ${modalField('noteTitle', '제목', n.title, 1, '예: Asthma biologics')}
+              <div class="note-modal-field"><label>유형</label><select id="noteType" style="${noteInputStyle}" onchange="applyNoteTypeTemplateFromSelect(false)"><option value="concept" ${n.noteType !== 'wrong' ? 'selected' : ''}>개념노트</option><option value="wrong" ${n.noteType === 'wrong' ? 'selected' : ''}>오답노트</option></select></div>
+              ${modalField('noteSystem', '대표 장기계', n.system, 1, 'Pulmonary, Immunology 등')}
+              ${modalField('noteTags', '태그', noteCsv(n.tags), 1, '쉼표로 구분')}
+            </div>
+            ${modalField('noteSummary', '요약', n.summary, 3, '이 노트가 다루는 핵심 개념')}
+            ${modalField('noteKeyPoint', '한 줄 핵심', n.keyPoint, 2, '시험장에서 떠올릴 한 문장')}
+            ${noteEditorHtml(n.bodyHtml, n.noteType, !existing)}
+            ${modalField('noteComparison', '비교/표/정리', n.comparison, 4, '약물 비교, 병원체 비교, 공식 비교 등')}
+            <div class="note-modal-section-title">연결 자료</div>
+            <div class="note-modal-grid">
+              ${modalField('noteLinkedTerms', '관련 용어', noteCsv(n.linkedTerms), 1, 'Type 2 inflammation, IgE')}
+              ${modalField('noteLinkedDrugs', '관련 약물', noteCsv(n.linkedDrugs), 1, 'Dupilumab, Omalizumab')}
+              ${modalField('noteLinkedMicrobes', '관련 미생물', noteCsv(n.linkedMicrobes), 1, 'Streptococcus pneumoniae')}
+              ${modalField('noteLinkedFormulas', '관련 공식', noteCsv(n.linkedFormulas), 1, 'A-a gradient')}
+            </div>
+          </div>
+          <div class="note-modal-foot">
+            <button class="data-action-btn outline" onclick="closeIntegratedNoteModal()">닫기</button>
+            <button class="data-action-btn green" onclick="saveIntegratedNoteFromModal(${id ? Number(id) : 'null'})">저장</button>
+          </div>
+        </div>
+      </div>`);
+  };
+  window.closeIntegratedNoteModal = function closeIntegratedNoteModal() {
+    document.getElementById('integratedNoteModal')?.remove();
+  };
+  window.saveIntegratedNoteFromModal = function saveIntegratedNoteFromModal(id = null) {
+    const value = fieldId => document.getElementById(fieldId)?.value?.trim() || '';
+    const now = noteNow();
+    const old = id ? NOTEBOOK.find(n => Number(n.id) === Number(id)) : null;
+    const bodyHtml = sanitizeNoteHtml(document.getElementById('noteBodyEditor')?.innerHTML || '');
+    const autoLinks = detectNoteResourceLinksFromText([
+      value('noteTitle'),
+      value('noteSummary'),
+      value('noteKeyPoint'),
+      value('noteComparison'),
+      noteHtmlToText(bodyHtml),
+    ].join(' '));
+    const next = normalizeIntegratedNote({
+      ...(old || {}),
+      id: old?.id || Date.now(),
+      title: value('noteTitle'),
+      noteType: value('noteType'),
+      system: value('noteSystem') || 'General',
+      tags: value('noteTags'),
+      summary: value('noteSummary'),
+      keyPoint: value('noteKeyPoint'),
+      bodyHtml,
+      comparison: value('noteComparison'),
+      linkedTerms: mergeNoteLists(value('noteLinkedTerms'), autoLinks.terms),
+      linkedDrugs: mergeNoteLists(value('noteLinkedDrugs'), autoLinks.drugs),
+      linkedMicrobes: mergeNoteLists(value('noteLinkedMicrobes'), autoLinks.microbes),
+      linkedFormulas: mergeNoteLists(value('noteLinkedFormulas'), autoLinks.formulas),
+      wrongStem: old?.wrongStem || '',
+      myAnswer: old?.myAnswer || '',
+      correctAnswer: old?.correctAnswer || '',
+      wrongReason: old?.wrongReason || '',
+      trap: old?.trap || '',
+      nextCue: old?.nextCue || '',
+      createdAt: old?.createdAt || now,
+      updatedAt: now,
+    });
+    if (!next.title) { showToast('⚠️ 단권화 노트 제목을 입력해주세요'); return; }
+    const idx = NOTEBOOK.findIndex(n => Number(n.id) === Number(next.id));
+    if (idx >= 0) NOTEBOOK[idx] = next;
+    else NOTEBOOK.unshift(next);
+    const saved = saveIntegratedNotes();
+    closeIntegratedNoteModal();
+    setLibraryMode('notes');
+    showToast(saved === false
+      ? '⚠️ 저장공간이 부족해 노트를 저장하지 못했습니다 · 일부 노트를 정리하거나 백업 후 다시 시도해주세요'
+      : '🧠 단권화 노트 저장 완료');
+  };
+  window.deleteIntegratedNote = function deleteIntegratedNote(id) {
+    const idx = NOTEBOOK.findIndex(n => Number(n.id) === Number(id));
+    if (idx < 0) return;
+    if (!confirm('이 단권화 노트를 삭제할까요?')) return;
+    const deletedAt = noteNow();
+    NOTEBOOK[idx] = { ...NOTEBOOK[idx], deletedAt, updatedAt: deletedAt };
+    saveIntegratedNotes();
+    saveIntegratedNoteTombstones([...loadIntegratedNoteTombstones(), NOTEBOOK[idx]]);
+    renderIntegratedNoteFrame();
+    showToast('🗑️ 단권화 노트 삭제 완료');
+  };
+  window.openNoteLinkedResource = function openNoteLinkedResource(event, kind, label) {
+    event?.stopPropagation();
+    const search = document.getElementById('searchInput');
+    if (search) search.value = label;
+    setLibraryMode(kind);
+  };
+
+  const originalSetLibraryMode = setLibraryMode;
+  setLibraryMode = function patchedSetLibraryMode(mode, silent = false) {
+    if (mode === 'notes') {
+      if (currentLibraryMode !== 'notes') {
+        selectedTermIds.clear();
+        visibleTermLimit = LIST_PAGE_SIZE;
+        _lastListSignature = '';
+      }
+      currentLibraryMode = 'notes';
+      syncIntegratedNoteModeUi();
+      renderIntegratedNoteFilters();
+      if (!silent) renderIntegratedNoteFrame();
+      return;
+    }
+    originalSetLibraryMode(mode, silent);
+    syncIntegratedNoteModeUi();
+  };
+
+  const originalRenderFilterControls = renderFilterControls;
+  renderFilterControls = function patchedRenderFilterControls() {
+    if (currentLibraryMode === 'notes') return renderIntegratedNoteFilters();
+    return originalRenderFilterControls();
+  };
+
+  const originalApplyFilters = applyFilters;
+  applyFilters = function patchedApplyFilters() {
+    if (currentLibraryMode === 'notes') {
+      syncIntegratedNoteModeUi();
+      renderIntegratedNoteFilters();
+      renderIntegratedNoteFrame(filterIntegratedNotes(document.getElementById('searchInput')?.value || ''));
+      return;
+    }
+    return originalApplyFilters();
+  };
+
+  const originalUpdateCounts = updateCounts;
+  updateCounts = function patchedUpdateCounts(shown, filtered = shown, mode = currentLibraryMode) {
+    if (mode === 'notes') {
+      const totalCount = document.getElementById('totalCount');
+      if (totalCount) totalCount.textContent = `${shown}개 표시 / 전체 노트 ${activeNotes().length}개`;
+      const bookmarkCountEl = document.getElementById('bookmarkCount');
+      if (bookmarkCountEl) bookmarkCountEl.textContent = `단권화 노트 ${activeNotes().length}개`;
+      return;
+    }
+    return originalUpdateCounts(shown, filtered, mode);
+  };
+
+  const originalCreateCompleteBackupObject = createCompleteBackupObject;
+  createCompleteBackupObject = function patchedCreateCompleteBackupObject() {
+    const backup = originalCreateCompleteBackupObject();
+    backup.notes = NOTEBOOK.map(normalizeIntegratedNote);
+    backup.noteTombstones = loadIntegratedNoteTombstones();
+    backup.noteMvp = { storage: 'local', syncedToSupabase: false };
+    return backup;
+  };
+
+  const originalReadDataImportFile = readDataImportFile;
+  readDataImportFile = async function patchedReadDataImportFile(file, kind) {
+    if (kind !== 'json') {
+      const tableData = await originalReadDataImportFile(file, kind);
+      return { ...tableData, notes: [], noteTombstones: [], hasNotePayload: false, hasNoteTombstonePayload: false };
+    }
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const hasNotePayload = !!parsed && Object.prototype.hasOwnProperty.call(parsed, 'notes') && Array.isArray(parsed.notes);
+    const hasNoteTombstonePayload = !!parsed && Object.prototype.hasOwnProperty.call(parsed, 'noteTombstones') && Array.isArray(parsed.noteTombstones);
+    let base;
+    try {
+      base = await originalReadDataImportFile(new File([text], file.name, { type: file.type || 'application/json' }), kind);
+    } catch (error) {
+      if (!hasNotePayload && !hasNoteTombstonePayload) throw error;
+      base = {
+        kind,
+        fileName: file.name,
+        terms: [],
+        drugs: [],
+        formulas: [],
+        microbes: [],
+        learningStates: {},
+        tombstones: [],
+        drugTombstones: [],
+        formulaTombstones: [],
+        microbeTombstones: [],
+        syncMeta: parsed.syncMeta || {},
+        hasTermPayload: false,
+        hasDrugPayload: false,
+        hasDrugTombstonePayload: false,
+        hasFormulaPayload: false,
+        hasFormulaTombstonePayload: false,
+        hasMicrobePayload: false,
+        hasMicrobeTombstonePayload: false,
+      };
+    }
+    return {
+      ...base,
+      notes: hasNotePayload ? parsed.notes.map(normalizeIntegratedNote) : [],
+      noteTombstones: hasNoteTombstonePayload ? parsed.noteTombstones.map(normalizeIntegratedNote) : [],
+      hasNotePayload,
+      hasNoteTombstonePayload,
+    };
+  };
+
+  const originalCalculateImportPreview = calculateImportPreview;
+  calculateImportPreview = function patchedCalculateImportPreview(importData) {
+    const preview = originalCalculateImportPreview(importData);
+    const existingNoteIds = new Set(NOTEBOOK.map(n => String(n.id)));
+    const incomingNotes = Array.isArray(importData.notes) ? importData.notes : [];
+    const incomingNoteIds = new Set(incomingNotes.map(n => String(n.id)));
+    const noteAdded = importData.hasNotePayload ? incomingNotes.filter(n => !existingNoteIds.has(String(n.id))).length : 0;
+    const noteUpdated = importData.hasNotePayload ? incomingNotes.length - noteAdded : 0;
+    const noteReplaced = importData.kind === 'json' && importData.hasNotePayload ? NOTEBOOK.filter(n => !incomingNoteIds.has(String(n.id))).length : 0;
+    return {
+      ...preview,
+      noteAdded,
+      noteUpdated,
+      noteReplaced,
+      hasNotePayload: !!importData.hasNotePayload,
+      hasNoteTombstonePayload: !!importData.hasNoteTombstonePayload,
+    };
+  };
+
+  const originalPreviewDataImport = previewDataImport;
+  previewDataImport = async function patchedPreviewDataImport(event, kind) {
+    await originalPreviewDataImport(event, kind);
+    if (!pendingDataImport?.hasNotePayload) return;
+    const previewBox = document.querySelector('#dataImportPreview .import-preview > div:nth-child(2)');
+    if (!previewBox) return;
+    const preview = calculateImportPreview(pendingDataImport);
+    previewBox.insertAdjacentHTML('beforeend',
+      `<span style="font-size:10px;color:#a78bfa">단권화 노트 추가 ${preview.noteAdded}</span>` +
+      `<span style="font-size:10px;color:#9cc7ff">단권화 노트 갱신 ${preview.noteUpdated}</span>` +
+      `<span style="font-size:10px;color:#f87171">단권화 노트 교체 시 제거 ${preview.noteReplaced}</span>`
+    );
+  };
+
+  const originalApplyPendingDataImport = applyPendingDataImport;
+  applyPendingDataImport = async function patchedApplyPendingDataImport(options = {}) {
+    const noteImportData = pendingDataImport ? {
+      notes: pendingDataImport.notes || [],
+      noteTombstones: pendingDataImport.noteTombstones || [],
+      hasNotePayload: !!pendingDataImport.hasNotePayload,
+      hasNoteTombstonePayload: !!pendingDataImport.hasNoteTombstonePayload,
+    } : null;
+    const mode = options.mode || document.getElementById('dataImportMode')?.value || 'merge';
+    const result = await originalApplyPendingDataImport(options);
+    if (result && noteImportData) {
+      applyIntegratedNotesImport(noteImportData, mode);
+      if (currentLibraryMode === 'notes') renderIntegratedNoteFrame();
+    }
+    return result;
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    ensureIntegratedNoteShell();
+    syncIntegratedNoteModeUi();
+    bootstrapIntegratedNotes();
+  });
+  if (document.readyState !== 'loading') {
+    ensureIntegratedNoteShell();
+    syncIntegratedNoteModeUi();
+    bootstrapIntegratedNotes();
+  }
+})();
+</script>
 
 </body>
 </html>
