@@ -263,6 +263,237 @@
     border-color: rgba(248,81,73,0.42); color: #f85149; background: rgba(248,81,73,0.09);
   }
   .note-editor-toolbar button:active { transform: scale(0.96); }
+  .note-editor-helper-grid {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  .note-editor-helper-grid .formula-input-helper {
+    margin-top: 0;
+  }
+  .note-source-search-btn {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 5px 9px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .note-view-modal {
+    width: min(1180px, 96vw);
+  }
+  .note-list-card {
+    cursor: pointer;
+  }
+  .note-view-stack {
+    display: grid;
+    gap: 14px;
+  }
+  .note-original-mcq {
+    grid-column: 1 / -1;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface2);
+    overflow: hidden;
+  }
+  .note-original-mcq.hidden {
+    display: none;
+  }
+  .note-original-mcq-toggle {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .note-original-mcq-toggle .play {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text3);
+    background: var(--surface);
+  }
+  .note-original-mcq-drawer {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.3fr);
+    gap: 14px;
+    border-top: 1px solid var(--border);
+    padding: 14px;
+    transform-origin: left center;
+    transition: grid-template-columns 0.18s ease, opacity 0.18s ease;
+  }
+  .note-original-mcq:not(.open) .note-original-mcq-drawer {
+    display: none;
+  }
+  .note-mcq-side, .note-mcq-main {
+    display: grid;
+    gap: 10px;
+  }
+  .note-mcq-choice-row {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 42px;
+    gap: 8px;
+    align-items: center;
+  }
+  .note-mcq-choice-letter {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: var(--text);
+    background: var(--surface);
+  }
+  .note-mcq-choice-row.correct .note-mcq-choice-letter {
+    background: rgba(35,134,54,0.18);
+    border-color: rgba(35,134,54,0.55);
+    color: var(--accent2);
+  }
+  .note-mcq-tools {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .note-mcq-tools button {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 9px 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .note-mcq-tools button.accent {
+    border-color: rgba(217,119,6,0.42);
+    color: var(--warning);
+  }
+  .note-mcq-view {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface2);
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+  }
+  .note-mcq-view-stem {
+    white-space: pre-wrap;
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .note-mcq-view-options {
+    display: grid;
+    gap: 8px;
+  }
+  .note-mcq-view-option {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 11px;
+    background: var(--surface);
+    color: var(--text2);
+  }
+  .note-mcq-view-option.correct {
+    border-color: rgba(35,134,54,0.48);
+    background: rgba(35,134,54,0.1);
+    color: var(--text);
+  }
+  @media (max-width: 720px) {
+    .note-original-mcq-drawer {
+      grid-template-columns: 1fr;
+    }
+  }
+  .note-original-mcq {
+    background: linear-gradient(180deg, var(--surface), var(--surface2));
+    border-radius: 16px;
+  }
+  .note-original-mcq-toggle {
+    min-height: 68px;
+    padding: 16px 20px;
+  }
+  .note-original-mcq-toggle-title {
+    display: grid;
+    gap: 4px;
+    text-align: left;
+  }
+  .note-original-mcq-toggle-title strong {
+    font-size: 1rem;
+    color: var(--text);
+  }
+  .note-original-mcq-toggle-title small {
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-weight: 700;
+  }
+  .note-original-mcq-drawer {
+    grid-template-columns: minmax(260px, 0.76fr) minmax(360px, 1.24fr);
+    gap: 22px;
+    padding: 22px 24px 24px;
+  }
+  .note-mcq-side,
+  .note-mcq-main {
+    align-content: start;
+    gap: 14px;
+  }
+  .note-mcq-panel-title {
+    display: grid;
+    gap: 5px;
+  }
+  .note-mcq-panel-title strong {
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+  .note-mcq-panel-title span {
+    font-size: 0.78rem;
+    color: var(--text3);
+    line-height: 1.45;
+  }
+  .note-mcq-tools button {
+    min-height: 40px;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+  }
+  .note-mcq-choice-row {
+    grid-template-columns: 42px minmax(0, 1fr) 40px;
+    gap: 10px;
+  }
+  .note-mcq-choice-letter {
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+  }
+  .note-mcq-choice-row.correct .note-mcq-choice-letter::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+    margin-left: 5px;
+  }
+  .note-mcq-answer-hint {
+    border: 1px solid rgba(35,134,54,0.25);
+    border-radius: 12px;
+    background: rgba(35,134,54,0.08);
+    color: var(--text2);
+    padding: 9px 11px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
   .note-table-menu {
     position: fixed; z-index: 99999;
     background: var(--surface); border: 1px solid var(--border);
@@ -2882,6 +3113,24 @@ document.addEventListener('keydown', e => {
     gap: 10px;
   }
 
+  .formula-input-close-row {
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .formula-input-close-btn {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text2);
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 850;
+    cursor: pointer;
+  }
+
   .formula-input-group-title {
     color: var(--text3);
     font-size: 10px;
@@ -3749,6 +3998,131 @@ document.addEventListener('keydown', e => {
   .nav-btn .nav-icon { font-size: 20px; }
   .nav-btn.active { color: var(--accent); }
 
+  .utility-modal-content {
+    max-height: min(78vh, 860px);
+    overflow: auto;
+    padding: 0;
+  }
+
+  .external-search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .external-search-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 118px;
+    padding: 18px;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.04);
+    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+  }
+
+  .external-search-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(96,165,250,0.45);
+    background: var(--surface2);
+  }
+
+  .external-search-card strong {
+    display: block;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.35;
+  }
+
+  .external-search-card span {
+    display: block;
+    margin-top: 7px;
+    font-size: 12px;
+    color: var(--text3);
+    line-height: 1.45;
+  }
+
+  .external-search-card > div:last-child {
+    align-self: flex-end;
+    border: 1px solid rgba(96,165,250,0.28);
+    border-radius: 999px;
+    background: rgba(96,165,250,0.08);
+    color: var(--accent) !important;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .useful-site-section {
+    display: grid;
+    gap: 14px;
+  }
+
+  .useful-site-section + .useful-site-section {
+    margin-top: 30px;
+  }
+
+  .useful-site-section-title {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface2);
+    padding: 6px 11px;
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--text2);
+  }
+
+  .utility-modal-shell {
+    width: min(1120px, calc(100vw - 48px));
+    max-height: min(82vh, 820px);
+    border-radius: 18px;
+  }
+
+  .utility-modal-shell .note-modal-head {
+    padding: 28px 32px 22px;
+  }
+
+  .utility-modal-shell .note-modal-head h2 {
+    font-size: clamp(24px, 2.1vw, 34px);
+    letter-spacing: 0;
+  }
+
+  .utility-modal-shell .note-modal-head p {
+    margin-top: 8px;
+    color: var(--text3);
+  }
+
+  .utility-modal-content {
+    padding: 28px 32px 34px;
+    display: grid;
+    gap: 24px;
+  }
+
+  @media (max-width: 720px) {
+    .utility-modal-shell {
+      width: min(100vw - 20px, 680px);
+      max-height: 88vh;
+    }
+    .utility-modal-shell .note-modal-head,
+    .utility-modal-content {
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+    .external-search-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   /* Toast */
   .toast {
     position: fixed;
@@ -4509,7 +4883,6 @@ document.addEventListener('keydown', e => {
       <p>Medical Terminology · Tibbiy terminologiya</p>
     </div>
     <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleThemeMode()" title="라이트모드로 전환">☀️ <span class="wide-label">라이트모드</span><span class="mobile-label" style="display:none">라이트</span></button>
-    <button class="data-header-btn" onclick="switchTab('export', getNavButton('export'))" title="가져오기 · 백업 · 동기화 데이터 관리">📁 <span class="wide-label">데이터</span><span class="mobile-label" style="display:none">데이터</span></button>
     <button class="kma-header-btn" onclick="openKmaTermSearch(event)" title="대한의사협회 의학용어 검색을 화면 크기에 맞는 새 창으로 열기">🔎 <span class="wide-label">대한의사협회 용어검색</span><span class="mobile-label" style="display:none">KMA 검색</span></button>
     <button class="settings-header-btn" onclick="showAISettings()" title="AI와 Supabase 설정">⚙️ 설정</button>
     <button class="category-stats-header-btn" onclick="showCategoryStats()" title="분류별 용어 통계 보기">📊 통계</button>
@@ -4627,14 +5000,20 @@ document.addEventListener('keydown', e => {
   <button class="nav-btn" onclick="switchTab('bookmark', this)">
     <span class="nav-icon">⭐</span>즐겨찾기
   </button>
-  <button class="nav-btn" onclick="switchTab('quiz', this)">
+  <button class="nav-btn" onclick="openUtilityWindow('quiz', this)">
     <span class="nav-icon">📝</span>퀴즈
   </button>
-  <button class="nav-btn" onclick="switchTab('export', this)">
+  <button class="nav-btn" onclick="openUtilityWindow('export', this)">
     <span class="nav-icon">📁</span>데이터
   </button>
-  <button class="nav-btn" onclick="switchTab('guide', this)">
+  <button class="nav-btn" onclick="showExternalMedicalSearchModal(event)">
+    <span class="nav-icon">🔎</span>외부검색
+  </button>
+  <button class="nav-btn" onclick="openUtilityWindow('guide', this)">
     <span class="nav-icon">📖</span>가이드
+  </button>
+  <button class="nav-btn" onclick="showUsefulSitesModal(event)">
+    <span class="nav-icon">🌐</span>사이트
   </button>
 </div>
 
@@ -7235,6 +7614,7 @@ function renderMicrobeFrame(microbes = []) {
                 <div class="wave"><span></span><span></span><span></span><span></span></div>
                 발음
               </button>
+              <button class="bookmark-btn ${isDomainFavorite('microbes', m.id) ? 'saved' : ''}" onclick="toggleDomainFavorite(event,'microbes',${Number(m.id)})" title="미생물 즐겨찾기" aria-label="미생물 즐겨찾기">${isDomainFavorite('microbes', m.id) ? '★' : '☆'}</button>
               <button class="bookmark-btn" onclick="openMicrobeEditModal(event, ${Number(m.id)})" title="미생물 편집" aria-label="미생물 항목 편집">✏️</button>
             </div>
           </div>
@@ -7657,6 +8037,37 @@ function drugRefsHtml(d) {
     </div>`;
 }
 
+const DOMAIN_FAVORITE_STORAGE_KEY = 'dr_bugeon_domain_favorites_v1';
+function loadDomainFavorites() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DOMAIN_FAVORITE_STORAGE_KEY) || '{}');
+    return {
+      drugs: Array.isArray(raw.drugs) ? raw.drugs.map(String) : [],
+      microbes: Array.isArray(raw.microbes) ? raw.microbes.map(String) : [],
+      formulas: Array.isArray(raw.formulas) ? raw.formulas.map(String) : [],
+    };
+  } catch (_) {
+    return { drugs: [], microbes: [], formulas: [] };
+  }
+}
+function isDomainFavorite(domain, id) {
+  return loadDomainFavorites()[domain]?.includes(String(id));
+}
+function saveDomainFavorites(next) {
+  safeSetItem(DOMAIN_FAVORITE_STORAGE_KEY, JSON.stringify(next));
+}
+function toggleDomainFavorite(event, domain, id) {
+  event?.stopPropagation();
+  const favs = loadDomainFavorites();
+  const key = String(id);
+  const list = Array.isArray(favs[domain]) ? favs[domain] : [];
+  favs[domain] = list.includes(key) ? list.filter(x => x !== key) : [...list, key];
+  saveDomainFavorites(favs);
+  if (domain === 'drugs') renderDrugFrame(filterDrugsForQuery(document.getElementById('searchInput')?.value || ''));
+  if (domain === 'microbes') renderMicrobeFrame(filterMicrobesForQuery(document.getElementById('searchInput')?.value || ''));
+  if (domain === 'formulas') renderFormulaFrame(filterFormulasForQuery(document.getElementById('searchInput')?.value || ''));
+}
+
 function renderDrugFrame(drugs = []) {
   const frame = document.getElementById('drugFrame');
   const empty = document.getElementById('emptyState');
@@ -7704,6 +8115,7 @@ function renderDrugFrame(drugs = []) {
                 <div class="wave"><span></span><span></span><span></span><span></span></div>
                 발음
               </button>
+              <button class="bookmark-btn ${isDomainFavorite('drugs', d.id) ? 'saved' : ''}" onclick="toggleDomainFavorite(event,'drugs',${Number(d.id)})" title="약물 즐겨찾기" aria-label="약물 즐겨찾기">${isDomainFavorite('drugs', d.id) ? '★' : '☆'}</button>
               <button class="bookmark-btn" onclick="openDrugEditModal(event, ${Number(d.id)})" title="약물 편집" aria-label="약물 항목 편집">✏️</button>
             </div>
           </div>
@@ -7773,7 +8185,10 @@ function renderFormulaFrame(formulas = []) {
               <div class="formula-name"><span class="copyable-text" onclick="copyFormulaDisplay(event, ${Number(f.id)}, 'title')" title="클릭하여 복사">${escapeHtml(f.name || f.short_name || '이름 없음')}</span></div>
               <div class="formula-sub"><span class="copyable-text" onclick="copyFormulaDisplay(event, ${Number(f.id)}, 'subtitle')" title="클릭하여 복사">${escapeHtml([f.short_name, f.use_case].filter(Boolean).join(' · '))}</span></div>
             </div>
-            <button class="bookmark-btn" onclick="openFormulaEditModal(event, ${Number(f.id)})" title="공식 편집" aria-label="공식 항목 편집">✏️</button>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="bookmark-btn ${isDomainFavorite('formulas', f.id) ? 'saved' : ''}" onclick="toggleDomainFavorite(event,'formulas',${Number(f.id)})" title="공식 즐겨찾기" aria-label="공식 즐겨찾기">${isDomainFavorite('formulas', f.id) ? '★' : '☆'}</button>
+              <button class="bookmark-btn" onclick="openFormulaEditModal(event, ${Number(f.id)})" title="공식 편집" aria-label="공식 항목 편집">✏️</button>
+            </div>
           </div>
           <div class="formula-expression"><span class="copyable-text" onclick="copyFormulaDisplay(event, ${Number(f.id)}, 'expression')" title="클릭하여 복사">${escapeHtml(f.formula || '공식 미입력')}</span></div>
           <div class="formula-chip-row">
@@ -8126,6 +8541,19 @@ function handleMedicalSymbolToggle(detailsEl) {
 window.addEventListener('resize', repositionOpenMedicalSymbolPanels);
 document.addEventListener('scroll', repositionOpenMedicalSymbolPanels, true);
 
+function closeInputHelperPanel(button) {
+  const details = button?.closest?.('details');
+  if (details) {
+    details.open = false;
+    return;
+  }
+  hideFloatingMedicalSymbolPanel();
+}
+
+function inputHelperCloseButtonHtml() {
+  return `<div class="formula-input-close-row"><button type="button" class="formula-input-close-btn" onclick="closeInputHelperPanel(this)">닫기</button></div>`;
+}
+
 function medicalSymbolPanelContentHtml() {
   const groups = MEDICAL_SYMBOL_GROUPS.map(group => `
     <div>
@@ -8136,7 +8564,8 @@ function medicalSymbolPanelContentHtml() {
     </div>`).join('');
   return `
     <div class="medical-symbol-note">입력할 칸을 먼저 클릭한 뒤 필요한 문자를 누르세요. 용어, 약물명 및 정보, 주요 의학계산공식 입력칸에서 공통으로 사용할 수 있습니다.</div>
-    ${groups}`;
+    ${groups}
+    ${inputHelperCloseButtonHtml()}`;
 }
 
 function ensureFloatingMedicalSymbolPanel() {
@@ -8464,6 +8893,7 @@ function formulaInputHelperHtml(prefix, currentFormula = '') {
       <div class="formula-input-panel">
         ${templates}
         ${groups}
+        ${inputHelperCloseButtonHtml()}
       </div>
     </details>
     <div id="${prefix}_formula_preview" class="formula-input-preview">${escapeHtml(currentFormula || '계산식을 입력하거나 칩을 누르면 미리보기가 표시됩니다.')}</div>`;
@@ -9430,6 +9860,99 @@ function restoreHomeTab(skipApply = false) {
 function getNavButton(tab) {
   return [...document.querySelectorAll('.nav-btn')]
     .find(btn => (btn.getAttribute('onclick') || '').includes(`'${tab}'`)) || null;
+}
+
+function showUtilityModal(title, html) {
+  document.getElementById('utilityModal')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'utilityModal';
+  overlay.className = 'note-modal-overlay';
+  overlay.innerHTML = `
+    <div class="note-modal note-view-modal utility-modal-shell" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+      <div class="note-modal-head">
+        <div><h2>${escapeHtml(title)}</h2><p>현재 학습 화면은 유지한 채 별도 창으로 확인합니다.</p></div>
+        <button class="drawer-close-btn" onclick="document.getElementById('utilityModal')?.remove()" aria-label="닫기">×</button>
+      </div>
+      <div class="note-modal-body utility-modal-content">${html}</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function openUtilityWindow(tab, btn = null) {
+  const main = document.getElementById('mainContent');
+  if (!main) return switchTab(tab, btn);
+  const oldHtml = main.innerHTML;
+  const oldTab = currentTab;
+  const oldScroll = document.scrollingElement?.scrollTop || 0;
+  try {
+    if (tab === 'export') showExportMenu();
+    else if (tab === 'guide') showGuide();
+    else if (tab === 'quiz') showQuizSetup();
+    else return switchTab(tab, btn);
+    const titleMap = { export: '데이터 관리', guide: '가이드', quiz: '퀴즈' };
+    const generated = main.innerHTML;
+    main.innerHTML = oldHtml;
+    currentTab = oldTab;
+    requestAnimationFrame(() => window.scrollTo({ top: oldScroll, behavior: 'instant' }));
+    showUtilityModal(titleMap[tab] || '별도 창', generated);
+  } catch (error) {
+    main.innerHTML = oldHtml;
+    currentTab = oldTab;
+    console.warn('utility window failed', error);
+    switchTab(tab, btn);
+  }
+}
+
+function showExternalMedicalSearchModal(event = null) {
+  event?.stopPropagation();
+  const links = [
+    { title: '대한의사협회 의학용어', url: 'https://term.kma.org/index.asp', desc: '국내 공식 의학용어와 한글 표기 확인' },
+    { title: 'Merriam-Webster', url: 'https://www.merriam-webster.com/', desc: '영어 의학용어 발음, 어원, 일반 사전 의미 확인' },
+    { title: 'KMLE 검색엔진', url: 'https://www.kmle.co.kr/', desc: '국내 의학 약어, 용어, 시험 관련 표현 검색' },
+  ];
+  showUtilityModal('외부 의학용어 검색', `
+    <div class="external-search-grid">
+      ${links.map(link => `
+        <a class="external-search-card" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+          <div><strong>${escapeHtml(link.title)}</strong><span>${escapeHtml(link.desc)}</span></div>
+          <div style="font-weight:900;color:var(--accent)">열기</div>
+        </a>`).join('')}
+    </div>`);
+}
+
+function showUsefulSitesModal(event = null) {
+  event?.stopPropagation();
+  const groups = [
+    {
+      title: '시험정보 관련 사이트',
+      links: [
+        { title: 'FSMB', url: 'https://portal.fsmb.org/?_ga=2.211834524.901678868.1768291833-336280382.1768291833', desc: 'Federation of State Medical Boards · USMLE 접수 및 관리 사이트' },
+        { title: 'INTEALTH', url: 'https://www.myintealth.app/', desc: 'USMLE 개인정보 및 ECFMG 관련 관리 사이트' },
+        { title: 'World Directory of Medical Schools', url: 'https://www.wdoms.org/?_gl=1*opn4u5*_ga*NDg1NjU5MTUyLjE3Njk0MjI5NjY.*_ga_R5BJZG5EYE*czE3ODIyMTU0OTAkbzE0JGcxJHQxNzgyMjE1NDk3JGo1MyRsMCRoMA..', desc: '세계의과대학 등재 정보 확인' },
+        { title: 'ICD-11', url: 'https://icd.who.int/browse/2025-01/mms/en', desc: 'WHO ICD-11 질병분류 브라우저' },
+      ]
+    },
+    {
+      title: '학습정보 관련 사이트',
+      links: [
+        { title: '메디톡', url: 'https://www.meditalk.io/study', desc: 'KMLE 학습 사이트' },
+        { title: '알렌의 서재', url: 'https://www.allenslibrary.com/landing', desc: 'KMLE 학습 사이트' },
+        { title: '국시원 과거 기출문제', url: 'https://www.kuksiwon.or.kr/CollectOfQuestions/brd/m_116/list.do', desc: '한국보건의료인국가시험원 기출문제 자료' },
+      ]
+    }
+  ];
+  showUtilityModal('유용한 사이트', groups.map(group => `
+    <section class="useful-site-section">
+      <div class="useful-site-section-title">${escapeHtml(group.title)}</div>
+      <div class="external-search-grid">
+        ${group.links.map(link => `
+          <a class="external-search-card" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+            <div><strong>${escapeHtml(link.title)}</strong><span>${escapeHtml(link.desc)}</span></div>
+            <div style="font-weight:900;color:var(--accent)">열기</div>
+          </a>`).join('')}
+      </div>
+    </section>`).join(''));
 }
 
 function switchTab(tab, btn) {
@@ -11887,6 +12410,8 @@ function showExportMenu() {
                 ${formulaSystems.map(system => `<option value="${escapeHtml(system)}">${escapeHtml(categoryDisplay(system))} (${FORMULAS.filter(f => (f.system || 'General') === system).length}개)</option>`).join('')}
               </select>
               <button class="data-action-btn red" onclick="confirmDangerousFormulaDelete()">선택 공식 범위 삭제</button>
+              <div class="data-section-label" style="color:#fca5a5">단권화 노트 휴지통</div>
+              <button class="data-action-btn outline" onclick="showIntegratedNoteTrashManager()">단권화 노트 휴지통 열기</button>
               <div class="data-section-label" style="color:#fca5a5">휴지통 목록 비우기</div>
               <div class="data-button-row">
                 <button class="data-action-btn red" onclick="confirmEmptyTrash()">용어 휴지통</button>
@@ -13249,14 +13774,78 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.10',
+  version: '4.18',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 23일 16:11',
+  updatedAt: '2026년 6월 23일 19:03',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 객관식복수정답디자인정리',
+    items: [
+      '단권화 오답노트의 원문 객관식 저장 패널 여백, 제목 위계, 버튼 밀도를 정리',
+      '+ 정답 줄이 여러 개인 경우 answerIndexes 배열로 모두 저장되도록 복수정답 지원',
+      '보기 A/B/C 버튼을 정답 토글로 바꾸고 상세 보기에서도 복수 정답을 함께 강조',
+    ]
+  },
+  {
+    title: '최신 · 사이트모달디자인정리',
+    items: [
+      '외부 의학용어 검색과 유용한 사이트 모달을 큰 세로 목록에서 여백 있는 카드 그리드로 정리',
+      '열기 액션의 시각적 무게를 낮추고 카드 제목, 설명, 액션의 정보 위계를 분리',
+      '모바일에서는 1열 카드로 접히도록 반응형 폭과 내부 여백을 보정',
+    ]
+  },
+  {
+    title: '최신 · 오답원문객관식저장',
+    items: [
+      '단권화 노트의 오답노트 유형에 원문 객관식 저장 패널을 추가',
+      '빠른 입력 형식(# 질문, + 정답, - 오답)과 TXT 불러오기/적용 기능을 연결',
+      '원문 문제 줄기, 보기, 정답 보기 번호를 단권화 노트 데이터와 JSON 백업/복원 흐름에 포함',
+    ]
+  },
+  {
+    title: '최신 · 입력기닫기노트휴지통보강',
+    items: [
+      '특수문자 입력기와 수식 입력기 패널 하단에 명시적 닫기 버튼을 추가',
+      '단권화 노트 워드 편집기 안의 특수문자/수식 입력기를 데스크톱에서 수평 전개되도록 개선',
+      '데이터 관리의 위험 작업 영역에 단권화 노트 휴지통 진입 버튼을 고정 배치',
+    ]
+  },
+  {
+    title: '최신 · 상단데이터버튼정리',
+    items: [
+      '하단 데이터 버튼과 기능이 중복되던 상단 데이터 버튼을 제거',
+      '데이터 관리는 하단 바의 데이터 버튼에서 별도 패널로 열리도록 진입 경로를 단순화',
+      '상단 헤더의 버튼 밀도를 낮춰 외부검색, 설정, 통계, 최종상태 저장, 저장본 확인, 개발자 정보가 더 잘 보이도록 정리',
+    ]
+  },
+  {
+    title: '최신 · 유용한사이트추가',
+    items: [
+      '하단 바 가이드 버튼 옆에 사이트 버튼을 추가하고 시험정보/학습정보 관련 사이트를 별도 창으로 정리',
+      'FSMB, INTEALTH, World Directory of Medical Schools, ICD-11, 메디톡, 알렌의 서재, 국시원 기출문제 링크를 새 탭으로 열도록 구성',
+      '하단바 폭을 고려해 버튼 라벨은 사이트로 짧게 두고, 모달 제목에서 유용한 사이트임을 명확히 표시',
+    ]
+  },
+  {
+    title: '최신 · 외부검색SQL버전창분리',
+    items: [
+      '하단 바 데이터 버튼 옆에 외부 의학용어 검색 창을 추가하고 KMA, Merriam-Webster, KMLE 검색엔진 링크를 새 창으로 열도록 정리',
+      '데이터, 퀴즈, 가이드 하단 버튼은 현재 학습 화면을 유지한 채 별도 패널로 열리도록 변경',
+      'Supabase 동기화 스키마 SQL에 버전명과 업데이트 시각을 표시하고, 개발자 정보의 SQL 영역에서도 버전을 확인할 수 있도록 보강',
+    ]
+  },
+  {
+    title: '최신 · 단권화 노트 도메인 통합 보강',
+    items: [
+      '단권화 노트 워드 편집기에 특수문자 입력기와 수식 입력기를 추가하고, USMLE/KMLE 출처 입력 및 검색을 분리',
+      '노트 목록은 제목 중심으로 정리하고 클릭 시 넓은 상세 팝업으로 열리도록 개선',
+      '단권화 노트 휴지통, 백업/복원 안내, 동기화 진단 안내, 즐겨찾기 및 주요 도메인 즐겨찾기 표시를 보강',
+    ]
+  },
   {
     title: '최신 · 단권화 노트 자동링크 직접 열기',
     items: [
@@ -14171,7 +14760,11 @@ const UPDATE_HISTORY = [
   }
 ];
 
+const SUPABASE_SCHEMA_VERSION = 'v4.12 · 외부검색SQL버전창분리';
+const SUPABASE_SCHEMA_UPDATED_AT = '2026년 6월 23일 18:17';
 const SUPABASE_SCHEMA_SQL = `-- Dr. Bugeon 의학용어 앱 Supabase 통합 스키마
+-- Schema version: ${SUPABASE_SCHEMA_VERSION}
+-- Schema updated at: ${SUPABASE_SCHEMA_UPDATED_AT}
 -- 핵심: medical_terms, medical_drugs, medical_formulas, medical_microbes, deleted_at, updated_at, language_sync_meta가 반드시 필요합니다.
 
 create table if not exists public.medical_terms (
@@ -14658,7 +15251,7 @@ function currentFileName() {
 
 function copySupabaseSchema() {
   navigator.clipboard?.writeText(SUPABASE_SCHEMA_SQL)
-    .then(() => showToast('📋 Supabase 설정 SQL 복사 완료'))
+    .then(() => showToast(`📋 Supabase 설정 SQL 복사 완료 · ${SUPABASE_SCHEMA_VERSION}`))
     .catch(() => showToast('⚠️ SQL 복사에 실패했습니다'));
 }
 
@@ -15086,6 +15679,10 @@ function showDeveloperInfo() {
         ${olderSummaryHtml}
         <details class="update-history-card">
           <summary style="cursor:pointer;color:#74b0ff;font-size:12px;font-weight:700">Supabase 동기화 스키마 설정 SQL</summary>
+          <div style="margin:9px 0 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+            <span style="display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:var(--surface);color:var(--text);font-size:10px;font-weight:850">${escapeHtml(SUPABASE_SCHEMA_VERSION)}</span>
+            <span style="color:var(--text3);font-size:10px">SQL 업데이트: ${escapeHtml(SUPABASE_SCHEMA_UPDATED_AT)}</span>
+          </div>
           <div style="font-size:10px;color:var(--text3);line-height:1.6;margin:9px 0">Supabase SQL Editor에서 한 번 실행해야 새 동기화 기능을 사용할 수 있습니다.</div>
           <pre style="white-space:pre-wrap;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:10px;line-height:1.55">${escapeHtml(SUPABASE_SCHEMA_SQL)}</pre>
           <button onclick="copySupabaseSchema()" style="width:100%;background:#1f6feb;border:none;border-radius:8px;padding:9px;color:white;font-size:11px;font-weight:700;cursor:pointer">📋 설정 SQL 복사</button>
@@ -17066,6 +17663,31 @@ initApp();
     });
     return root.innerHTML;
   }
+  function normalizeNoteMcq(raw = {}) {
+    const src = raw || {};
+    const rawOptions = Array.isArray(src.options) ? src.options : (Array.isArray(src.choices) ? src.choices : []);
+    const options = rawOptions.map(v => String(v || '').trim()).filter(Boolean);
+    const answerRaw = src.answerIndex ?? src.answer_index ?? 0;
+    const answerIndex = Number.isFinite(Number(answerRaw)) ? Math.max(0, Math.min(options.length ? options.length - 1 : 0, Number(answerRaw))) : 0;
+    const rawAnswerIndexes = Array.isArray(src.answerIndexes) ? src.answerIndexes : (Array.isArray(src.answer_indexes) ? src.answer_indexes : [answerIndex]);
+    const answerIndexes = [...new Set(rawAnswerIndexes
+      .map(v => Number(v))
+      .filter(v => Number.isFinite(v) && v >= 0 && v < Math.max(options.length, 1))
+      .map(v => Math.floor(v)))];
+    if (!answerIndexes.length) answerIndexes.push(answerIndex);
+    const quickText = String(src.quickText || src.quick_text || '').trim();
+    const stemFull = String(src.stemFull || src.stem_full || src.stem || '').trim();
+    const enabled = Boolean(src.enabled || quickText || stemFull || options.length);
+    return {
+      enabled,
+      quickText,
+      stemFull,
+      options,
+      answerIndex,
+      answerIndexes,
+      shuffleOnRetry: src.shuffleOnRetry !== false && src.shuffle_on_retry !== false,
+    };
+  }
   function normalizeIntegratedNote(raw = {}) {
     const now = noteNow();
     return {
@@ -17087,10 +17709,15 @@ initApp();
       wrongReason: String(raw.wrongReason || raw.wrong_reason || '').trim(),
       trap: String(raw.trap || '').trim(),
       nextCue: String(raw.nextCue || raw.next_cue || '').trim(),
+      originalMcq: normalizeNoteMcq(raw.originalMcq || raw.original_mcq || raw.mcq || {}),
+      usmleSource: String(raw.usmleSource || raw.usmle_source || '').trim(),
+      kmleSource: String(raw.kmleSource || raw.kmle_source || '').trim(),
       tags: noteListFromText(raw.tags),
+      favorite: Boolean(raw.favorite || raw.bookmarked),
       createdAt: raw.createdAt || raw.created_at || now,
       updatedAt: raw.updatedAt || raw.updated_at || now,
       deletedAt: raw.deletedAt || raw.deleted_at || null,
+      hiddenAt: raw.hiddenAt || raw.hidden_at || null,
     };
   }
   async function loadIntegratedNotes() {
@@ -17164,9 +17791,12 @@ initApp();
     return NOTEBOOK.filter(n => !n.deletedAt);
   }
   function noteSearchText(n) {
+    const mcq = normalizeNoteMcq(n.originalMcq || {});
     return [
       n.title, n.system, n.noteType, n.summary, n.keyPoint, n.comparison, noteHtmlToText(n.bodyHtml),
       n.wrongStem, n.myAnswer, n.correctAnswer, n.wrongReason, n.trap, n.nextCue,
+      mcq.quickText, mcq.stemFull, ...mcq.options,
+      n.usmleSource, n.kmleSource,
       ...n.linkedTerms, ...n.linkedDrugs, ...n.linkedMicrobes, ...n.linkedFormulas, ...n.tags
     ].filter(Boolean).join(' ').toLowerCase();
   }
@@ -17202,7 +17832,6 @@ initApp();
         <section class="note-frame">
           <div class="note-frame-title">
             <strong>🧠 단권화 노트 · 0개</strong>
-            <button class="inline-add-btn" onclick="openIntegratedNoteModal()">+ 노트 추가</button>
           </div>
           <div class="note-empty-card">
             <div class="icon">🧠</div>
@@ -17216,7 +17845,6 @@ initApp();
           <div class="note-frame-title">
             <strong>🧠 단권화 노트 · ${rows.length}개</strong>
             <span>개념과 오답을 기존 학습자료에 연결</span>
-            <button class="inline-add-btn" onclick="openIntegratedNoteModal()">+ 노트 추가</button>
           </div>
           ${rows.map(n => `
             <article class="note-card" id="note-card-${Number(n.id)}">
@@ -17254,9 +17882,151 @@ initApp();
         </section>`;
     }
     const sectionLabel = document.getElementById('sectionLabel');
-    if (sectionLabel) sectionLabel.innerHTML = `<div class="section-label-row"><span class="section-label-spacer">전체 단권화 노트 — ${rows.length}개</span><button class="inline-add-btn" onclick="openIntegratedNoteModal()">+ 노트 추가</button></div>`;
+    if (sectionLabel) sectionLabel.innerHTML = `<div class="section-label-row"><span class="section-label-spacer">전체 단권화 노트 · ${rows.length}개</span></div>`;
     updateCounts(rows.length, rows.length, 'notes');
   }
+  function noteOriginalMcqViewHtml(n) {
+    const mcq = normalizeNoteMcq(n?.originalMcq || {});
+    if (!mcq.enabled || (!mcq.stemFull && !mcq.options.length)) return '';
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const answers = new Set(mcq.answerIndexes || [mcq.answerIndex]);
+    return `
+      <section class="note-mcq-view">
+        <div class="note-wrong-label">Original MCQ</div>
+        ${mcq.stemFull ? `<div class="note-mcq-view-stem">${escapeHtml(mcq.stemFull)}</div>` : ''}
+        ${mcq.options.length ? `
+          <div class="note-mcq-view-options">
+            ${mcq.options.map((opt, idx) => `
+              <div class="note-mcq-view-option ${answers.has(idx) ? 'correct' : ''}">
+                <b>${letters[idx] || '?'}</b>. ${escapeHtml(opt)}
+              </div>
+            `).join('')}
+          </div>` : ''}
+      </section>`;
+  }
+  function noteSourceBadges(n) {
+    return [
+      n.usmleSource ? `<span class="note-link-chip formulas">USMLE ${escapeHtml(n.usmleSource)}</span>` : '',
+      n.kmleSource ? `<span class="note-link-chip terms">KMLE ${escapeHtml(n.kmleSource)}</span>` : ''
+    ].filter(Boolean).join('');
+  }
+  function integratedNoteDetailHtml(n) {
+    return `
+      <div class="note-view-stack">
+        ${n.summary ? `<section class="note-summary">${escapeHtml(n.summary)}</section>` : ''}
+        ${n.keyPoint ? `<section class="note-keyline"><span>핵심</span>${escapeHtml(n.keyPoint)}</section>` : ''}
+        ${noteSourceBadges(n) ? `<section class="note-links">${noteSourceBadges(n)}</section>` : ''}
+        ${noteOriginalMcqViewHtml(n)}
+        ${n.bodyHtml ? `<section class="note-body-render">${linkifyNoteBodyHtml(n.bodyHtml)}</section>` : ''}
+        ${n.comparison ? `<section class="note-comparison">${escapeHtml(n.comparison)}</section>` : ''}
+        ${n.wrongStem || n.wrongReason || n.trap || n.nextCue ? `
+          <section class="note-wrong-box">
+            <div class="note-wrong-label">오답노트</div>
+            ${n.wrongStem ? `<div><b>문항:</b> ${escapeHtml(n.wrongStem)}</div>` : ''}
+            ${n.myAnswer || n.correctAnswer ? `<div><b>내 답 / 정답:</b> ${escapeHtml([n.myAnswer, n.correctAnswer].filter(Boolean).join(' → '))}</div>` : ''}
+            ${n.wrongReason ? `<div><b>틀린 이유:</b> ${escapeHtml(n.wrongReason)}</div>` : ''}
+            ${n.trap ? `<div><b>오답 함정:</b> ${escapeHtml(n.trap)}</div>` : ''}
+            ${n.nextCue ? `<div><b>다음 단서:</b> ${escapeHtml(n.nextCue)}</div>` : ''}
+          </section>` : ''}
+        <section class="note-links">
+          ${noteLinkGroup('용어', 'terms', n.linkedTerms)}
+          ${noteLinkGroup('약물', 'drugs', n.linkedDrugs)}
+          ${noteLinkGroup('미생물', 'microbes', n.linkedMicrobes)}
+          ${noteLinkGroup('공식', 'formulas', n.linkedFormulas)}
+        </section>
+      </div>`;
+  }
+  window.openIntegratedNoteView = function openIntegratedNoteView(id) {
+    const n = NOTEBOOK.find(row => Number(row.id) === Number(id) && !row.deletedAt);
+    if (!n) { showToast('노트를 찾을 수 없습니다.'); return; }
+    document.getElementById('integratedNoteViewModal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="note-modal-overlay" id="integratedNoteViewModal">
+        <div class="note-modal note-view-modal" role="dialog" aria-modal="true" aria-label="단권화 노트 보기">
+          <div class="note-modal-head">
+            <div>
+              <h2>${escapeHtml(n.title || '제목 없음')}</h2>
+              <p>${escapeHtml(n.system || 'General')} · ${n.noteType === 'wrong' ? '오답노트' : '개념노트'}${n.tags?.length ? ' · ' + escapeHtml(n.tags.join(', ')) : ''}</p>
+            </div>
+            <div class="note-actions">
+              <button class="bookmark-btn ${n.favorite ? 'saved' : ''}" onclick="toggleIntegratedNoteFavorite(event,${Number(n.id)})" title="즐겨찾기" aria-label="즐겨찾기">${n.favorite ? '★' : '☆'}</button>
+              <button class="bookmark-btn" onclick="closeIntegratedNoteView(); openIntegratedNoteModal(${Number(n.id)})" title="편집" aria-label="편집">✎</button>
+              <button class="drawer-close-btn" onclick="closeIntegratedNoteView()" aria-label="닫기">×</button>
+            </div>
+          </div>
+          <div class="note-modal-body">${integratedNoteDetailHtml(n)}</div>
+        </div>
+      </div>`);
+  };
+  window.closeIntegratedNoteView = function closeIntegratedNoteView() {
+    document.getElementById('integratedNoteViewModal')?.remove();
+  };
+  window.toggleIntegratedNoteFavorite = function toggleIntegratedNoteFavorite(event, id) {
+    event?.stopPropagation();
+    const idx = NOTEBOOK.findIndex(n => Number(n.id) === Number(id));
+    if (idx < 0) return;
+    NOTEBOOK[idx] = { ...NOTEBOOK[idx], favorite: !NOTEBOOK[idx].favorite, updatedAt: noteNow() };
+    saveIntegratedNotes();
+    renderIntegratedNoteFrame();
+    const openView = document.getElementById('integratedNoteViewModal');
+    if (openView) openIntegratedNoteView(id);
+  };
+  function renderIntegratedNoteFrame(notes = filterIntegratedNotes(document.getElementById('searchInput')?.value || '')) {
+    ensureIntegratedNoteShell();
+    invalidateNoteLinkContext();
+    ['termList', 'drugFrame', 'formulaFrame', 'microbeFrame'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
+    const empty = document.getElementById('emptyState');
+    if (empty) empty.style.display = 'none';
+    const frame = document.getElementById('noteFrame');
+    if (!frame) return;
+    const rows = Array.isArray(notes) ? notes.filter(n => !n.deletedAt) : [];
+    const sectionLabel = document.getElementById('sectionLabel');
+    if (sectionLabel) {
+      sectionLabel.innerHTML = `<div class="section-label-row"><span class="section-label-spacer">전체 단권화 노트 · ${rows.length}개</span><button class="inline-add-btn" onclick="openIntegratedNoteModal()">+ 노트 추가</button></div>`;
+    }
+    if (!rows.length) {
+      frame.innerHTML = `
+        <section class="note-frame">
+          <div class="note-frame-title">
+            <strong>📘 단권화 노트 · 0개</strong>
+            <span>개념노트와 오답노트를 용어·미생물·약물·공식과 연결합니다.</span>
+          </div>
+          <div class="note-empty-card">
+            <div class="icon">📘</div>
+            <h3>단권화 노트가 없습니다</h3>
+            <p>상단의 노트 추가 버튼으로 개념 흐름, 오답 함정, 연결 자료를 한 카드에 정리해보세요.</p>
+          </div>
+        </section>`;
+    } else {
+      frame.innerHTML = `
+        <section class="note-frame">
+          <div class="note-frame-title">
+            <strong>📘 단권화 노트 · ${rows.length}개</strong>
+            <span>목록은 제목만 보고, 클릭하면 넓은 팝업에서 내용을 확인합니다.</span>
+          </div>
+          ${rows.map(n => `
+            <article class="note-card note-list-card" id="note-card-${Number(n.id)}" onclick="openIntegratedNoteView(${Number(n.id)})">
+              <div class="note-card-head">
+                <div>
+                  <div class="note-title">${escapeHtml(n.title || '제목 없음')}</div>
+                  <div class="note-meta">${escapeHtml(n.system || 'General')} · ${n.noteType === 'wrong' ? '오답노트' : '개념노트'}${n.tags?.length ? ' · ' + escapeHtml(n.tags.slice(0, 3).join(', ')) : ''}</div>
+                </div>
+                <div class="note-actions">
+                  <button class="bookmark-btn ${n.favorite ? 'saved' : ''}" onclick="toggleIntegratedNoteFavorite(event,${Number(n.id)})" title="즐겨찾기" aria-label="즐겨찾기">${n.favorite ? '★' : '☆'}</button>
+                  <button class="bookmark-btn" onclick="event.stopPropagation(); openIntegratedNoteModal(${Number(n.id)})" title="편집" aria-label="편집">✎</button>
+                  <button class="bookmark-btn danger" onclick="event.stopPropagation(); deleteIntegratedNote(${Number(n.id)})" title="삭제" aria-label="삭제">×</button>
+                </div>
+              </div>
+            </article>
+          `).join('')}
+        </section>`;
+    }
+    updateCounts(rows.length, rows.length, 'notes');
+  }
+
   function renderIntegratedNoteFilters() {
     const conceptTitle = document.getElementById('conceptFilterTitle');
     const systemTitle = document.getElementById('systemFilterTitle');
@@ -17323,6 +18093,25 @@ initApp();
       : `<input id="${id}" value="${safe.replace(/"/g, '&quot;')}" placeholder="${escapeHtml(placeholder)}" style="${noteInputStyle}">`;
     return `<div class="note-modal-field"><label>${escapeHtml(label)}</label>${tag}</div>`;
   }
+  function noteSourceField(id, label, value = '', placeholder = '', kind = 'usmle') {
+    const safe = escapeHtml(String(value || '')).replace(/"/g, '&quot;');
+    return `
+      <div class="note-modal-field">
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span>${escapeHtml(label)}</span>
+          <button type="button" class="note-source-search-btn" onclick="searchIntegratedNoteSource('${kind}')">출처 검색</button>
+        </label>
+        <input id="${id}" value="${safe}" placeholder="${escapeHtml(placeholder)}" style="${noteInputStyle}">
+      </div>`;
+  }
+  window.searchIntegratedNoteSource = function searchIntegratedNoteSource(kind = 'usmle') {
+    const title = document.getElementById('noteTitle')?.value?.trim() || '';
+    const source = document.getElementById(kind === 'kmle' ? 'noteKmleSource' : 'noteUsmleSource')?.value?.trim() || '';
+    const suffix = kind === 'kmle' ? 'KMLE 의사국가고시 의학' : 'USMLE First Aid UWorld medical';
+    const query = [title, source, suffix].filter(Boolean).join(' ');
+    if (!query) { showToast('검색할 노트 제목이나 출처 단서를 먼저 입력해주세요.'); return; }
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+  };
   function noteTemplateHtml(type = 'concept') {
     if (type === 'wrong') {
       return `
@@ -17365,6 +18154,49 @@ initApp();
     if (!editor) return;
     document.execCommand('insertHTML', false, html);
   };
+  window.insertNoteEditorText = function insertNoteEditorText(text) {
+    const editor = focusNoteEditor();
+    if (!editor) return;
+    document.execCommand('insertText', false, String(text || ''));
+  };
+  function noteEditorSymbolHelperHtml() {
+    return `
+      <details class="formula-input-helper medical-symbol-helper">
+        <summary>특수문자 입력기<span style="font-weight:600;color:var(--text3)">본문 커서 위치에 삽입</span></summary>
+        <div class="formula-input-panel medical-symbol-panel">
+          ${MEDICAL_SYMBOL_GROUPS.map(group => `
+            <div class="formula-input-group">
+              <div class="formula-input-group-title">${escapeHtml(group.title)}</div>
+              <div class="formula-input-chip-row">
+                ${group.chips.map(chip => `<button type="button" class="formula-input-chip" onmousedown="event.preventDefault()" onclick="insertNoteEditorText('${escapeJsString(chip)}')" title="${escapeHtml(chip)} 삽입">${escapeHtml(chip)}</button>`).join('')}
+              </div>
+            </div>`).join('')}
+          ${inputHelperCloseButtonHtml()}
+        </div>
+      </details>`;
+  }
+  function noteEditorFormulaHelperHtml() {
+    return `
+      <details class="formula-input-helper">
+        <summary>수식 입력기<span style="font-weight:600;color:var(--text3)">계산식/단위/표현 빠른 입력</span></summary>
+        <div class="formula-input-panel">
+          <div class="formula-input-group">
+            <div class="formula-input-group-title">자주 쓰는 수식 템플릿</div>
+            <div class="formula-input-chip-row">
+              ${FORMULA_TEMPLATE_CHIPS.map(chip => `<button type="button" class="formula-template-chip" onmousedown="event.preventDefault()" onclick="insertNoteEditorText('${escapeJsString(chip.value)}')" title="${escapeHtml(chip.label)} 삽입">${escapeHtml(chip.label)}</button>`).join('')}
+            </div>
+          </div>
+          ${FORMULA_INPUT_GROUPS.map(group => `
+            <div class="formula-input-group">
+              <div class="formula-input-group-title">${escapeHtml(group.title)}</div>
+              <div class="formula-input-chip-row">
+                ${group.chips.map(chip => `<button type="button" class="formula-input-chip" onmousedown="event.preventDefault()" onclick="insertNoteEditorText('${escapeJsString(chip)}')" title="${escapeHtml(chip)} 삽입">${escapeHtml(chip)}</button>`).join('')}
+              </div>
+            </div>`).join('')}
+          ${inputHelperCloseButtonHtml()}
+        </div>
+      </details>`;
+  }
 
   // ───────── 워드형 표 편집 (셀 우클릭/롱프레스 메뉴 · Tab 이동) ─────────
   function placeCaretInCell(cell) {
@@ -17577,11 +18409,294 @@ initApp();
             <span class="note-tool-sep" aria-hidden="true"></span>
             <button type="button" onclick="applyNoteTypeTemplateFromSelect(true)">템플릿 다시 적용</button>
           </div>
+          <div class="note-editor-helper-grid">
+            ${noteEditorSymbolHelperHtml()}
+            ${noteEditorFormulaHelperHtml()}
+          </div>
           <div id="noteBodyEditor" class="note-editor" contenteditable="true" data-placeholder="개념 흐름, 표, 오답 함정, 암기 포인트를 자유롭게 정리하세요.">${body}</div>
         </div>
         <div class="note-template-hint">노트 유형을 바꾸면 개념노트/오답노트에 맞는 기본 템플릿을 적용할 수 있습니다.</div>
       </div>`;
   }
+  function noteMcqLetter(idx) {
+    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[idx] || '?';
+  }
+  function renderNoteMcqChoiceRow(idx, value = '', answerIndex = 0) {
+    const letter = noteMcqLetter(idx);
+    return `
+      <div class="note-mcq-choice-row ${idx === answerIndex ? 'correct' : ''}" data-choice-index="${idx}">
+        <button type="button" class="note-mcq-choice-letter" onclick="setNoteMcqAnswer(${idx})" title="정답 보기로 지정">${letter}</button>
+        <input class="note-mcq-choice-input" value="${escapeHtml(value)}" placeholder="보기 ${letter}" style="${noteInputStyle}">
+        <button type="button" class="drawer-close-btn" onclick="removeNoteMcqChoice(${idx})" title="보기 삭제" aria-label="보기 삭제">×</button>
+      </div>`;
+  }
+  function setNoteMcqChoices(options = [], answerIndex = 0) {
+    const box = document.getElementById('noteMcqChoices');
+    if (!box) return;
+    const rows = [...options];
+    while (rows.length < 4) rows.push('');
+    const safeAnswer = Math.max(0, Math.min(rows.length - 1, Number(answerIndex) || 0));
+    box.innerHTML = rows.map((value, idx) => renderNoteMcqChoiceRow(idx, value, safeAnswer)).join('');
+  }
+  function parseNoteMcqQuickText(text = '') {
+    const lines = String(text || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    const stem = [];
+    const options = [];
+    let answerIndex = 0;
+    lines.forEach(line => {
+      if (/^\+/.test(line)) {
+        answerIndex = options.length;
+        options.push(line.replace(/^\+\s*/, '').trim());
+      } else if (/^-/.test(line)) {
+        options.push(line.replace(/^-\s*/, '').trim());
+      } else if (/^#/.test(line)) {
+        stem.push(line.replace(/^#\s*/, '').trim());
+      } else if (/^Q[:.)\s]/i.test(line)) {
+        stem.push(line.replace(/^Q[:.)\s]*/i, '').trim());
+      } else if (/^[A-H][\).]\s*/i.test(line)) {
+        options.push(line.replace(/^[A-H][\).]\s*/i, '').trim());
+      } else {
+        stem.push(line);
+      }
+    });
+    return { stemFull: stem.join('\n'), options: options.filter(Boolean), answerIndex };
+  }
+  function noteOriginalMcqEditorHtml(n) {
+    const mcq = normalizeNoteMcq(n?.originalMcq || {});
+    const options = [...mcq.options];
+    while (options.length < 4) options.push('');
+    const hidden = n.noteType === 'wrong' ? '' : ' hidden';
+    const open = n.noteType === 'wrong' ? ' open' : '';
+    return `
+      <section id="noteOriginalMcqPanel" class="note-original-mcq${hidden}${open}">
+        <button type="button" class="note-original-mcq-toggle" onclick="toggleNoteOriginalMcqPanel()">
+          <span>☑ 원문 객관식 저장 (선택) <span style="color:var(--text3);font-weight:700">· 재시도 시 보기 셔플</span></span>
+          <span class="play">▶</span>
+        </button>
+        <div class="note-original-mcq-drawer">
+          <div class="note-mcq-side">
+            <div style="font-weight:900;color:var(--text2)">빠른 객관식 입력 # 질문 / + 정답 / - 오답</div>
+            <div style="color:var(--text3);line-height:1.55">원문 객관식만 채웁니다. Stem, 정답, 생각 로직은 본문 편집기에 따로 정리하세요.</div>
+            <div class="note-mcq-tools">
+              <button type="button" onclick="document.getElementById('noteMcqTxtFile')?.click()">TXT 불러오기</button>
+              <button type="button" class="accent" onclick="applyNoteMcqQuickText()">아래 내용 적용</button>
+            </div>
+            <input id="noteMcqTxtFile" type="file" accept=".txt,text/plain" style="display:none" onchange="loadNoteMcqTxtFile(event)">
+            <textarea id="noteMcqQuickText" style="${noteInputStyle};min-height:145px" placeholder="# 원문 문제&#10;+ 정답 보기&#10;- 오답 보기">${escapeHtml(mcq.quickText)}</textarea>
+          </div>
+          <div class="note-mcq-main">
+            <label style="font-weight:800;color:var(--text2)">원문 문제 줄기</label>
+            <textarea id="noteMcqStem" style="${noteInputStyle};min-height:110px" placeholder="원문 문제 줄기">${escapeHtml(mcq.stemFull)}</textarea>
+            <div id="noteMcqChoices">${options.map((value, idx) => renderNoteMcqChoiceRow(idx, value, mcq.answerIndex)).join('')}</div>
+            <button type="button" class="data-action-btn outline" onclick="addNoteMcqChoice()">+ 보기 추가</button>
+          </div>
+        </div>
+      </section>`;
+  }
+  function readNoteOriginalMcqFromModal() {
+    const noteType = document.getElementById('noteType')?.value || 'concept';
+    const quickText = document.getElementById('noteMcqQuickText')?.value || '';
+    const stemFull = document.getElementById('noteMcqStem')?.value || '';
+    const rows = [...document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row')];
+    const options = rows.map(row => row.querySelector('.note-mcq-choice-input')?.value?.trim() || '').filter(Boolean);
+    let answerIndex = rows.findIndex(row => row.classList.contains('correct'));
+    if (answerIndex < 0) answerIndex = 0;
+    const enabled = noteType === 'wrong' && Boolean(quickText.trim() || stemFull.trim() || options.length);
+    return normalizeNoteMcq({ enabled, quickText, stemFull, options, answerIndex, shuffleOnRetry: true });
+  }
+  window.toggleNoteOriginalMcqPanel = function toggleNoteOriginalMcqPanel() {
+    document.getElementById('noteOriginalMcqPanel')?.classList.toggle('open');
+  };
+  window.syncNoteOriginalMcqVisibility = function syncNoteOriginalMcqVisibility() {
+    const panel = document.getElementById('noteOriginalMcqPanel');
+    if (!panel) return;
+    const isWrong = (document.getElementById('noteType')?.value || 'concept') === 'wrong';
+    panel.classList.toggle('hidden', !isWrong);
+    if (isWrong) panel.classList.add('open');
+  };
+  window.setNoteMcqAnswer = function setNoteMcqAnswer(idx) {
+    document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row').forEach((row, rowIdx) => {
+      row.classList.toggle('correct', rowIdx === Number(idx));
+    });
+  };
+  window.addNoteMcqChoice = function addNoteMcqChoice() {
+    const rows = [...document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row')];
+    const values = rows.map(row => row.querySelector('.note-mcq-choice-input')?.value || '');
+    let answerIndex = rows.findIndex(row => row.classList.contains('correct'));
+    if (answerIndex < 0) answerIndex = 0;
+    values.push('');
+    setNoteMcqChoices(values, answerIndex);
+  };
+  window.removeNoteMcqChoice = function removeNoteMcqChoice(idx) {
+    const rows = [...document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row')];
+    if (rows.length <= 2) { showToast('보기는 최소 2개가 필요합니다.'); return; }
+    const values = rows.map(row => row.querySelector('.note-mcq-choice-input')?.value || '');
+    let answerIndex = rows.findIndex(row => row.classList.contains('correct'));
+    values.splice(Number(idx), 1);
+    if (answerIndex >= values.length) answerIndex = values.length - 1;
+    if (Number(idx) < answerIndex) answerIndex -= 1;
+    setNoteMcqChoices(values, Math.max(0, answerIndex));
+  };
+  window.applyNoteMcqQuickText = function applyNoteMcqQuickText() {
+    const quick = document.getElementById('noteMcqQuickText')?.value || '';
+    const parsed = parseNoteMcqQuickText(quick);
+    const stem = document.getElementById('noteMcqStem');
+    if (stem && parsed.stemFull) stem.value = parsed.stemFull;
+    if (parsed.options.length) setNoteMcqChoices(parsed.options, parsed.answerIndex);
+    showToast(parsed.options.length ? '원문 객관식을 적용했습니다.' : '적용할 보기를 찾지 못했습니다.');
+  };
+  window.loadNoteMcqTxtFile = async function loadNoteMcqTxtFile(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const box = document.getElementById('noteMcqQuickText');
+      if (box) box.value = text;
+      applyNoteMcqQuickText();
+    } catch (err) {
+      console.warn(err);
+      showToast('TXT 파일을 읽지 못했습니다.');
+    } finally {
+      if (event?.target) event.target.value = '';
+    }
+  };
+  function renderNoteMcqChoiceRow(idx, value = '', answerIndexes = [0]) {
+    const letter = noteMcqLetter(idx);
+    const correct = Array.isArray(answerIndexes) ? answerIndexes.includes(idx) : Number(answerIndexes) === idx;
+    return `
+      <div class="note-mcq-choice-row ${correct ? 'correct' : ''}" data-choice-index="${idx}">
+        <button type="button" class="note-mcq-choice-letter" onclick="toggleNoteMcqAnswer(${idx})" title="정답 보기 토글">${letter}</button>
+        <input class="note-mcq-choice-input" value="${escapeHtml(value)}" placeholder="보기 ${letter}" style="${noteInputStyle}">
+        <button type="button" class="drawer-close-btn" onclick="removeNoteMcqChoice(${idx})" title="보기 삭제" aria-label="보기 삭제">×</button>
+      </div>`;
+  }
+  function currentNoteMcqAnswerIndexes() {
+    return [...document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row')]
+      .map((row, idx) => row.classList.contains('correct') ? idx : -1)
+      .filter(idx => idx >= 0);
+  }
+  function setNoteMcqChoices(options = [], answerIndexes = [0]) {
+    const box = document.getElementById('noteMcqChoices');
+    if (!box) return;
+    const rows = [...options];
+    while (rows.length < 4) rows.push('');
+    const raw = Array.isArray(answerIndexes) ? answerIndexes : [answerIndexes];
+    const safeAnswers = [...new Set(raw.map(v => Number(v)).filter(v => Number.isFinite(v) && v >= 0 && v < rows.length).map(v => Math.floor(v)))];
+    if (!safeAnswers.length) safeAnswers.push(0);
+    box.innerHTML = rows.map((value, idx) => renderNoteMcqChoiceRow(idx, value, safeAnswers)).join('');
+  }
+  function parseNoteMcqQuickText(text = '') {
+    const lines = String(text || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    const stem = [];
+    const options = [];
+    const answerIndexes = [];
+    lines.forEach(line => {
+      if (/^\+/.test(line)) {
+        answerIndexes.push(options.length);
+        options.push(line.replace(/^\+\s*/, '').trim());
+      } else if (/^-/.test(line)) {
+        options.push(line.replace(/^-\s*/, '').trim());
+      } else if (/^#/.test(line)) {
+        stem.push(line.replace(/^#\s*/, '').trim());
+      } else if (/^Q[:.)\s]/i.test(line)) {
+        stem.push(line.replace(/^Q[:.)\s]*/i, '').trim());
+      } else if (/^[A-H][\).]\s*/i.test(line)) {
+        options.push(line.replace(/^[A-H][\).]\s*/i, '').trim());
+      } else {
+        stem.push(line);
+      }
+    });
+    return { stemFull: stem.join('\n'), options: options.filter(Boolean), answerIndexes };
+  }
+  function noteOriginalMcqEditorHtml(n) {
+    const mcq = normalizeNoteMcq(n?.originalMcq || {});
+    const options = [...mcq.options];
+    while (options.length < 4) options.push('');
+    const hidden = n.noteType === 'wrong' ? '' : ' hidden';
+    const open = n.noteType === 'wrong' ? ' open' : '';
+    return `
+      <section id="noteOriginalMcqPanel" class="note-original-mcq${hidden}${open}">
+        <button type="button" class="note-original-mcq-toggle" onclick="toggleNoteOriginalMcqPanel()">
+          <span class="note-original-mcq-toggle-title">
+            <strong>원문 객관식 저장</strong>
+            <small>선택 입력 · + 표시는 복수 정답으로 저장 · 재시도 시 보기 셔플</small>
+          </span>
+          <span class="play">▶</span>
+        </button>
+        <div class="note-original-mcq-drawer">
+          <div class="note-mcq-side">
+            <div class="note-mcq-panel-title">
+              <strong>빠른 입력</strong>
+              <span># 질문, + 정답, - 오답 형식으로 붙여넣으면 오른쪽 원문 카드가 자동 정리됩니다.</span>
+            </div>
+            <div class="note-mcq-tools">
+              <button type="button" onclick="document.getElementById('noteMcqTxtFile')?.click()">TXT 불러오기</button>
+              <button type="button" class="accent" onclick="applyNoteMcqQuickText()">내용 적용</button>
+            </div>
+            <input id="noteMcqTxtFile" type="file" accept=".txt,text/plain" style="display:none" onchange="loadNoteMcqTxtFile(event)">
+            <textarea id="noteMcqQuickText" style="${noteInputStyle};min-height:230px" placeholder="# 원문 문제&#10;+ 정답 보기&#10;+ 정답 보기 2&#10;- 오답 보기">${escapeHtml(mcq.quickText)}</textarea>
+          </div>
+          <div class="note-mcq-main">
+            <div class="note-mcq-panel-title">
+              <strong>원문 객관식</strong>
+              <span>보기 왼쪽 A/B/C 버튼을 누르면 정답 표시가 토글됩니다. 복수 정답도 가능합니다.</span>
+            </div>
+            <textarea id="noteMcqStem" style="${noteInputStyle};min-height:130px" placeholder="원문 문제 줄기">${escapeHtml(mcq.stemFull)}</textarea>
+            <div id="noteMcqChoices">${options.map((value, idx) => renderNoteMcqChoiceRow(idx, value, mcq.answerIndexes || [mcq.answerIndex])).join('')}</div>
+            <div class="note-mcq-answer-hint">정답 표시는 초록색입니다. +가 여러 줄이면 모두 정답으로 저장됩니다.</div>
+            <button type="button" class="data-action-btn outline" onclick="addNoteMcqChoice()">+ 보기 추가</button>
+          </div>
+        </div>
+      </section>`;
+  }
+  function readNoteOriginalMcqFromModal() {
+    const noteType = document.getElementById('noteType')?.value || 'concept';
+    const quickText = document.getElementById('noteMcqQuickText')?.value || '';
+    const stemFull = document.getElementById('noteMcqStem')?.value || '';
+    const rows = [...document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row')];
+    const options = rows.map(row => row.querySelector('.note-mcq-choice-input')?.value?.trim() || '').filter(Boolean);
+    let answerIndexes = currentNoteMcqAnswerIndexes();
+    if (!answerIndexes.length) answerIndexes = [0];
+    const enabled = noteType === 'wrong' && Boolean(quickText.trim() || stemFull.trim() || options.length);
+    return normalizeNoteMcq({ enabled, quickText, stemFull, options, answerIndex: answerIndexes[0] || 0, answerIndexes, shuffleOnRetry: true });
+  }
+  window.readNoteOriginalMcqFromModal = readNoteOriginalMcqFromModal;
+  window.toggleNoteMcqAnswer = function toggleNoteMcqAnswer(idx) {
+    const row = document.querySelector(`#noteMcqChoices .note-mcq-choice-row[data-choice-index="${Number(idx)}"]`);
+    if (!row) return;
+    row.classList.toggle('correct');
+    if (!currentNoteMcqAnswerIndexes().length) row.classList.add('correct');
+  };
+  window.setNoteMcqAnswer = function setNoteMcqAnswer(idx) {
+    window.toggleNoteMcqAnswer(idx);
+  };
+  window.addNoteMcqChoice = function addNoteMcqChoice() {
+    const rows = [...document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row')];
+    const values = rows.map(row => row.querySelector('.note-mcq-choice-input')?.value || '');
+    const answerIndexes = currentNoteMcqAnswerIndexes();
+    values.push('');
+    setNoteMcqChoices(values, answerIndexes.length ? answerIndexes : [0]);
+  };
+  window.removeNoteMcqChoice = function removeNoteMcqChoice(idx) {
+    const rows = [...document.querySelectorAll('#noteMcqChoices .note-mcq-choice-row')];
+    if (rows.length <= 2) { showToast('보기는 최소 2개가 필요합니다.'); return; }
+    const values = rows.map(row => row.querySelector('.note-mcq-choice-input')?.value || '');
+    const oldAnswers = currentNoteMcqAnswerIndexes();
+    values.splice(Number(idx), 1);
+    const answerIndexes = oldAnswers
+      .filter(answer => answer !== Number(idx))
+      .map(answer => answer > Number(idx) ? answer - 1 : answer)
+      .filter(answer => answer >= 0 && answer < values.length);
+    setNoteMcqChoices(values, answerIndexes.length ? answerIndexes : [0]);
+  };
+  window.applyNoteMcqQuickText = function applyNoteMcqQuickText() {
+    const quick = document.getElementById('noteMcqQuickText')?.value || '';
+    const parsed = parseNoteMcqQuickText(quick);
+    const stem = document.getElementById('noteMcqStem');
+    if (stem && parsed.stemFull) stem.value = parsed.stemFull;
+    if (parsed.options.length) setNoteMcqChoices(parsed.options, parsed.answerIndexes.length ? parsed.answerIndexes : [0]);
+    showToast(parsed.options.length ? `원문 객관식을 적용했습니다. 정답 ${Math.max(parsed.answerIndexes.length, 1)}개` : '적용할 보기를 찾지 못했습니다.');
+  };
   window.openIntegratedNoteModal = function openIntegratedNoteModal(id = null) {
     const existing = id ? NOTEBOOK.find(n => Number(n.id) === Number(id)) : null;
     const n = existing || normalizeIntegratedNote({ id: Date.now(), noteType: 'concept' });
@@ -17596,10 +18711,13 @@ initApp();
           <div class="note-modal-body">
             <div class="note-modal-grid">
               ${modalField('noteTitle', '제목', n.title, 1, '예: Asthma biologics')}
-              <div class="note-modal-field"><label>유형</label><select id="noteType" style="${noteInputStyle}" onchange="applyNoteTypeTemplateFromSelect(false)"><option value="concept" ${n.noteType !== 'wrong' ? 'selected' : ''}>개념노트</option><option value="wrong" ${n.noteType === 'wrong' ? 'selected' : ''}>오답노트</option></select></div>
+              <div class="note-modal-field"><label>유형</label><select id="noteType" style="${noteInputStyle}" onchange="applyNoteTypeTemplateFromSelect(false);syncNoteOriginalMcqVisibility()"><option value="concept" ${n.noteType !== 'wrong' ? 'selected' : ''}>개념노트</option><option value="wrong" ${n.noteType === 'wrong' ? 'selected' : ''}>오답노트</option></select></div>
               ${modalField('noteSystem', '대표 장기계', n.system, 1, 'Pulmonary, Immunology 등')}
               ${modalField('noteTags', '태그', noteCsv(n.tags), 1, '쉼표로 구분')}
+              ${noteSourceField('noteUsmleSource', 'USMLE 출처', n.usmleSource, '예: First Aid 2026, UWorld QID 등', 'usmle')}
+              ${noteSourceField('noteKmleSource', 'KMLE 출처', n.kmleSource, '예: 의사국가고시 기출, KMLE 단서 등', 'kmle')}
             </div>
+            ${noteOriginalMcqEditorHtml(n)}
             ${modalField('noteSummary', '요약', n.summary, 3, '이 노트가 다루는 핵심 개념')}
             ${modalField('noteKeyPoint', '한 줄 핵심', n.keyPoint, 2, '시험장에서 떠올릴 한 문장')}
             ${noteEditorHtml(n.bodyHtml, n.noteType, !existing)}
@@ -17641,6 +18759,8 @@ initApp();
       noteType: value('noteType'),
       system: value('noteSystem') || 'General',
       tags: value('noteTags'),
+      usmleSource: value('noteUsmleSource'),
+      kmleSource: value('noteKmleSource'),
       summary: value('noteSummary'),
       keyPoint: value('noteKeyPoint'),
       bodyHtml,
@@ -17649,6 +18769,7 @@ initApp();
       linkedDrugs: mergeNoteLists(value('noteLinkedDrugs'), autoLinks.drugs),
       linkedMicrobes: mergeNoteLists(value('noteLinkedMicrobes'), autoLinks.microbes),
       linkedFormulas: mergeNoteLists(value('noteLinkedFormulas'), autoLinks.formulas),
+      originalMcq: readNoteOriginalMcqFromModal(),
       wrongStem: old?.wrongStem || '',
       myAnswer: old?.myAnswer || '',
       correctAnswer: old?.correctAnswer || '',
@@ -17757,8 +18878,19 @@ initApp();
       if (!silent) renderIntegratedNoteFrame();
       return;
     }
+    const noteFrame = document.getElementById('noteFrame');
+    if (noteFrame) noteFrame.innerHTML = '';
     originalSetLibraryMode(mode, silent);
     syncIntegratedNoteModeUi();
+  };
+
+  const originalShowAddTermModal = showAddTermModal;
+  showAddTermModal = function patchedShowAddTermModal() {
+    if (currentLibraryMode === 'notes') {
+      openIntegratedNoteModal();
+      return;
+    }
+    return originalShowAddTermModal();
   };
 
   const originalRenderFilterControls = renderFilterControls;
@@ -17784,7 +18916,7 @@ initApp();
       const totalCount = document.getElementById('totalCount');
       if (totalCount) totalCount.textContent = `${shown}개 표시 / 전체 노트 ${activeNotes().length}개`;
       const bookmarkCountEl = document.getElementById('bookmarkCount');
-      if (bookmarkCountEl) bookmarkCountEl.textContent = `단권화 노트 ${activeNotes().length}개`;
+      if (bookmarkCountEl) bookmarkCountEl.textContent = `즐겨찾기 ${activeNotes().filter(n => n.favorite).length}`;
       return;
     }
     return originalUpdateCounts(shown, filtered, mode);
@@ -17817,6 +18949,7 @@ initApp();
     const backup = originalCreateCompleteBackupObject();
     backup.notes = NOTEBOOK.map(normalizeIntegratedNote);
     backup.noteTombstones = loadIntegratedNoteTombstones();
+    backup.domainFavorites = loadDomainFavorites();
     backup.noteMvp = { storage: 'local', syncedToSupabase: false };
     return backup;
   };
@@ -17854,6 +18987,56 @@ initApp();
     showToast(`📦 단권화 노트 JSON 백업 완료 · ${(backup.notes || []).length}개`);
   };
 
+  window.showIntegratedNoteTrashManager = function showIntegratedNoteTrashManager() {
+    const rows = loadIntegratedNoteTombstones().filter(n => !n.hiddenAt);
+    document.getElementById('integratedNoteTrashModal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="note-modal-overlay" id="integratedNoteTrashModal">
+        <div class="note-modal" role="dialog" aria-modal="true" aria-label="단권화 노트 휴지통">
+          <div class="note-modal-head">
+            <div><h2>🗑 단권화 노트 휴지통</h2><p>삭제 기록은 전체 JSON 백업과 복원에 함께 포함됩니다.</p></div>
+            <button class="drawer-close-btn" onclick="document.getElementById('integratedNoteTrashModal')?.remove()" aria-label="닫기">×</button>
+          </div>
+          <div class="note-modal-body">
+            ${rows.length ? rows.map(n => `
+              <article class="note-card note-list-card">
+                <div class="note-card-head">
+                  <div>
+                    <div class="note-title">${escapeHtml(n.title || '제목 없음')}</div>
+                    <div class="note-meta">${escapeHtml(n.system || 'General')} · ${n.noteType === 'wrong' ? '오답노트' : '개념노트'} · 삭제 ${escapeHtml(n.deletedAt || '')}</div>
+                  </div>
+                  <div class="note-actions">
+                    <button class="data-action-btn outline" onclick="restoreIntegratedNoteFromTrash(${Number(n.id)})">복원</button>
+                    <button class="data-action-btn danger" onclick="hideIntegratedNoteTombstone(${Number(n.id)})">숨김</button>
+                  </div>
+                </div>
+              </article>`).join('') : `<div class="note-empty-card"><h3>휴지통이 비어 있습니다</h3><p>삭제된 단권화 노트가 있으면 이곳에서 복원할 수 있습니다.</p></div>`}
+          </div>
+        </div>
+      </div>`);
+  };
+  window.restoreIntegratedNoteFromTrash = function restoreIntegratedNoteFromTrash(id) {
+    const tombstones = loadIntegratedNoteTombstones();
+    const idx = tombstones.findIndex(n => Number(n.id) === Number(id));
+    if (idx < 0) return;
+    const restored = normalizeIntegratedNote({ ...tombstones[idx], deletedAt: null, updatedAt: noteNow() });
+    const activeIdx = NOTEBOOK.findIndex(n => Number(n.id) === Number(id));
+    if (activeIdx >= 0) NOTEBOOK[activeIdx] = restored;
+    else NOTEBOOK.unshift(restored);
+    tombstones.splice(idx, 1);
+    saveIntegratedNotes();
+    saveIntegratedNoteTombstones(tombstones);
+    showIntegratedNoteTrashManager();
+    if (currentLibraryMode === 'notes') renderIntegratedNoteFrame();
+    showToast('단권화 노트를 복원했습니다.');
+  };
+  window.hideIntegratedNoteTombstone = function hideIntegratedNoteTombstone(id) {
+    const tombstones = loadIntegratedNoteTombstones().map(n => Number(n.id) === Number(id) ? { ...n, hiddenAt: noteNow() } : n);
+    saveIntegratedNoteTombstones(tombstones);
+    showIntegratedNoteTrashManager();
+    showToast('단권화 노트 삭제 기록을 휴지통 목록에서 숨겼습니다.');
+  };
+
   const originalShowExportMenu = showExportMenu;
   showExportMenu = function patchedShowExportMenu() {
     originalShowExportMenu();
@@ -17885,13 +19068,31 @@ initApp();
     const cleanupCard = [...document.querySelectorAll('.data-card')].find(card => card.textContent.includes('복구') || card.textContent.includes('정리'));
     const cleanupRow = cleanupCard?.querySelector('.data-button-row');
     if (cleanupRow && !cleanupRow.querySelector('[data-note-trash-status]')) {
-      cleanupRow.insertAdjacentHTML('beforeend', `<button class="data-action-btn outline" data-note-trash-status onclick="showToast('단권화 노트 삭제기록은 전체 JSON 백업/복원에 포함됩니다.')">노트 보호기록 ${metrics.tombstones.length}</button>`);
+      cleanupRow.insertAdjacentHTML('beforeend', `<button class="data-action-btn outline" data-note-trash-status onclick="showIntegratedNoteTrashManager()">단권화 노트 휴지통 ${metrics.tombstones.filter(n => !n.hiddenAt).length}</button>`);
     }
     const hero = document.querySelector('.data-manager-hero');
     if (hero && !hero.querySelector('[data-note-cloud-note]')) {
       hero.insertAdjacentHTML('beforeend', `
         <div data-note-cloud-note style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;color:var(--text3);font-size:11px;line-height:1.65">
           단권화 노트는 현재 전체 JSON 백업/복원 및 로컬 캐시에 포함됩니다. Supabase 최종본 저장은 아직 별도 SQL/동기화 보강이 필요한 항목입니다.
+        </div>`);
+    }
+  };
+
+  const originalShowSyncDiagnostics = showSyncDiagnostics;
+  showSyncDiagnostics = async function patchedShowSyncDiagnostics() {
+    await originalShowSyncDiagnostics();
+    const modal = document.getElementById('syncDiagnosticsModal') || document.querySelector('.sync-diagnostics-modal, .modal-overlay');
+    const body = modal?.querySelector('.data-modal-body, .modal-body, section') || modal;
+    if (body && !body.querySelector('[data-note-sync-diagnostic]')) {
+      const metrics = noteDashboardMetrics();
+      body.insertAdjacentHTML('beforeend', `
+        <div data-note-sync-diagnostic style="margin-top:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px;color:var(--text);line-height:1.65">
+          <div style="font-weight:850;color:var(--text)">📘 단권화 노트 동기화 안내</div>
+          <div style="margin-top:4px;color:var(--text3);font-size:12px">
+            현재 단권화 노트 ${metrics.rows.length}개, 삭제기록 ${metrics.tombstones.filter(n => !n.hiddenAt).length}개는 전체 JSON 백업/복원과 로컬 캐시에 포함됩니다.
+            Supabase 실시간 양방향 동기화 테이블은 아직 별도 적용 전이므로, 최종본 저장 전에는 전체 JSON 백업을 함께 확인해주세요.
+          </div>
         </div>`);
     }
   };
@@ -17970,6 +19171,7 @@ initApp();
       ...base,
       notes: hasNotePayload ? parsed.notes.map(normalizeIntegratedNote) : [],
       noteTombstones: hasNoteTombstonePayload ? parsed.noteTombstones.map(normalizeIntegratedNote) : [],
+      domainFavorites: parsed.domainFavorites || null,
       hasNotePayload,
       hasNoteTombstonePayload,
     };
@@ -18013,6 +19215,7 @@ initApp();
     const noteImportData = pendingDataImport ? {
       notes: pendingDataImport.notes || [],
       noteTombstones: pendingDataImport.noteTombstones || [],
+      domainFavorites: pendingDataImport.domainFavorites || null,
       hasNotePayload: !!pendingDataImport.hasNotePayload,
       hasNoteTombstonePayload: !!pendingDataImport.hasNoteTombstonePayload,
     } : null;
@@ -18020,6 +19223,7 @@ initApp();
     const result = await originalApplyPendingDataImport(options);
     if (result && noteImportData) {
       applyIntegratedNotesImport(noteImportData, mode);
+      if (noteImportData.domainFavorites) saveDomainFavorites(noteImportData.domainFavorites);
       if (currentLibraryMode === 'notes') renderIntegratedNoteFrame();
     }
     return result;
