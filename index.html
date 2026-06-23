@@ -13249,14 +13249,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.08',
+  version: '4.09',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 23일 15:32',
+  updatedAt: '2026년 6월 23일 15:47',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 단권화 노트 통계/데이터관리 반영',
+    items: [
+      '데이터 관리 요약과 영역별 JSON 백업 목록에 단권화 노트 수, 개념/오답 구성, 보호기록 상태를 표시',
+      '학습 현황 통계에 단권화 노트 카드를 추가해 일반용어, 미생물, 약물, 공식과 함께 라이브러리 현황을 확인 가능하도록 개선',
+      '전체 JSON 백업 완료 안내와 백업 객체에 단권화 노트 포함 여부를 명확히 표시하고, Supabase 최종본 저장은 아직 별도 보강 대상임을 데이터 관리 화면에 명시',
+    ]
+  },
   {
     title: '최신 · 단권화 노트 백업복원 점검',
     items: [
@@ -17718,6 +17726,28 @@ initApp();
     return originalUpdateCounts(shown, filtered, mode);
   };
 
+  function noteDashboardMetrics() {
+    const rows = activeNotes();
+    const tombstones = loadIntegratedNoteTombstones();
+    const concept = rows.filter(n => n.noteType !== 'wrong').length;
+    const wrong = rows.filter(n => n.noteType === 'wrong').length;
+    const linked = rows.filter(n =>
+      (n.linkedTerms || []).length ||
+      (n.linkedDrugs || []).length ||
+      (n.linkedMicrobes || []).length ||
+      (n.linkedFormulas || []).length
+    ).length;
+    const bodyReady = rows.filter(n => n.bodyHtml || n.summary || n.keyPoint || n.wrongReason).length;
+    const completion = rows.length ? Math.round((bodyReady / rows.length) * 100) : 0;
+    return { rows, tombstones, concept, wrong, linked, bodyReady, completion };
+  }
+
+  window.openIntegratedNotesFromDashboard = function openIntegratedNotesFromDashboard() {
+    document.getElementById('categoryStatsModal')?.remove();
+    switchTab('search', document.querySelector('.nav-btn'));
+    setLibraryMode('notes');
+  };
+
   const originalCreateCompleteBackupObject = createCompleteBackupObject;
   createCompleteBackupObject = function patchedCreateCompleteBackupObject() {
     const backup = originalCreateCompleteBackupObject();
@@ -17725,6 +17755,114 @@ initApp();
     backup.noteTombstones = loadIntegratedNoteTombstones();
     backup.noteMvp = { storage: 'local', syncedToSupabase: false };
     return backup;
+  };
+
+  const originalCreateDomainBackupObject = createDomainBackupObject;
+  createDomainBackupObject = function patchedCreateDomainBackupObject(domain) {
+    if (domain === 'notes') {
+      return {
+        schemaVersion: 7,
+        app: APP_INFO.name,
+        appVersion: APP_INFO.version,
+        exportedAt: new Date().toISOString(),
+        backupScope: 'notes',
+        notes: NOTEBOOK.map(normalizeIntegratedNote),
+        noteTombstones: loadIntegratedNoteTombstones(),
+        noteMvp: { storage: 'local', syncedToSupabase: false },
+        syncMeta: getLocalSyncMeta(),
+      };
+    }
+    return originalCreateDomainBackupObject(domain);
+  };
+
+  const originalExportCompleteJsonBackup = exportCompleteJsonBackup;
+  exportCompleteJsonBackup = function patchedExportCompleteJsonBackup() {
+    const backup = createCompleteBackupObject();
+    downloadBlobFile(JSON.stringify(backup, null, 2), `${dataFilePrefix('전체백업')}.json`, 'application/json;charset=utf-8');
+    showToast(`📦 전체 백업 완료 · 용어 ${backup.terms.length}개 · 미생물 ${backup.microbes.length}개 · 약물 ${backup.drugs.length}개 · 공식 ${backup.formulas.length}개 · 노트 ${(backup.notes || []).length}개`);
+  };
+
+  const originalExportDomainJsonBackup = exportDomainJsonBackup;
+  exportDomainJsonBackup = function patchedExportDomainJsonBackup(domain) {
+    if (domain !== 'notes') return originalExportDomainJsonBackup(domain);
+    const backup = createDomainBackupObject('notes');
+    downloadBlobFile(JSON.stringify(backup, null, 2), `${dataFilePrefix('단권화노트백업')}.json`, 'application/json;charset=utf-8');
+    showToast(`📦 단권화 노트 JSON 백업 완료 · ${(backup.notes || []).length}개`);
+  };
+
+  const originalShowExportMenu = showExportMenu;
+  showExportMenu = function patchedShowExportMenu() {
+    originalShowExportMenu();
+    const metrics = noteDashboardMetrics();
+    const summaryGrid = document.querySelector('.data-summary-grid');
+    if (summaryGrid && !summaryGrid.querySelector('[data-note-summary-card]')) {
+      summaryGrid.insertAdjacentHTML('beforeend', `
+        <div class="data-summary-card" data-note-summary-card>
+          <div class="data-summary-label">단권화 노트</div>
+          <div class="data-summary-value">${metrics.rows.length}개</div>
+          <div style="margin-top:4px;color:var(--text3);font-size:10px">개념 ${metrics.concept} · 오답 ${metrics.wrong} · 연결 ${metrics.linked}</div>
+        </div>`);
+    }
+    const domainGrid = document.querySelector('.data-mini-grid');
+    if (domainGrid && !domainGrid.querySelector('[data-note-domain-pill]')) {
+      domainGrid.insertAdjacentHTML('beforeend', `
+        <div class="data-domain-pill" data-note-domain-pill>
+          <span>단권화 노트 JSON</span><span>노트 · 노트 삭제기록 · 로컬 백업 상태</span>
+        </div>`);
+    }
+    const backupRows = [...document.querySelectorAll('.data-button-row')];
+    const domainBackupRow = backupRows.find(row =>
+      row.querySelector(`[onclick*="exportDomainJsonBackup('formulas')"]`) ||
+      row.querySelector('[onclick*="exportDomainJsonBackup(&quot;formulas&quot;)"]')
+    );
+    if (domainBackupRow && !domainBackupRow.querySelector('[data-note-backup-btn]')) {
+      domainBackupRow.insertAdjacentHTML('beforeend', `<button class="data-action-btn outline" data-note-backup-btn onclick="exportDomainJsonBackup('notes')">단권화 노트 JSON</button>`);
+    }
+    const cleanupCard = [...document.querySelectorAll('.data-card')].find(card => card.textContent.includes('복구') || card.textContent.includes('정리'));
+    const cleanupRow = cleanupCard?.querySelector('.data-button-row');
+    if (cleanupRow && !cleanupRow.querySelector('[data-note-trash-status]')) {
+      cleanupRow.insertAdjacentHTML('beforeend', `<button class="data-action-btn outline" data-note-trash-status onclick="showToast('단권화 노트 삭제기록은 전체 JSON 백업/복원에 포함됩니다.')">노트 보호기록 ${metrics.tombstones.length}</button>`);
+    }
+    const hero = document.querySelector('.data-manager-hero');
+    if (hero && !hero.querySelector('[data-note-cloud-note]')) {
+      hero.insertAdjacentHTML('beforeend', `
+        <div data-note-cloud-note style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;color:var(--text3);font-size:11px;line-height:1.65">
+          단권화 노트는 현재 전체 JSON 백업/복원 및 로컬 캐시에 포함됩니다. Supabase 최종본 저장은 아직 별도 SQL/동기화 보강이 필요한 항목입니다.
+        </div>`);
+    }
+  };
+
+  const originalShowCategoryStats = showCategoryStats;
+  showCategoryStats = function patchedShowCategoryStats() {
+    originalShowCategoryStats();
+    const metrics = noteDashboardMetrics();
+    const modal = document.getElementById('categoryStatsModal');
+    if (!modal) return;
+    const topMetricGrid = modal.querySelector('section > div[style*="grid-template-columns"]');
+    if (topMetricGrid && !topMetricGrid.querySelector('[data-note-metric]')) {
+      topMetricGrid.insertAdjacentHTML('beforeend', `
+        <button type="button" data-note-metric onclick="openIntegratedNotesFromDashboard()" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px;text-align:left;font-family:'Noto Sans KR',sans-serif;color:var(--text);cursor:pointer">
+          <div style="font-size:12px;color:var(--text3);font-weight:800">단권화 노트</div>
+          <div style="margin-top:8px;font-size:22px;font-weight:850;color:var(--text)">${metrics.rows.length}개</div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text3);line-height:1.55">개념 ${metrics.concept} · 오답 ${metrics.wrong} · 연결 ${metrics.linked}</div>
+        </button>`);
+    }
+    const libraryHeading = [...modal.querySelectorAll('div')].find(el => el.textContent.trim() === '라이브러리별 학습 진행');
+    const libraryGrid = libraryHeading?.nextElementSibling;
+    if (libraryGrid && !libraryGrid.querySelector('[data-note-library-card]')) {
+      libraryGrid.insertAdjacentHTML('beforeend', `
+        <button type="button" data-note-library-card onclick="openIntegratedNotesFromDashboard()" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:left;font-family:'Noto Sans KR',sans-serif;color:var(--text);cursor:pointer">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-size:13px;font-weight:850;color:var(--text)">단권화 노트</div>
+              <div style="margin-top:6px;font-size:11px;color:var(--text3);line-height:1.55">개념 ${metrics.concept} · 오답 ${metrics.wrong} · 기존 자료 연결 ${metrics.linked}</div>
+            </div>
+            <div style="font-size:18px;font-weight:850;color:var(--text)">${metrics.rows.length}개</div>
+          </div>
+          <div style="margin-top:10px">${progressLineHtml(metrics.completion)}</div>
+          <div style="margin-top:9px;font-size:11px;font-weight:800;color:var(--accent)">노트 보기</div>
+        </button>`);
+    }
   };
 
   const originalReadDataImportFile = readDataImportFile;
