@@ -13249,14 +13249,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.09',
+  version: '4.10',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 23일 15:47',
+  updatedAt: '2026년 6월 23일 16:11',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 단권화 노트 자동링크 직접 열기',
+    items: [
+      '단권화 노트 본문과 연결자료 칩의 자동링크를 검색창 이동 대신 해당 자료 카드 드로어/모달을 즉시 여는 동작으로 변경',
+      '자동링크 대상 생성 시 자료 id를 함께 보존해 일반용어, 약물명 및 정보, 미생물, 주요 의학계산공식 연결 정확도를 개선',
+      '연결 자료를 찾지 못한 경우에는 검색창을 바꾸지 않고 안내 토스트만 표시하도록 조정',
+    ]
+  },
   {
     title: '최신 · 단권화 노트 통계/데이터관리 반영',
     items: [
@@ -16938,22 +16946,22 @@ initApp();
   }
   function noteAutoLinkTargetList() {
     const rows = [];
-    const add = (kind, label) => {
+    const add = (kind, label, id = null) => {
       const clean = String(label || '').trim();
       if (!noteAutoLinkCandidateAllowed(clean)) return;
-      rows.push({ kind, label: clean, key: clean.toLowerCase() });
+      rows.push({ kind, label: clean, id, key: clean.toLowerCase() });
     };
     dedupeTermsById(TERMS).filter(t => !t.deletedAt).forEach(t => {
-      [t.ko, t.en, t.uz].forEach(label => add('terms', label));
+      [t.ko, t.en, t.uz].forEach(label => add('terms', label, t.id));
     });
     getActiveMicrobes().forEach(m => {
-      [m.organism, m.ko_name, m.latin_name].forEach(label => add('microbes', label));
+      [m.organism, m.ko_name, m.latin_name].forEach(label => add('microbes', label, m.id));
     });
     getActiveDrugs().forEach(d => {
-      [d.generic_name, d.ko_name, d.brand_name].forEach(label => add('drugs', label));
+      [d.generic_name, d.ko_name, d.brand_name].forEach(label => add('drugs', label, d.id));
     });
     getActiveFormulas().forEach(f => {
-      [f.name, f.short_name, f.formula].forEach(label => add('formulas', label));
+      [f.name, f.short_name, f.formula].forEach(label => add('formulas', label, f.id));
     });
     const byKey = new Map();
     rows.forEach(row => {
@@ -17045,7 +17053,7 @@ initApp();
           button.className = `note-auto-link ${target.kind}`;
           button.textContent = match;
           button.title = '연결 자료 열기';
-          button.setAttribute('onclick', `openNoteLinkedResource(event,${JSON.stringify(target.kind)},${JSON.stringify(target.label)})`);
+          button.setAttribute('onclick', `openNoteLinkedResource(event,${JSON.stringify(target.kind)},${JSON.stringify(target.label)},${JSON.stringify(target.id || null)})`);
           frag.appendChild(button);
         } else {
           frag.appendChild(document.createTextNode(match));
@@ -17672,11 +17680,67 @@ initApp();
     renderIntegratedNoteFrame();
     showToast('🗑️ 단권화 노트 삭제 완료');
   };
-  window.openNoteLinkedResource = function openNoteLinkedResource(event, kind, label) {
+
+  function normalizeNoteResourceLookup(value = '') {
+    return String(value || '')
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function noteResourceRows(kind) {
+    if (kind === 'terms') return dedupeTermsById(TERMS).filter(t => !t.deletedAt);
+    if (kind === 'drugs') return getActiveDrugs();
+    if (kind === 'microbes') return getActiveMicrobes();
+    if (kind === 'formulas') return getActiveFormulas();
+    return [];
+  }
+  function noteResourceLabels(kind, row) {
+    if (kind === 'terms') return [row.ko, row.en, row.uz];
+    if (kind === 'drugs') return [row.generic_name, row.ko_name, row.brand_name];
+    if (kind === 'microbes') return [row.organism, row.ko_name, row.latin_name];
+    if (kind === 'formulas') return [row.name, row.short_name, row.formula];
+    return [];
+  }
+  function findNoteLinkedResource(kind, label, id = null) {
+    const rows = noteResourceRows(kind);
+    const idText = id === null || id === undefined ? '' : String(id);
+    if (idText) {
+      const byId = rows.find(row => String(row.id) === idText);
+      if (byId) return byId;
+    }
+    const query = normalizeNoteResourceLookup(label);
+    if (!query) return null;
+    const exact = rows.find(row => noteResourceLabels(kind, row).some(value => normalizeNoteResourceLookup(value) === query));
+    if (exact) return exact;
+    if (query.length < 4) return null;
+    return rows.find(row => noteResourceLabels(kind, row).some(value => {
+      const candidate = normalizeNoteResourceLookup(value);
+      return candidate && (candidate.includes(query) || query.includes(candidate));
+    })) || null;
+  }
+  window.openNoteLinkedResource = function openNoteLinkedResource(event, kind, label, id = null) {
     event?.stopPropagation();
-    const search = document.getElementById('searchInput');
-    if (search) search.value = label;
-    setLibraryMode(kind);
+    const target = findNoteLinkedResource(kind, label, id);
+    if (!target) {
+      showToast(`연결 자료를 찾지 못했습니다 · ${label || kind}`);
+      return;
+    }
+    if (kind === 'terms') {
+      openDrawer(Number(target.id));
+      return;
+    }
+    if (kind === 'drugs') {
+      openDrugDrawer(Number(target.id));
+      return;
+    }
+    if (kind === 'microbes') {
+      openMicrobeDrawer(event, Number(target.id));
+      return;
+    }
+    if (kind === 'formulas') {
+      openFormulaEditModal(event, Number(target.id));
+    }
   };
 
   const originalSetLibraryMode = setLibraryMode;
