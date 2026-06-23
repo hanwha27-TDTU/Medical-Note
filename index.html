@@ -13861,14 +13861,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.22',
+  version: '4.23',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 03:06',
+  updatedAt: '2026년 6월 24일 03:17',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · Supabase 통합 SQL 노트 반영',
+    items: [
+      'Supabase 동기화 스키마 SQL을 v4.13으로 갱신하고 medical_notes 테이블을 통합본에 포함',
+      '단권화 노트 primary key, deleted_at, updated_at, data jsonb, 진단 SELECT, canonical meta row를 추가',
+      '개발자 정보의 Supabase 동기화 스키마 설정 SQL과 복사 버튼이 최신 통합 SQL을 제공하도록 갱신',
+    ]
+  },
   {
     title: '최신 · MCQ 죽은 코드 정리',
     items: [
@@ -14880,12 +14888,13 @@ const UPDATE_HISTORY = [
   }
 ];
 
-const SUPABASE_SCHEMA_VERSION = 'v4.12 · 외부검색SQL버전창분리';
-const SUPABASE_SCHEMA_UPDATED_AT = '2026년 6월 23일 18:17';
+const SUPABASE_SCHEMA_VERSION = 'v4.13 · 단권화노트통합스키마';
+const SUPABASE_SCHEMA_UPDATED_AT = '2026년 6월 24일 03:17';
 const SUPABASE_SCHEMA_SQL = `-- Dr. Bugeon 의학용어 앱 Supabase 통합 스키마
--- Schema version: ${SUPABASE_SCHEMA_VERSION}
--- Schema updated at: ${SUPABASE_SCHEMA_UPDATED_AT}
--- 핵심: medical_terms, medical_drugs, medical_formulas, medical_microbes, deleted_at, updated_at, language_sync_meta가 반드시 필요합니다.
+-- Schema version: v4.13 · 단권화노트통합스키마
+-- Schema updated at: 2026년 6월 24일 03:17
+-- 포함 도메인: 일반용어, 약물명 및 정보, 주요 의학계산공식, 미생물, 단권화 노트, 학습상태, 최종본 메타
+-- 사용법: Supabase SQL Editor에 이 전체 블록을 한 번에 붙여넣고 실행하세요.
 
 create table if not exists public.medical_terms (
   id bigint primary key,
@@ -14937,27 +14946,22 @@ alter table public.medical_terms
 
 do $$
 begin
-  if exists (
-    select id from public.medical_terms group by id having count(*) > 1
-  ) then
+  if exists (select id from public.medical_terms group by id having count(*) > 1) then
     raise exception 'medical_terms.id 중복이 있어 primary key를 만들 수 없습니다. 중복 id를 먼저 정리하세요.';
   end if;
 
   if not exists (
     select 1 from pg_constraint
-    where conrelid = 'public.medical_terms'::regclass
-      and contype = 'p'
+    where conrelid = 'public.medical_terms'::regclass and contype = 'p'
   ) then
-    alter table public.medical_terms
-      add constraint medical_terms_pkey primary key (id);
+    alter table public.medical_terms add constraint medical_terms_pkey primary key (id);
   end if;
 end $$;
 
-create index if not exists medical_terms_updated_at_idx
-  on public.medical_terms (updated_at desc);
-
-create index if not exists medical_terms_deleted_at_idx
-  on public.medical_terms (deleted_at);
+create index if not exists medical_terms_updated_at_idx on public.medical_terms (updated_at desc);
+create index if not exists medical_terms_deleted_at_idx on public.medical_terms (deleted_at);
+create index if not exists medical_terms_category_idx on public.medical_terms (category);
+create index if not exists medical_terms_concept_category_idx on public.medical_terms (concept_category);
 
 create table if not exists public.medical_drugs (
   id bigint primary key,
@@ -15029,33 +15033,22 @@ alter table public.medical_drugs
 
 do $$
 begin
-  if exists (
-    select id from public.medical_drugs group by id having count(*) > 1
-  ) then
+  if exists (select id from public.medical_drugs group by id having count(*) > 1) then
     raise exception 'medical_drugs.id 중복이 있어 primary key를 만들 수 없습니다. 중복 id를 먼저 정리하세요.';
   end if;
 
   if not exists (
     select 1 from pg_constraint
-    where conrelid = 'public.medical_drugs'::regclass
-      and contype = 'p'
+    where conrelid = 'public.medical_drugs'::regclass and contype = 'p'
   ) then
-    alter table public.medical_drugs
-      add constraint medical_drugs_pkey primary key (id);
+    alter table public.medical_drugs add constraint medical_drugs_pkey primary key (id);
   end if;
 end $$;
 
-create index if not exists medical_drugs_updated_at_idx
-  on public.medical_drugs (updated_at desc);
-
-create index if not exists medical_drugs_deleted_at_idx
-  on public.medical_drugs (deleted_at);
-
-create index if not exists medical_drugs_generic_name_idx
-  on public.medical_drugs (generic_name);
-
-create index if not exists medical_drugs_atc_class_idx
-  on public.medical_drugs (atc_class);
+create index if not exists medical_drugs_updated_at_idx on public.medical_drugs (updated_at desc);
+create index if not exists medical_drugs_deleted_at_idx on public.medical_drugs (deleted_at);
+create index if not exists medical_drugs_generic_name_idx on public.medical_drugs (generic_name);
+create index if not exists medical_drugs_atc_class_idx on public.medical_drugs (atc_class);
 
 create table if not exists public.medical_formulas (
   id bigint primary key,
@@ -15101,65 +15094,22 @@ alter table public.medical_formulas
 
 do $$
 begin
-  if exists (
-    select id from public.medical_formulas group by id having count(*) > 1
-  ) then
+  if exists (select id from public.medical_formulas group by id having count(*) > 1) then
     raise exception 'medical_formulas.id 중복이 있어 primary key를 만들 수 없습니다. 중복 id를 먼저 정리하세요.';
   end if;
 
   if not exists (
     select 1 from pg_constraint
-    where conrelid = 'public.medical_formulas'::regclass
-      and contype = 'p'
+    where conrelid = 'public.medical_formulas'::regclass and contype = 'p'
   ) then
-    alter table public.medical_formulas
-      add constraint medical_formulas_pkey primary key (id);
+    alter table public.medical_formulas add constraint medical_formulas_pkey primary key (id);
   end if;
 end $$;
 
-create index if not exists medical_formulas_updated_at_idx
-  on public.medical_formulas (updated_at desc);
-
-create index if not exists medical_formulas_deleted_at_idx
-  on public.medical_formulas (deleted_at);
-
-create index if not exists medical_formulas_category_idx
-  on public.medical_formulas (category);
-
-create index if not exists medical_formulas_system_idx
-  on public.medical_formulas (system);
-
-create table if not exists public.language_sync_meta (
-  key text primary key,
-  value text,
-  updated_at timestamptz default now()
-);
-
-insert into public.language_sync_meta (key, value, updated_at)
-values
-  (
-    'medical_terms_canonical_version',
-    'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text,
-    now()
-  ),
-  (
-    'medical_drugs_canonical_version',
-    'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text,
-    now()
-  ),
-  (
-    'medical_formulas_canonical_version',
-    'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text,
-    now()
-  ),
-  (
-    'medical_microbes_canonical_version',
-    'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text,
-    now()
-  )
-on conflict (key) do nothing;
-
-
+create index if not exists medical_formulas_updated_at_idx on public.medical_formulas (updated_at desc);
+create index if not exists medical_formulas_deleted_at_idx on public.medical_formulas (deleted_at);
+create index if not exists medical_formulas_category_idx on public.medical_formulas (category);
+create index if not exists medical_formulas_system_idx on public.medical_formulas (system);
 
 create table if not exists public.medical_microbes (
   id bigint primary key,
@@ -15217,33 +15167,59 @@ alter table public.medical_microbes
 
 do $$
 begin
-  if exists (
-    select id from public.medical_microbes group by id having count(*) > 1
-  ) then
+  if exists (select id from public.medical_microbes group by id having count(*) > 1) then
     raise exception 'medical_microbes.id 중복이 있어 primary key를 만들 수 없습니다. 중복 id를 먼저 정리하세요.';
   end if;
 
   if not exists (
     select 1 from pg_constraint
-    where conrelid = 'public.medical_microbes'::regclass
-      and contype = 'p'
+    where conrelid = 'public.medical_microbes'::regclass and contype = 'p'
   ) then
-    alter table public.medical_microbes
-      add constraint medical_microbes_pkey primary key (id);
+    alter table public.medical_microbes add constraint medical_microbes_pkey primary key (id);
   end if;
 end $$;
 
-create index if not exists medical_microbes_updated_at_idx
-  on public.medical_microbes (updated_at desc);
+create index if not exists medical_microbes_updated_at_idx on public.medical_microbes (updated_at desc);
+create index if not exists medical_microbes_deleted_at_idx on public.medical_microbes (deleted_at);
+create index if not exists medical_microbes_type_idx on public.medical_microbes (microbe_type);
+create index if not exists medical_microbes_category_idx on public.medical_microbes (category);
 
-create index if not exists medical_microbes_deleted_at_idx
-  on public.medical_microbes (deleted_at);
+create table if not exists public.medical_notes (
+  id bigint primary key,
+  data jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  deleted_at timestamptz
+);
 
-create index if not exists medical_microbes_type_idx
-  on public.medical_microbes (microbe_type);
+alter table public.medical_notes
+  add column if not exists data jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now(),
+  add column if not exists deleted_at timestamptz;
 
-create index if not exists medical_microbes_category_idx
-  on public.medical_microbes (category);
+alter table public.medical_notes
+  alter column id type bigint using id::bigint,
+  alter column id set not null;
+
+do $$
+begin
+  if exists (select id from public.medical_notes group by id having count(*) > 1) then
+    raise exception 'medical_notes.id 중복이 있어 primary key를 만들 수 없습니다. 중복 id를 먼저 정리하세요.';
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.medical_notes'::regclass and contype = 'p'
+  ) then
+    alter table public.medical_notes add constraint medical_notes_pkey primary key (id);
+  end if;
+end $$;
+
+create index if not exists medical_notes_updated_at_idx on public.medical_notes (updated_at desc);
+create index if not exists medical_notes_deleted_at_idx on public.medical_notes (deleted_at);
+create index if not exists medical_notes_note_type_idx on public.medical_notes ((data->>'noteType'));
+create index if not exists medical_notes_title_idx on public.medical_notes ((data->>'title'));
 
 create table if not exists public.medical_term_learning_state (
   term_id bigint primary key,
@@ -15267,97 +15243,52 @@ alter table public.medical_term_learning_state
   add column if not exists created_at timestamptz default now(),
   add column if not exists updated_at timestamptz default now();
 
--- 진단: 아래 결과에서 medical_terms_has_primary_key=true, canonical_meta_ready=true여야 합니다.
+create table if not exists public.language_sync_meta (
+  key text primary key,
+  value text,
+  updated_at timestamptz default now()
+);
+
+insert into public.language_sync_meta (key, value, updated_at)
+values
+  ('medical_terms_canonical_version', 'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text, now()),
+  ('medical_drugs_canonical_version', 'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text, now()),
+  ('medical_formulas_canonical_version', 'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text, now()),
+  ('medical_microbes_canonical_version', 'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text, now()),
+  ('medical_notes_canonical_version', 'schema-init-' || floor(extract(epoch from now()) * 1000)::bigint::text, now())
+on conflict (key) do nothing;
+
+-- 진단: *_has_primary_key, *_deleted_at_ready, *_canonical_meta_ready가 true인지 확인하세요.
 select
-  exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.medical_terms'::regclass
-      and contype = 'p'
-  ) as medical_terms_has_primary_key,
-  exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.medical_drugs'::regclass
-      and contype = 'p'
-  ) as medical_drugs_has_primary_key,
-  exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.medical_formulas'::regclass
-      and contype = 'p'
-  ) as medical_formulas_has_primary_key,
-  exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.medical_microbes'::regclass
-      and contype = 'p'
-  ) as medical_microbes_has_primary_key,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_terms' and column_name='deleted_at'
-  ) as deleted_at_ready,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_drugs' and column_name='deleted_at'
-  ) as drug_deleted_at_ready,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_formulas' and column_name='deleted_at'
-  ) as formula_deleted_at_ready,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_microbes' and column_name='deleted_at'
-  ) as microbe_deleted_at_ready,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_microbes' and column_name='ipa'
-  ) as microbe_ipa_ready,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_drugs' and column_name='same_class_drugs'
-  ) as drug_same_class_ready,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_drugs' and column_name='drug_form'
-  ) as drug_form_ready,
-  exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='medical_drugs' and column_name='atc_class'
-  ) as drug_atc_class_ready,
-  exists (
-    select 1 from public.language_sync_meta
-    where key = 'medical_terms_canonical_version'
-      and coalesce(value, '') <> ''
-      and updated_at is not null
-  ) as canonical_meta_ready,
-  exists (
-    select 1 from public.language_sync_meta
-    where key = 'medical_drugs_canonical_version'
-      and coalesce(value, '') <> ''
-      and updated_at is not null
-  ) as drug_canonical_meta_ready,
-  exists (
-    select 1 from public.language_sync_meta
-    where key = 'medical_formulas_canonical_version'
-      and coalesce(value, '') <> ''
-      and updated_at is not null
-  ) as formula_canonical_meta_ready,
-  exists (
-    select 1 from public.language_sync_meta
-    where key = 'medical_microbes_canonical_version'
-      and coalesce(value, '') <> ''
-      and updated_at is not null
-  ) as microbe_canonical_meta_ready,
-  (select value from public.language_sync_meta where key = 'medical_terms_canonical_version') as canonical_version,
-  (select updated_at from public.language_sync_meta where key = 'medical_terms_canonical_version') as canonical_updated_at,
-  (select value from public.language_sync_meta where key = 'medical_drugs_canonical_version') as drug_canonical_version,
-  (select value from public.language_sync_meta where key = 'medical_formulas_canonical_version') as formula_canonical_version,
-  (select value from public.language_sync_meta where key = 'medical_microbes_canonical_version') as microbe_canonical_version,
+  exists (select 1 from pg_constraint where conrelid = 'public.medical_terms'::regclass and contype = 'p') as medical_terms_has_primary_key,
+  exists (select 1 from pg_constraint where conrelid = 'public.medical_drugs'::regclass and contype = 'p') as medical_drugs_has_primary_key,
+  exists (select 1 from pg_constraint where conrelid = 'public.medical_formulas'::regclass and contype = 'p') as medical_formulas_has_primary_key,
+  exists (select 1 from pg_constraint where conrelid = 'public.medical_microbes'::regclass and contype = 'p') as medical_microbes_has_primary_key,
+  exists (select 1 from pg_constraint where conrelid = 'public.medical_notes'::regclass and contype = 'p') as medical_notes_has_primary_key,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_terms' and column_name='deleted_at') as term_deleted_at_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_drugs' and column_name='deleted_at') as drug_deleted_at_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_formulas' and column_name='deleted_at') as formula_deleted_at_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_microbes' and column_name='deleted_at') as microbe_deleted_at_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_notes' and column_name='deleted_at') as note_deleted_at_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_microbes' and column_name='ipa') as microbe_ipa_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_drugs' and column_name='same_class_drugs') as drug_same_class_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_drugs' and column_name='drug_form') as drug_form_ready,
+  exists (select 1 from information_schema.columns where table_schema='public' and table_name='medical_drugs' and column_name='atc_class') as drug_atc_class_ready,
+  exists (select 1 from public.language_sync_meta where key = 'medical_terms_canonical_version' and coalesce(value, '') <> '' and updated_at is not null) as term_canonical_meta_ready,
+  exists (select 1 from public.language_sync_meta where key = 'medical_drugs_canonical_version' and coalesce(value, '') <> '' and updated_at is not null) as drug_canonical_meta_ready,
+  exists (select 1 from public.language_sync_meta where key = 'medical_formulas_canonical_version' and coalesce(value, '') <> '' and updated_at is not null) as formula_canonical_meta_ready,
+  exists (select 1 from public.language_sync_meta where key = 'medical_microbes_canonical_version' and coalesce(value, '') <> '' and updated_at is not null) as microbe_canonical_meta_ready,
+  exists (select 1 from public.language_sync_meta where key = 'medical_notes_canonical_version' and coalesce(value, '') <> '' and updated_at is not null) as note_canonical_meta_ready,
   (select count(*) from public.medical_terms where deleted_at is null) as active_terms,
-  (select count(*) from public.medical_terms where deleted_at is not null) as deleted_tombstones,
+  (select count(*) from public.medical_terms where deleted_at is not null) as deleted_term_tombstones,
   (select count(*) from public.medical_drugs where deleted_at is null) as active_drugs,
   (select count(*) from public.medical_drugs where deleted_at is not null) as deleted_drug_tombstones,
   (select count(*) from public.medical_formulas where deleted_at is null) as active_formulas,
   (select count(*) from public.medical_formulas where deleted_at is not null) as deleted_formula_tombstones,
   (select count(*) from public.medical_microbes where deleted_at is null) as active_microbes,
-  (select count(*) from public.medical_microbes where deleted_at is not null) as deleted_microbe_tombstones;`;
+  (select count(*) from public.medical_microbes where deleted_at is not null) as deleted_microbe_tombstones,
+  (select count(*) from public.medical_notes where deleted_at is null) as active_notes,
+  (select count(*) from public.medical_notes where deleted_at is not null) as deleted_note_tombstones;`;
 
 function currentFileName() {
   const fallback = `${APP_INFO.name}_${(UPDATE_HISTORY[0]?.title || '저장본').replace(/^최신\s*·\s*/, '')}.html`;
