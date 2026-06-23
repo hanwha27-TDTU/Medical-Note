@@ -2027,6 +2027,79 @@ document.addEventListener('keydown', e => {
     margin-top: 12px;
   }
 
+  .microbe-disease-panel {
+    margin-top: 10px;
+    border: 1px solid rgba(88,166,255,0.22);
+    background: rgba(88,166,255,0.055);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+
+  .microbe-disease-label {
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 850;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .microbe-disease-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .microbe-disease-chip,
+  .microbe-disease-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,0.28);
+    background: var(--surface);
+    color: var(--text);
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.25;
+    word-break: keep-all;
+  }
+
+  .microbe-disease-more {
+    color: var(--text3);
+    font-weight: 750;
+  }
+
+  .microbe-disease-text {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 540;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .microbe-memory-line {
+    margin-top: 9px;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 520;
+    line-height: 1.55;
+  }
+
+  .microbe-memory-line span {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(251,191,36,0.34);
+    background: rgba(251,191,36,0.08);
+    color: #d29922;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-weight: 850;
+    line-height: 1.2;
+  }
+
   .microbe-info-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2102,6 +2175,17 @@ document.addEventListener('keydown', e => {
 
     .microbe-info-card {
       padding: 10px 11px;
+    }
+
+    .microbe-disease-panel {
+      padding: 9px 10px;
+    }
+
+    .microbe-disease-chip,
+    .microbe-disease-more {
+      font-size: 11px;
+      min-height: 24px;
+      padding: 4px 8px;
     }
   }
 
@@ -6632,6 +6716,26 @@ function filterMicrobesForQuery(query = '') {
   );
 }
 
+function microbeDiseaseCueHtml(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const firstPass = raw
+    .split(/\r?\n|[;,；]/)
+    .map(item => item.replace(/^[•\-–·\s]+/, '').trim())
+    .filter(Boolean);
+  const cues = firstPass.length > 1 ? firstPass.slice(0, 8) : [];
+  const more = firstPass.length > cues.length ? firstPass.length - cues.length : 0;
+  const cueBody = cues.length
+    ? `<div class="microbe-disease-chips">${cues.map(cue => `<span class="microbe-disease-chip">${escapeHtml(cue)}</span>`).join('')}${more ? `<span class="microbe-disease-more">+${more}</span>` : ''}</div>`
+    : `<div class="microbe-disease-text">${escapeHtml(compactDrugText(raw, 180))}</div>`;
+  return `
+    <div class="microbe-disease-panel">
+      <div class="microbe-disease-label">대표 질환 · 임상 단서</div>
+      ${cueBody}
+    </div>
+  `;
+}
+
 function renderMicrobeFrame(microbes = []) {
   const frame = document.getElementById('microbeFrame');
   const empty = document.getElementById('emptyState');
@@ -6681,8 +6785,8 @@ function renderMicrobeFrame(microbes = []) {
             ${[m.microbe_type, m.gram_stain, m.shape, m.oxygen, m.category].filter(Boolean).slice(0, 5).map(chip => `<span class="drug-chip">${escapeHtml(chip)}</span>`).join('')}
             ${m.ipa ? `<span class="drug-chip">IPA ${escapeHtml(m.ipa)}</span>` : ''}
           </div>
-          ${m.diseases ? `<div class="formula-expression">${escapeHtml(compactDrugText(m.diseases, 160))}</div>` : ''}
-          ${m.memory_line ? `<div class="formula-memory-line">암기: ${escapeHtml(m.memory_line)}</div>` : ''}
+          ${microbeDiseaseCueHtml(m.diseases)}
+          ${m.memory_line ? `<div class="microbe-memory-line"><span>암기</span>${escapeHtml(m.memory_line)}</div>` : ''}
         </article>
       `).join('')}
     </section>`;
@@ -12688,14 +12792,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '3.99',
+  version: '4.00',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 23일 07:58',
+  updatedAt: '2026년 6월 23일 08:07',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 미생물 질환 단서 카드 정돈',
+    items: [
+      '미생물 목록 카드의 대표 질환/임상 단서를 긴 파란 문장 박스에서 질환별 칩 묶음으로 전환',
+      '암기 문장은 별도 메모 라인으로 분리해 질환 단서와 한 줄 암기 포인트의 시선 흐름을 개선',
+      '모바일에서도 질환 칩이 자연스럽게 줄바꿈되도록 여백과 글자 크기를 조정',
+    ]
+  },
   {
     title: '최신 · 미생물 카드 가독성 정돈',
     items: [
