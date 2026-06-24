@@ -6279,39 +6279,51 @@ async function sbPushAll(options = {}) {
     await pushLocalLearningStateToCloud();
 
     saveLocalSyncMeta({ pendingCanonicalStatus: 'meta-saving' });
-    const canonicalSnapshot = await sbSetCanonicalSnapshotMeta(pendingVersion, cleanTerms, {
+    const verifiedCloudTerms = await sbLoadAll();
+    if (verifiedCloudTerms === null) throw new Error('최종 저장 후 용어 클라우드 재확인 실패');
+    const verifiedCloudDrugs = await sbLoadAllDrugs();
+    if (verifiedCloudDrugs === null) throw new Error('최종 저장 후 약물 클라우드 재확인 실패');
+    const verifiedCloudFormulas = await sbLoadAllFormulas();
+    if (verifiedCloudFormulas === null) throw new Error('최종 저장 후 공식 클라우드 재확인 실패');
+    const verifiedCloudMicrobes = await sbLoadAllMicrobes();
+    if (verifiedCloudMicrobes === null) throw new Error('최종 저장 후 미생물 클라우드 재확인 실패');
+    const verifiedCleanTerms = dedupeTermsById(verifiedCloudTerms).filter(t => !t.deletedAt);
+    const verifiedCleanDrugs = dedupeDrugsById(verifiedCloudDrugs).filter(d => !d.deletedAt);
+    const verifiedCleanFormulas = dedupeFormulasById(verifiedCloudFormulas).filter(f => !f.deletedAt);
+    const verifiedCleanMicrobes = dedupeMicrobesById(verifiedCloudMicrobes).filter(m => !m.deletedAt);
+    const canonicalSnapshot = await sbSetCanonicalSnapshotMeta(pendingVersion, verifiedCleanTerms, {
       cloudTerms,
       removedCloudTerms,
       metaMap
     });
     await sbSetSyncMetaRows([
       { key: DRUG_CANONICAL_META_KEY, value: pendingVersion, updated_at: canonicalSnapshot.updatedAt },
-      { key: DRUG_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(cleanDrugs.length), updated_at: canonicalSnapshot.updatedAt },
+      { key: DRUG_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(verifiedCleanDrugs.length), updated_at: canonicalSnapshot.updatedAt },
       { key: DRUG_CANONICAL_DELETED_COUNT_META_KEY, value: String(cloudDrugs.filter(d => d.deletedAt).length + removedCloudDrugs.length), updated_at: canonicalSnapshot.updatedAt },
-      { key: DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeDrugRecordIdsHash(cleanDrugs), updated_at: canonicalSnapshot.updatedAt },
-      { key: DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeDrugSnapshotHash(cleanDrugs), updated_at: canonicalSnapshot.updatedAt },
+      { key: DRUG_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeDrugRecordIdsHash(verifiedCleanDrugs), updated_at: canonicalSnapshot.updatedAt },
+      { key: DRUG_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeDrugSnapshotHash(verifiedCleanDrugs), updated_at: canonicalSnapshot.updatedAt },
       { key: FORMULA_CANONICAL_META_KEY, value: pendingVersion, updated_at: canonicalSnapshot.updatedAt },
-      { key: FORMULA_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(cleanFormulas.length), updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(verifiedCleanFormulas.length), updated_at: canonicalSnapshot.updatedAt },
       { key: FORMULA_CANONICAL_DELETED_COUNT_META_KEY, value: String(cloudFormulas.filter(f => f.deletedAt).length + removedCloudFormulas.length), updated_at: canonicalSnapshot.updatedAt },
-      { key: FORMULA_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeFormulaRecordIdsHash(cleanFormulas), updated_at: canonicalSnapshot.updatedAt },
-      { key: FORMULA_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeFormulaSnapshotHash(cleanFormulas), updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeFormulaRecordIdsHash(verifiedCleanFormulas), updated_at: canonicalSnapshot.updatedAt },
+      { key: FORMULA_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeFormulaSnapshotHash(verifiedCleanFormulas), updated_at: canonicalSnapshot.updatedAt },
       { key: MICROBE_CANONICAL_META_KEY, value: pendingVersion, updated_at: canonicalSnapshot.updatedAt },
-      { key: MICROBE_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(cleanMicrobes.length), updated_at: canonicalSnapshot.updatedAt },
+      { key: MICROBE_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(verifiedCleanMicrobes.length), updated_at: canonicalSnapshot.updatedAt },
       { key: MICROBE_CANONICAL_DELETED_COUNT_META_KEY, value: String(cloudMicrobes.filter(m => m.deletedAt).length + removedCloudMicrobes.length), updated_at: canonicalSnapshot.updatedAt },
-      { key: MICROBE_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeMicrobeRecordIdsHash(cleanMicrobes), updated_at: canonicalSnapshot.updatedAt },
-      { key: MICROBE_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeMicrobeSnapshotHash(cleanMicrobes), updated_at: canonicalSnapshot.updatedAt },
+      { key: MICROBE_CANONICAL_RECORD_IDS_HASH_META_KEY, value: computeMicrobeRecordIdsHash(verifiedCleanMicrobes), updated_at: canonicalSnapshot.updatedAt },
+      { key: MICROBE_CANONICAL_SNAPSHOT_HASH_META_KEY, value: computeMicrobeSnapshotHash(verifiedCleanMicrobes), updated_at: canonicalSnapshot.updatedAt },
     ]);
     TERMS.length = 0;
-    TERMS.push(...cleanTerms);
+    TERMS.push(...verifiedCleanTerms);
     saveTermsToLocalStorage();
     DRUGS.length = 0;
-    DRUGS.push(...cleanDrugs);
+    DRUGS.push(...verifiedCleanDrugs);
     saveDrugsToLocalStorage();
     FORMULAS.length = 0;
-    FORMULAS.push(...cleanFormulas);
+    FORMULAS.push(...verifiedCleanFormulas);
     saveFormulasToLocalStorage();
     MICROBES.length = 0;
-    MICROBES.push(...cleanMicrobes);
+    MICROBES.push(...verifiedCleanMicrobes);
     saveMicrobesToLocalStorage();
     saveLocalDrugTombstones([
       ...cloudDrugs.filter(d => d.deletedAt),
@@ -14266,14 +14278,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.40',
+  version: '4.41',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 18:16',
+  updatedAt: '2026년 6월 24일 18:32',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 최종상태 저장 hash 재확인 보정',
+    items: [
+      '최종상태 저장 후 Supabase 데이터를 다시 읽어 실제 클라우드 기준 record ids/snapshot hash를 메타에 기록',
+      '저장 직후 로컬 캐시도 재확인된 클라우드 정규화값으로 맞춰 저장본 버전 확인의 용어 불일치 표시를 줄임',
+      '약물·공식·미생물 최종본 메타도 같은 재확인 기준으로 기록되도록 보강',
+    ]
+  },
   {
     title: '최신 · Assyst TXT 변환 모듈 이식',
     items: [
