@@ -10098,12 +10098,15 @@ const ANTHROPIC_MODEL_PRESETS = [
 ];
 
 const AI_ROUTE_LABELS = {
-  local: '로컬 LLM만 사용 · 데스크톱/노트북 전용',
+  local: '로컬 LLM만 사용 · Qwen3 14B 고정 · 데스크톱/노트북 전용',
   openai: 'OpenAI만 사용',
   anthropic: 'Anthropic만 사용',
   gemini: 'Gemini만 사용',
   auto: '자동 선택 (등록된 키 있는 쪽 우선 · claude.ai는 내장 Claude 사용)'
 };
+
+const LOCAL_LLM_MODEL_FIXED = 'qwen3:14b';
+const LOCAL_LLM_MODEL_LABEL = 'Qwen3 14B';
 
 function renderModelPresetOptions(presets, currentValue) {
   const presetValues = presets.map(p => p.value);
@@ -10155,8 +10158,8 @@ function getAIConfig() {
     modelAnthropic: cfg.modelAnthropic || 'claude-sonnet-4-6',
     modelGemini:    cfg.modelGemini    || 'gemini-2.0-flash',
     localUrl:        cfg.localUrl       || 'http://localhost:11434',
-    localModel:      cfg.localModel     || 'llama3.1',
-    localApiType:    cfg.localApiType   || 'ollama',
+    localModel:      LOCAL_LLM_MODEL_FIXED,
+    localApiType:    'ollama',
   };
 }
 
@@ -10178,8 +10181,8 @@ function saveAIConfigFromForm(silent = false) {
   const modelAnthropic = document.getElementById('ai_model_anthropic')?.value.trim() || 'claude-sonnet-4-6';
   const modelGemini = document.getElementById('ai_model_gemini')?.value.trim() || 'gemini-2.0-flash';
   const localUrl = document.getElementById('ai_local_url')?.value.trim().replace(/\/+$/, '') || 'http://localhost:11434';
-  const localModel = document.getElementById('ai_local_model')?.value.trim() || 'llama3.1';
-  const localApiType = document.getElementById('ai_local_type')?.value || 'ollama';
+  const localModel = LOCAL_LLM_MODEL_FIXED;
+  const localApiType = 'ollama';
 
   if (route === 'openai' && !openaiKey) { showToast('⚠️ OpenAI API 키를 입력해주세요'); return false; }
   if (route === 'anthropic' && !anthropicKey) { showToast('⚠️ Anthropic API 키를 입력해주세요'); return false; }
@@ -10282,7 +10285,7 @@ function showAISettings() {
           Anthropic 모델: <span style="color:var(--text2)">${cfg.modelAnthropic}</span><br>
           Gemini Key: <span style="color:var(--accent2)">${maskApiKey(cfg.geminiKey||'')}</span><br>
           Gemini 모델: <span style="color:var(--text2)">${cfg.modelGemini||'gemini-2.0-flash'}</span><br>
-          로컬 LLM: <span style="color:var(--text2)">${cfg.localApiType === 'openai' ? 'OpenAI-compatible' : 'Ollama'} · ${cfg.localModel} · ${cfg.localUrl}</span><br>
+          로컬 LLM: <span style="color:var(--text2)">Ollama · ${LOCAL_LLM_MODEL_LABEL} (${LOCAL_LLM_MODEL_FIXED}) · ${cfg.localUrl}</span><br>
           UMLS Key: <span style="color:var(--accent2)">${maskApiKey(cfg.umlsKey||localStorage.getItem('kma_umls_key')||'')}</span><br>
           저장 시각: <span style="color:var(--text2)">${savedText}</span>
         </div>
@@ -10305,17 +10308,15 @@ function showAISettings() {
         <div style="font-size:13px;color:#4ade80;font-weight:700;margin-bottom:5px">로컬 LLM · 데스크톱/노트북 전용</div>
         <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px">
           선생님이 직접 입력한 단권화 노트 본문을 요약, 분석, 비교표 초안으로 정리할 때만 사용합니다.<br>
-          모바일·태블릿에서는 실행하지 않고, 로컬 서버(Ollama/LM Studio 등)가 켜져 있을 때만 호출합니다.
+          모바일·태블릿에서는 실행하지 않고, Ollama에 ${LOCAL_LLM_MODEL_LABEL} 모델이 설치되어 있을 때만 호출합니다.
         </div>
-        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">로컬 API 형식</label>
-        <select id="ai_local_type" style="${inputStyle()}">
-          <option value="ollama" ${cfg.localApiType !== 'openai' ? 'selected' : ''}>Ollama /api/generate</option>
-          <option value="openai" ${cfg.localApiType === 'openai' ? 'selected' : ''}>LM Studio 등 OpenAI-compatible</option>
-        </select>
+        <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:10px 12px;margin-bottom:10px;color:var(--text2);font-size:12px;line-height:1.7">
+          고정 모델: <strong style="color:#4ade80">${LOCAL_LLM_MODEL_LABEL}</strong>
+          <span style="color:var(--text3)">(${LOCAL_LLM_MODEL_FIXED})</span><br>
+          미설치 시 터미널에서 <code style="color:var(--accent)">ollama pull ${LOCAL_LLM_MODEL_FIXED}</code> 실행
+        </div>
         <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">로컬 서버 URL</label>
         <input id="ai_local_url" type="text" value="${esc(cfg.localUrl)}" placeholder="http://localhost:11434" style="${inputStyle()}">
-        <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">모델명</label>
-        <input id="ai_local_model" type="text" value="${esc(cfg.localModel)}" placeholder="llama3.1" style="${inputStyle()}">
         <button onclick="testSingleAIProvider('local')" style="width:100%;background:var(--surface2);border:1px solid rgba(34,197,94,0.65);border-radius:8px;padding:10px;color:#4ade80;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:10px">로컬 LLM 테스트</button>
       </div>
 
@@ -10669,6 +10670,10 @@ async function testAIConnection() {
 
 async function testSingleAIProvider(provider) {
   if (!saveAIConfigFromForm(true)) return;
+  if (provider === 'local') {
+    await testLocalLLMProvider();
+    return;
+  }
   try {
     const text = await callAIText('Return exactly: OK', 20, 'test', provider);
     if (text.trim().toUpperCase().includes('OK')) showToast(`✅ ${provider} 연결 성공`);
@@ -10676,6 +10681,30 @@ async function testSingleAIProvider(provider) {
   } catch (err) {
     console.error(err);
     showToast(`⚠️ ${provider} 연결 실패`);
+  }
+}
+
+async function testLocalLLMProvider() {
+  const cfg = getAIConfig();
+  try {
+    if (!isDesktopLocalLLMContext()) {
+      showToast('⚠️ 로컬 LLM은 데스크톱/노트북 화면에서만 테스트합니다');
+      return;
+    }
+    const tagsRes = await fetch(localLLMEndpoint('/api/tags'), { method: 'GET' });
+    if (!tagsRes.ok) throw new Error(`Ollama tags error: ${tagsRes.status}`);
+    const tags = await tagsRes.json();
+    const models = (tags.models || []).map(m => String(m.name || m.model || ''));
+    if (!models.some(name => name === LOCAL_LLM_MODEL_FIXED || name.startsWith(`${LOCAL_LLM_MODEL_FIXED}:`))) {
+      showToast(`⚠️ ${LOCAL_LLM_MODEL_LABEL} 미설치 · ollama pull ${LOCAL_LLM_MODEL_FIXED}`);
+      return;
+    }
+    const text = await callLocalLLMText('Return exactly: OK', 20);
+    if (String(text).trim()) showToast(`✅ 로컬 LLM 연결 성공 · ${LOCAL_LLM_MODEL_LABEL}`);
+    else showToast(`⚠️ ${LOCAL_LLM_MODEL_LABEL} 응답이 비어 있습니다`);
+  } catch (err) {
+    console.error(err);
+    showToast(`⚠️ 로컬 LLM 연결 실패 · Ollama 실행/CORS/URL 확인 (${cfg.localUrl})`);
   }
 }
 
@@ -10692,35 +10721,22 @@ function localLLMEndpoint(path = '') {
 
 async function callLocalLLMText(prompt, maxTokens = 800) {
   const cfg = getAIConfig();
-  if (!cfg.localUrl || !cfg.localModel) throw new Error('Local LLM is not configured.');
+  if (!cfg.localUrl) throw new Error('Local LLM is not configured.');
   if (!isDesktopLocalLLMContext()) throw new Error('Local LLM is desktop-only in this app.');
-  if (cfg.localApiType === 'openai') {
-    const base = String(cfg.localUrl || '').replace(/\/+$/, '').replace(/\/v1$/, '');
-    const res = await fetch(`${base}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: cfg.localModel,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-        max_tokens: maxTokens,
-      })
-    });
-    if (!res.ok) throw new Error(`Local OpenAI-compatible error: ${res.status}`);
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
-  }
   const res = await fetch(localLLMEndpoint('/api/generate'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: cfg.localModel,
+      model: LOCAL_LLM_MODEL_FIXED,
       prompt,
       stream: false,
       options: { temperature: 0.2, num_predict: maxTokens },
     })
   });
-  if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 404) throw new Error(`Ollama model missing: ${LOCAL_LLM_MODEL_FIXED}`);
+    throw new Error(`Ollama error: ${res.status}`);
+  }
   const data = await res.json();
   return data.response || '';
 }
@@ -13948,14 +13964,23 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.25',
+  version: '4.26',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 05:10',
+  updatedAt: '2026년 6월 24일 05:32',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: 'v3.91 · Qwen3로컬LLM고정',
+    items: [
+      '로컬 LLM 모델을 Qwen3 14B(qwen3:14b)로 고정해 모델명 입력 오류 가능성을 줄임',
+      '로컬 LLM 설정 화면에서 모델 입력칸을 제거하고 Ollama 설치 명령을 안내',
+      '로컬 LLM 테스트 시 Ollama 서버 연결과 qwen3:14b 설치 여부를 먼저 확인하도록 보강',
+      '연결 실패 안내가 Ollama 실행, CORS, 서버 URL 확인으로 이어지도록 개선',
+    ]
+  },
   {
     title: 'v3.90 · 로컬LLM노트보조추가',
     items: [
