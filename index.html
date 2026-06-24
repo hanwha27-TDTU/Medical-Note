@@ -610,6 +610,10 @@
     padding: 16px 18px;
     border-bottom: 1px solid var(--border);
   }
+  .note-modal-head > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
   .note-modal-foot {
     border-top: 1px solid var(--border);
     border-bottom: none;
@@ -628,7 +632,8 @@
   .note-inline-search {
     position: relative;
     margin-top: 10px;
-    width: min(560px, 100%);
+    width: min(760px, 100%);
+    max-width: 100%;
   }
   .note-inline-search input {
     width: 100%;
@@ -639,7 +644,7 @@
     color: var(--text);
     padding: 9px 11px;
     font-family: 'Noto Sans KR', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     outline: none;
   }
   .note-inline-search input:focus {
@@ -652,7 +657,7 @@
     left: 0;
     right: 0;
     top: calc(100% + 6px);
-    z-index: 20;
+    z-index: 180;
     max-height: min(320px, 48vh);
     overflow: auto;
     border: 1px solid var(--border);
@@ -677,6 +682,7 @@
     padding: 8px 9px;
     text-align: left;
     width: 100%;
+    white-space: normal;
   }
   .note-inline-result:hover {
     background: var(--surface2);
@@ -685,6 +691,7 @@
   .note-inline-result strong {
     font-size: 12px;
     color: var(--text);
+    overflow-wrap: anywhere;
   }
   .note-inline-result span {
     font-size: 10px;
@@ -14258,14 +14265,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.38',
+  version: '4.39',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 18:04',
+  updatedAt: '2026년 6월 24일 18:24',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 노트 검색 결과와 자동 관련 목록 보정',
+    items: [
+      '단권화 노트 보기/편집 모달의 통합검색 입력칸 폭을 넓히고 결과 카드 줄바꿈과 레이어를 보강',
+      '통합검색 결과 카드를 누르면 용어·약물·미생물·공식 상세가 바로 열리도록 클릭 이벤트를 보강',
+      '본문에서 더 이상 감지되지 않는 자동 연결 항목은 저장 시 관련 용어·약물·미생물·공식 목록에서도 정리되도록 보정',
+    ]
+  },
   {
     title: '최신 · 보수적 안정성 보강',
     items: [
@@ -18354,6 +18369,14 @@ initApp();
     });
     return [...map.values()];
   }
+  function pruneStaleAutoNoteLinks(fieldText, previousAutoItems = [], currentAutoItems = []) {
+    const previousKeys = new Set(noteListFromText(previousAutoItems).map(item => normalizeNoteAutoLinkKey(item)));
+    const currentKeys = new Set(noteListFromText(currentAutoItems).map(item => normalizeNoteAutoLinkKey(item)));
+    return noteListFromText(fieldText).filter(item => {
+      const key = normalizeNoteAutoLinkKey(item);
+      return !previousKeys.has(key) || currentKeys.has(key);
+    });
+  }
   function linkifyNoteBodyHtml(html = '') {
     if (!html || typeof document === 'undefined') return sanitizeNoteHtml(html);
     const root = document.createElement('div');
@@ -18643,7 +18666,7 @@ initApp();
       return;
     }
     box.innerHTML = rows.map(row => `
-      <button type="button" class="note-inline-result" onclick="openNoteSearchResource(event,${JSON.stringify(row.kind)},${JSON.stringify(row.id)},${JSON.stringify(input.id)})">
+      <button type="button" class="note-inline-result" onpointerdown="openNoteSearchResource(event,${JSON.stringify(row.kind)},${JSON.stringify(row.id)},${JSON.stringify(input.id)})" onclick="openNoteSearchResource(event,${JSON.stringify(row.kind)},${JSON.stringify(row.id)},${JSON.stringify(input.id)})">
         <strong>${escapeHtml(noteSearchKindLabel(row.kind))} · ${escapeHtml(row.title)}</strong>
         <span>${escapeHtml(row.subtitle || '상세 열기')}</span>
       </button>`).join('');
@@ -18652,11 +18675,14 @@ initApp();
   window.openNoteSearchResource = function openNoteSearchResource(event, kind, id, inputId = '') {
     event?.preventDefault();
     event?.stopPropagation();
+    const trigger = event?.currentTarget;
+    if (trigger?.dataset?.noteOpening === '1') return;
+    if (trigger?.dataset) trigger.dataset.noteOpening = '1';
     const input = inputId ? document.getElementById(inputId) : null;
     const box = inputId ? document.getElementById(`${inputId}Results`) : null;
     if (input) input.value = '';
     if (box) { box.classList.remove('open'); box.innerHTML = ''; }
-    openNoteLinkedResource(event, kind, '', id);
+    window.openNoteLinkedResource(event, kind, '', id);
   };
   function integratedNoteDetailHtml(n) {
     return `
@@ -19484,6 +19510,13 @@ initApp();
       value('noteComparison'),
       noteHtmlToText(bodyHtml),
     ].join(' '));
+    const oldAutoLinks = old ? detectNoteResourceLinksFromText([
+      old.title,
+      old.summary,
+      old.keyPoint,
+      old.comparison,
+      noteHtmlToText(old.bodyHtml),
+    ].join(' ')) : { terms: [], drugs: [], microbes: [], formulas: [] };
     const next = normalizeIntegratedNote({
       ...(old || {}),
       id: old?.id || Date.now(),
@@ -19497,10 +19530,10 @@ initApp();
       keyPoint: value('noteKeyPoint'),
       bodyHtml,
       comparison: value('noteComparison'),
-      linkedTerms: mergeNoteLists(value('noteLinkedTerms'), autoLinks.terms),
-      linkedDrugs: mergeNoteLists(value('noteLinkedDrugs'), autoLinks.drugs),
-      linkedMicrobes: mergeNoteLists(value('noteLinkedMicrobes'), autoLinks.microbes),
-      linkedFormulas: mergeNoteLists(value('noteLinkedFormulas'), autoLinks.formulas),
+      linkedTerms: mergeNoteLists(pruneStaleAutoNoteLinks(value('noteLinkedTerms'), oldAutoLinks.terms, autoLinks.terms), autoLinks.terms),
+      linkedDrugs: mergeNoteLists(pruneStaleAutoNoteLinks(value('noteLinkedDrugs'), oldAutoLinks.drugs, autoLinks.drugs), autoLinks.drugs),
+      linkedMicrobes: mergeNoteLists(pruneStaleAutoNoteLinks(value('noteLinkedMicrobes'), oldAutoLinks.microbes, autoLinks.microbes), autoLinks.microbes),
+      linkedFormulas: mergeNoteLists(pruneStaleAutoNoteLinks(value('noteLinkedFormulas'), oldAutoLinks.formulas, autoLinks.formulas), autoLinks.formulas),
       originalMcq: readNoteOriginalMcqFromModal(),
       wrongStem: old?.wrongStem || '',
       myAnswer: old?.myAnswer || '',
@@ -19582,6 +19615,7 @@ initApp();
     })) || null;
   }
   window.openNoteLinkedResource = function openNoteLinkedResource(event, kind, label, id = null) {
+    event?.preventDefault?.();
     event?.stopPropagation();
     const target = findNoteLinkedResource(kind, label, id);
     if (!target) {
