@@ -14074,7 +14074,7 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.33',
+  version: '4.34',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
@@ -14082,6 +14082,14 @@ const APP_INFO = {
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 단권화 노트 자동 링크 별칭 매칭 보강',
+    items: [
+      '단권화 노트 본문 자동 링크가 한글 공백 차이, 괄호 안팎 이름, 슬래시·쉼표 별칭, 영어 약어를 함께 인식하도록 개선',
+      '약어·부분 별칭으로 링크되더라도 저장되는 연결 목록은 대표명 기준으로 유지',
+      '연결 칩을 열 때도 같은 별칭 규칙을 사용해 한글 풀네임과 축약 표현 검색 실패를 줄임',
+    ]
+  },
   {
     title: '최신 · 본문 드래그 선택 → 자료 추가',
     items: [
@@ -18005,34 +18013,83 @@ initApp();
     const clean = String(label || '').trim();
     if (!clean) return false;
     const condensed = clean.replace(/\s+/g, '');
+    if (/^[A-Z0-9]{2,8}$/.test(condensed) && /[A-Z]/.test(condensed)) return true;
     if (/^[A-Za-z0-9\s\-+/.()]+$/.test(clean)) return condensed.length >= 4;
     return condensed.length >= 2;
   }
+  function normalizeNoteAutoLinkKey(value = '') {
+    return String(value || '')
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function noteAutoLinkAcronym(label = '') {
+    const parts = String(label || '').match(/[A-Za-z0-9]+/g) || [];
+    if (parts.length < 2 || parts.length > 8) return '';
+    const acronym = parts.map(part => part[0]).join('').toUpperCase();
+    return /^[A-Z0-9]{2,8}$/.test(acronym) ? acronym : '';
+  }
+  function noteAutoLinkAliasCandidates(labels = []) {
+    const aliases = new Set();
+    const add = value => {
+      const clean = String(value || '').replace(/\s+/g, ' ').trim();
+      if (!clean) return;
+      aliases.add(clean);
+      if (/^[가-힣\s]+$/.test(clean)) {
+        const compact = clean.replace(/\s+/g, '');
+        if (compact !== clean) aliases.add(compact);
+      }
+      const acronym = noteAutoLinkAcronym(clean);
+      if (acronym) aliases.add(acronym);
+    };
+    labels.forEach(label => {
+      const clean = String(label || '').trim();
+      if (!clean) return;
+      add(clean);
+      clean.replace(/\(([^)]+)\)/g, (_match, inner) => {
+        add(inner);
+        return _match;
+      });
+      add(clean.replace(/\([^)]*\)/g, ' '));
+      clean.split(/[\/,;|·•]+/).forEach(add);
+    });
+    return [...aliases].filter(noteAutoLinkCandidateAllowed);
+  }
   function noteAutoLinkTargetList() {
     const rows = [];
-    const add = (kind, label, id = null) => {
+    const add = (kind, label, id = null, canonicalLabel = '') => {
       const clean = String(label || '').trim();
       if (!noteAutoLinkCandidateAllowed(clean)) return;
-      rows.push({ kind, label: clean, id, key: clean.toLowerCase() });
+      const canonical = String(canonicalLabel || clean).trim();
+      rows.push({ kind, label: clean, canonicalLabel: canonical, id, key: normalizeNoteAutoLinkKey(clean) });
     };
     dedupeTermsById(TERMS).filter(t => !t.deletedAt).forEach(t => {
-      [t.ko, t.en, t.uz].forEach(label => add('terms', label, t.id));
+      const labels = [t.ko, t.en, t.uz];
+      const canonical = labels.find(label => String(label || '').trim()) || '';
+      noteAutoLinkAliasCandidates(labels).forEach(label => add('terms', label, t.id, canonical));
     });
     getActiveMicrobes().forEach(m => {
-      [m.organism, m.ko_name, m.latin_name].forEach(label => add('microbes', label, m.id));
+      const labels = [m.organism, m.ko_name, m.latin_name];
+      const canonical = labels.find(label => String(label || '').trim()) || '';
+      noteAutoLinkAliasCandidates(labels).forEach(label => add('microbes', label, m.id, canonical));
     });
     getActiveDrugs().forEach(d => {
-      [d.generic_name, d.ko_name, d.brand_name].forEach(label => add('drugs', label, d.id));
+      const labels = [d.generic_name, d.ko_name, d.brand_name];
+      const canonical = labels.find(label => String(label || '').trim()) || '';
+      noteAutoLinkAliasCandidates(labels).forEach(label => add('drugs', label, d.id, canonical));
     });
     getActiveFormulas().forEach(f => {
-      [f.name, f.short_name, f.formula].forEach(label => add('formulas', label, f.id));
+      const labels = [f.name, f.short_name, f.formula];
+      const canonical = labels.find(label => String(label || '').trim()) || '';
+      noteAutoLinkAliasCandidates(labels).forEach(label => add('formulas', label, f.id, canonical));
     });
     const byKey = new Map();
     rows.forEach(row => {
       const old = byKey.get(row.key);
       if (!old || row.label.length > old.label.length) byKey.set(row.key, row);
     });
-    return [...byKey.values()].sort((a, b) => b.label.length - a.label.length).slice(0, 500);
+    return [...byKey.values()].sort((a, b) => b.label.length - a.label.length).slice(0, 2000);
   }
   // ASCII 라벨은 단어경계를 요구해 'urea'가 'Ureaplasma' 안에서 잘못 링크되는 것을 막습니다. (비ASCII=한글/라틴은 그대로 허용)
   function noteKeyBoundaryHit(haystack, key) {
@@ -18062,12 +18119,13 @@ initApp();
     return _noteLinkCtx;
   }
   function detectNoteResourceLinksFromText(text = '') {
-    const haystack = String(text || '').toLowerCase();
+    const haystack = normalizeNoteAutoLinkKey(text);
     const found = { terms: [], drugs: [], microbes: [], formulas: [] };
     if (!haystack) return found;
     noteAutoLinkTargetList().forEach(target => {
-      if (noteKeyBoundaryHit(haystack, target.key) && !found[target.kind].some(x => x.toLowerCase() === target.key)) {
-        found[target.kind].push(target.label);
+      const linkedLabel = target.canonicalLabel || target.label;
+      if (noteKeyBoundaryHit(haystack, target.key) && !found[target.kind].some(x => normalizeNoteAutoLinkKey(x) === normalizeNoteAutoLinkKey(linkedLabel))) {
+        found[target.kind].push(linkedLabel);
       }
     });
     return found;
@@ -18104,7 +18162,7 @@ initApp();
       let last = 0;
       pattern.lastIndex = 0;
       text.replace(pattern, (match, _same, offset) => {
-        const target = targetByKey.get(String(match).toLowerCase());
+        const target = targetByKey.get(normalizeNoteAutoLinkKey(match));
         // ASCII 라벨이 더 긴 단어 안에 박힌 경우(예: 'Urea' in 'Ureaplasma')는 링크하지 않음
         const asciiMatch = /^[\x00-\x7f]+$/.test(match);
         const before = offset > 0 ? text[offset - 1] : '';
@@ -18117,7 +18175,7 @@ initApp();
           button.className = `note-auto-link ${target.kind}`;
           button.textContent = match;
           button.title = '연결 자료 열기';
-          button.setAttribute('onclick', `openNoteLinkedResource(event,${JSON.stringify(target.kind)},${JSON.stringify(target.label)},${JSON.stringify(target.id || null)})`);
+          button.setAttribute('onclick', `openNoteLinkedResource(event,${JSON.stringify(target.kind)},${JSON.stringify(target.canonicalLabel || target.label)},${JSON.stringify(target.id || null)})`);
           frag.appendChild(button);
         } else {
           frag.appendChild(document.createTextNode(match));
@@ -19206,6 +19264,9 @@ initApp();
     if (kind === 'formulas') return [row.name, row.short_name, row.formula];
     return [];
   }
+  function noteResourceLookupLabels(kind, row) {
+    return noteAutoLinkAliasCandidates(noteResourceLabels(kind, row));
+  }
   function findNoteLinkedResource(kind, label, id = null) {
     const rows = noteResourceRows(kind);
     const idText = id === null || id === undefined ? '' : String(id);
@@ -19215,10 +19276,10 @@ initApp();
     }
     const query = normalizeNoteResourceLookup(label);
     if (!query) return null;
-    const exact = rows.find(row => noteResourceLabels(kind, row).some(value => normalizeNoteResourceLookup(value) === query));
+    const exact = rows.find(row => noteResourceLookupLabels(kind, row).some(value => normalizeNoteResourceLookup(value) === query));
     if (exact) return exact;
     if (query.length < 4) return null;
-    return rows.find(row => noteResourceLabels(kind, row).some(value => {
+    return rows.find(row => noteResourceLookupLabels(kind, row).some(value => {
       const candidate = normalizeNoteResourceLookup(value);
       return candidate && (candidate.includes(query) || query.includes(candidate));
     })) || null;
