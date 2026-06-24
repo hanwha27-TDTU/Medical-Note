@@ -5142,6 +5142,11 @@ const MICROBE_CANONICAL_ACTIVE_COUNT_META_KEY = 'medical_microbes_canonical_acti
 const MICROBE_CANONICAL_DELETED_COUNT_META_KEY = 'medical_microbes_canonical_deleted_count';
 const MICROBE_CANONICAL_RECORD_IDS_HASH_META_KEY = 'medical_microbes_canonical_record_ids_hash';
 const MICROBE_CANONICAL_SNAPSHOT_HASH_META_KEY = 'medical_microbes_canonical_snapshot_hash';
+const NOTE_CANONICAL_META_KEY = 'medical_notes_canonical_version';
+const NOTE_CANONICAL_ACTIVE_COUNT_META_KEY = 'medical_notes_canonical_active_count';
+const NOTE_CANONICAL_DELETED_COUNT_META_KEY = 'medical_notes_canonical_deleted_count';
+const NOTE_CANONICAL_RECORD_IDS_HASH_META_KEY = 'medical_notes_canonical_record_ids_hash';
+const NOTE_CANONICAL_SNAPSHOT_HASH_META_KEY = 'medical_notes_canonical_snapshot_hash';
 const TOMBSTONE_PRUNE_DAYS = 90;
 
 function safeSetItem(key, value, options = {}) {
@@ -10093,6 +10098,7 @@ const ANTHROPIC_MODEL_PRESETS = [
 ];
 
 const AI_ROUTE_LABELS = {
+  local: '로컬 LLM만 사용 · 데스크톱/노트북 전용',
   openai: 'OpenAI만 사용',
   anthropic: 'Anthropic만 사용',
   gemini: 'Gemini만 사용',
@@ -10118,9 +10124,11 @@ function onAIRouteChange() {
   const route = document.getElementById('ai_route')?.value || 'auto';
   const openaiBox = document.getElementById('openaiConfigBox');
   const anthropicBox = document.getElementById('anthropicConfigBox');
+  const localBox = document.getElementById('localConfigBox');
   const routeTip = document.getElementById('aiRouteTip');
   if (openaiBox) openaiBox.style.display = (route === 'openai' || route === 'auto') ? 'block' : 'none';
   if (anthropicBox) anthropicBox.style.display = (route === 'anthropic' || route === 'auto') ? 'block' : 'none';
+  if (localBox) localBox.style.display = route === 'local' ? 'block' : 'none';
   // Gemini + UMLS 박스는 항상 표시
   if (routeTip) routeTip.textContent = AI_ROUTE_LABELS[route] || '';
 }
@@ -10146,6 +10154,9 @@ function getAIConfig() {
     modelOpenAI:    cfg.modelOpenAI    || 'gpt-4o-mini',
     modelAnthropic: cfg.modelAnthropic || 'claude-sonnet-4-6',
     modelGemini:    cfg.modelGemini    || 'gemini-2.0-flash',
+    localUrl:        cfg.localUrl       || 'http://localhost:11434',
+    localModel:      cfg.localModel     || 'llama3.1',
+    localApiType:    cfg.localApiType   || 'ollama',
   };
 }
 
@@ -10153,6 +10164,7 @@ function hasConfiguredAIKey(cfg = getAIConfig()) {
   if (cfg.route === 'openai') return !!cfg.openaiKey;
   if (cfg.route === 'anthropic') return !!cfg.anthropicKey;
   if (cfg.route === 'gemini') return !!cfg.geminiKey;
+  if (cfg.route === 'local') return !!(cfg.localUrl && cfg.localModel);
   return !!(cfg.openaiKey || cfg.anthropicKey || cfg.geminiKey);
 }
 
@@ -10165,12 +10177,16 @@ function saveAIConfigFromForm(silent = false) {
   const modelOpenAI = document.getElementById('ai_model_openai')?.value.trim() || 'gpt-4o-mini';
   const modelAnthropic = document.getElementById('ai_model_anthropic')?.value.trim() || 'claude-sonnet-4-6';
   const modelGemini = document.getElementById('ai_model_gemini')?.value.trim() || 'gemini-2.0-flash';
+  const localUrl = document.getElementById('ai_local_url')?.value.trim().replace(/\/+$/, '') || 'http://localhost:11434';
+  const localModel = document.getElementById('ai_local_model')?.value.trim() || 'llama3.1';
+  const localApiType = document.getElementById('ai_local_type')?.value || 'ollama';
 
   if (route === 'openai' && !openaiKey) { showToast('⚠️ OpenAI API 키를 입력해주세요'); return false; }
   if (route === 'anthropic' && !anthropicKey) { showToast('⚠️ Anthropic API 키를 입력해주세요'); return false; }
   if (route === 'gemini' && !geminiKey) { showToast('⚠️ Gemini API 키를 입력해주세요'); return false; }
 
-  const cfg = { route, openaiKey, anthropicKey, geminiKey, umlsKey, modelOpenAI, modelAnthropic, modelGemini, savedAt: new Date().toISOString() };
+  if (route === 'local' && (!localUrl || !localModel)) { showToast('⚠️ 로컬 LLM URL과 모델명을 입력해주세요'); return false; }
+  const cfg = { route, openaiKey, anthropicKey, geminiKey, umlsKey, modelOpenAI, modelAnthropic, modelGemini, localUrl, localModel, localApiType, savedAt: new Date().toISOString() };
   safeSetItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(cfg));
   if (umlsKey) safeSetItem('kma_umls_key', umlsKey);
   if (!silent) { showToast('✅ AI API 설정 저장 완료'); showAISettings(); }
@@ -10266,6 +10282,7 @@ function showAISettings() {
           Anthropic 모델: <span style="color:var(--text2)">${cfg.modelAnthropic}</span><br>
           Gemini Key: <span style="color:var(--accent2)">${maskApiKey(cfg.geminiKey||'')}</span><br>
           Gemini 모델: <span style="color:var(--text2)">${cfg.modelGemini||'gemini-2.0-flash'}</span><br>
+          로컬 LLM: <span style="color:var(--text2)">${cfg.localApiType === 'openai' ? 'OpenAI-compatible' : 'Ollama'} · ${cfg.localModel} · ${cfg.localUrl}</span><br>
           UMLS Key: <span style="color:var(--accent2)">${maskApiKey(cfg.umlsKey||localStorage.getItem('kma_umls_key')||'')}</span><br>
           저장 시각: <span style="color:var(--text2)">${savedText}</span>
         </div>
@@ -10279,8 +10296,27 @@ function showAISettings() {
           <option value="openai" ${cfg.route === 'openai' ? 'selected' : ''}>OpenAI만 사용</option>
           <option value="anthropic" ${cfg.route === 'anthropic' ? 'selected' : ''}>Anthropic만 사용</option>
           <option value="gemini" ${cfg.route === 'gemini' ? 'selected' : ''}>Gemini만 사용</option>
+          <option value="local" ${cfg.route === 'local' ? 'selected' : ''}>로컬 LLM만 사용</option>
         </select>
         <div id="aiRouteTip" style="font-size:10px;color:var(--text3);line-height:1.6;margin-top:5px">${AI_ROUTE_LABELS[cfg.route] || ''}</div>
+      </div>
+
+      <div id="localConfigBox" style="background:var(--surface);border:1px solid rgba(34,197,94,0.35);border-radius:12px;padding:16px;margin-bottom:10px;display:${cfg.route === 'local' ? 'block' : 'none'}">
+        <div style="font-size:13px;color:#4ade80;font-weight:700;margin-bottom:5px">로컬 LLM · 데스크톱/노트북 전용</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px">
+          선생님이 직접 입력한 단권화 노트 본문을 요약, 분석, 비교표 초안으로 정리할 때만 사용합니다.<br>
+          모바일·태블릿에서는 실행하지 않고, 로컬 서버(Ollama/LM Studio 등)가 켜져 있을 때만 호출합니다.
+        </div>
+        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">로컬 API 형식</label>
+        <select id="ai_local_type" style="${inputStyle()}">
+          <option value="ollama" ${cfg.localApiType !== 'openai' ? 'selected' : ''}>Ollama /api/generate</option>
+          <option value="openai" ${cfg.localApiType === 'openai' ? 'selected' : ''}>LM Studio 등 OpenAI-compatible</option>
+        </select>
+        <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">로컬 서버 URL</label>
+        <input id="ai_local_url" type="text" value="${esc(cfg.localUrl)}" placeholder="http://localhost:11434" style="${inputStyle()}">
+        <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">모델명</label>
+        <input id="ai_local_model" type="text" value="${esc(cfg.localModel)}" placeholder="llama3.1" style="${inputStyle()}">
+        <button onclick="testSingleAIProvider('local')" style="width:100%;background:var(--surface2);border:1px solid rgba(34,197,94,0.65);border-radius:8px;padding:10px;color:#4ade80;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:10px">로컬 LLM 테스트</button>
       </div>
 
       <div id="openaiConfigBox" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;display:${cfg.route === 'openai' || cfg.route === 'auto' ? 'block' : 'none'}">
@@ -10601,6 +10637,7 @@ function chooseAIProvider(task = 'general') {
   if (cfg.route === 'openai') return 'openai';
   if (cfg.route === 'anthropic') return 'anthropic';
   if (cfg.route === 'gemini') return 'gemini';
+  if (cfg.route === 'local') return 'local';
   // Auto route: long enrichment JSON goes to Anthropic; short field generation/test goes to OpenAI/Gemini.
   if (task === 'enrich' && cfg.anthropicKey) return 'anthropic';
   if (cfg.openaiKey) return 'openai';
@@ -10617,6 +10654,7 @@ async function testAIConnection() {
         cfg.openaiKey ? 'openai' : null,
         cfg.anthropicKey ? 'anthropic' : null,
         cfg.geminiKey ? 'gemini' : null,
+        cfg.route === 'local' && cfg.localUrl && cfg.localModel ? 'local' : null,
       ].filter(Boolean)
     : [chooseAIProvider('test')];
   if (!providers.length) { showToast('⚠️ 테스트할 API 키가 없습니다'); return; }
@@ -10639,6 +10677,52 @@ async function testSingleAIProvider(provider) {
     console.error(err);
     showToast(`⚠️ ${provider} 연결 실패`);
   }
+}
+
+function isDesktopLocalLLMContext() {
+  const coarse = window.matchMedia?.('(pointer: coarse)')?.matches;
+  return window.innerWidth >= 900 && !coarse;
+}
+
+function localLLMEndpoint(path = '') {
+  const cfg = getAIConfig();
+  const base = String(cfg.localUrl || 'http://localhost:11434').replace(/\/+$/, '');
+  return `${base}${path}`;
+}
+
+async function callLocalLLMText(prompt, maxTokens = 800) {
+  const cfg = getAIConfig();
+  if (!cfg.localUrl || !cfg.localModel) throw new Error('Local LLM is not configured.');
+  if (!isDesktopLocalLLMContext()) throw new Error('Local LLM is desktop-only in this app.');
+  if (cfg.localApiType === 'openai') {
+    const base = String(cfg.localUrl || '').replace(/\/+$/, '').replace(/\/v1$/, '');
+    const res = await fetch(`${base}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: cfg.localModel,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        max_tokens: maxTokens,
+      })
+    });
+    if (!res.ok) throw new Error(`Local OpenAI-compatible error: ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  }
+  const res = await fetch(localLLMEndpoint('/api/generate'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: cfg.localModel,
+      prompt,
+      stream: false,
+      options: { temperature: 0.2, num_predict: maxTokens },
+    })
+  });
+  if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+  const data = await res.json();
+  return data.response || '';
 }
 
 // ─── 커스텀 Confirm (claude.ai에서 confirm() 차단 대응) ───
@@ -10700,6 +10784,9 @@ async function callClaudeBuiltin(prompt, maxTokens = 800) {
 }
 
 async function callAIText(prompt, maxTokens = 800, task = 'general', forceProvider = null) {
+  const cfg = getAIConfig();
+  const provider = forceProvider || chooseAIProvider(task);
+  if (provider === 'local') return callLocalLLMText(prompt, maxTokens);
   // claude.ai 환경이면 내장 API 우선 시도 (키 불필요)
   if (isClaudeAiEnv()) {
     // 529(과부하) 시 최대 3회 재시도 (1s, 2s, 4s 대기)
@@ -10719,9 +10806,6 @@ async function callAIText(prompt, maxTokens = 800, task = 'general', forceProvid
       }
     }
   }
-
-  const cfg = getAIConfig();
-  const provider = forceProvider || chooseAIProvider(task);
 
   if (provider === 'anthropic') {
     if (!cfg.anthropicKey) throw new Error('Anthropic API key is not configured.');
@@ -13205,6 +13289,9 @@ async function showSavedVersionInfo() {
     </section>`;
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+  if (typeof window.appendIntegratedNoteVersionInfo === 'function') {
+    window.appendIntegratedNoteVersionInfo(overlay, metaMap).catch(e => console.warn('note version info append failed', e));
+  }
 }
 
 function confirmCloudReplaceLocal() {
@@ -13861,14 +13948,40 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 의학용어',
-  version: '4.23',
+  version: '4.25',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 03:17',
+  updatedAt: '2026년 6월 24일 05:10',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: 'v3.90 · 로컬LLM노트보조추가',
+    items: [
+      'AI 설정에 데스크톱/노트북 전용 로컬 LLM(Ollama/LM Studio 호환) 경로와 모델명 설정을 추가',
+      '단권화 노트 본문 편집기에 요약, 분석, 비교표 초안 삽입 버튼을 추가',
+      '로컬 LLM은 사용자가 직접 입력한 본문만 근거로 정리하도록 제한하고 모바일·태블릿 실행은 차단',
+      'OpenAI/Anthropic/Gemini 키 기반 AI와 로컬 LLM 설정 상태를 분리해 확인하도록 보강',
+    ]
+  },
+  {
+    title: 'v3.89 · 전반점검_노트동기화메타보강',
+    items: [
+      '대규모 업데이트 후 구문, 중복 정의, SQL, 단권화 노트 저장/복원/동기화 연결을 새 기준으로 재점검',
+      '단권화 노트 클라우드 동기화 상수 누락 위험을 보정하고 노트 저장·삭제 시 Supabase 즉시 반영 경로를 추가',
+      '최종상태 저장 후 단권화 노트 active/deleted count와 record ids hash, snapshot hash를 저장본 메타에 함께 기록',
+      '저장본 버전 확인 모달에서 단권화 노트 클라우드/로컬 개수와 hash 일치 여부를 추가로 확인하도록 보강',
+    ]
+  },
+  {
+    title: '최신 · 노트 렌더 죽은 코드 정리',
+    items: [
+      '단권화 노트 목록 렌더러의 구버전 renderIntegratedNoteFrame 정의를 제거',
+      '카드 클릭 팝업, + 노트 추가 버튼, 최신 목록 UI를 가진 라이브 정의만 남김',
+      '동일 함수명 중복으로 앞쪽 죽은 코드를 수정해도 반영되지 않는 헛수정 위험을 줄임',
+    ]
+  },
   {
     title: '최신 · Supabase 통합 SQL 노트 반영',
     items: [
@@ -17585,6 +17698,65 @@ initApp();
     div.innerHTML = sanitizeNoteHtml(html);
     return div.textContent || '';
   }
+  function noteLocalAssistantPrompt(mode, text) {
+    const base = [
+      'You are a medical study-note assistant.',
+      'Use only the content provided by the user. Do not add unsupported facts.',
+      'Write in Korean unless the original phrase is a medical English term.',
+      'Keep the result concise and useful for USMLE/KMLE memorization.',
+      '',
+      'USER NOTE:',
+      text
+    ].join('\n');
+    if (mode === 'compare') {
+      return `${base}\n\nTASK: Create a compact comparison table. Return only clean HTML table markup with columns: 구분, A, B, 구별포인트. If the note does not contain two explicit items to compare, compare the most relevant differential concepts found in the note.`;
+    }
+    if (mode === 'analysis') {
+      return `${base}\n\nTASK: Analyze the note into short bullets under: 핵심, 인과사슬, 시험 단서, 오답 함정, 연결할 용어.`;
+    }
+    return `${base}\n\nTASK: Summarize the note into 5-8 high-yield bullets. Start with one line labeled 한 줄 핵심.`;
+  }
+  function noteLocalAssistantResultHtml(mode, result = '') {
+    const title = mode === 'compare' ? '로컬 LLM 비교표 초안' : mode === 'analysis' ? '로컬 LLM 분석 초안' : '로컬 LLM 요약 초안';
+    const clean = String(result || '').trim();
+    if (!clean) return '';
+    if (mode === 'compare' && /<table[\s>]/i.test(clean)) {
+      return sanitizeNoteHtml(`<div class="note-callout"><strong>${title}</strong></div>${clean}<p><br></p>`);
+    }
+    const lines = clean.split(/\n+/).map(v => v.trim()).filter(Boolean);
+    const body = lines.map(line => `<li>${esc(line.replace(/^[-*]\s*/, ''))}</li>`).join('');
+    return `<div class="note-callout"><strong>${title}</strong><ul>${body}</ul></div><p><br></p>`;
+  }
+  window.runLocalNoteAssistant = async function runLocalNoteAssistant(mode = 'summary') {
+    const editor = document.getElementById('noteBodyEditor');
+    if (!editor) return;
+    const cfg = getAIConfig();
+    if (cfg.route !== 'local') {
+      showToast('⚠️ 설정에서 AI Route를 로컬 LLM으로 선택해주세요');
+      return;
+    }
+    if (!isDesktopLocalLLMContext()) {
+      showToast('⚠️ 로컬 LLM 보조는 데스크톱/노트북 화면에서만 실행합니다');
+      return;
+    }
+    const text = noteHtmlToText(editor.innerHTML).trim();
+    if (text.length < 20) {
+      showToast('⚠️ 먼저 본문에 정리할 내용을 입력해주세요');
+      return;
+    }
+    showToast('로컬 LLM으로 노트 정리 중...');
+    try {
+      const maxTokens = mode === 'compare' ? 1000 : 800;
+      const result = await callAIText(noteLocalAssistantPrompt(mode, text), maxTokens, 'note_local', 'local');
+      const html = noteLocalAssistantResultHtml(mode, result);
+      if (!html) throw new Error('Empty local LLM response');
+      insertNoteEditorHtml(html);
+      showToast('✅ 로컬 LLM 초안 삽입 완료');
+    } catch (err) {
+      console.warn('Local note assistant failed', err);
+      showToast('⚠️ 로컬 LLM 호출 실패 · Ollama/LM Studio 실행과 CORS를 확인해주세요');
+    }
+  };
   function noteAutoLinkCandidateAllowed(label = '') {
     const clean = String(label || '').trim();
     if (!clean) return false;
@@ -17865,76 +18037,6 @@ initApp();
     const chips = (items || []).map(item => noteLinkButton(kind, item)).join('');
     if (!chips) return '';
     return `<div class="note-link-group"><div class="note-link-label">${escapeHtml(title)}</div><div class="note-link-row">${chips}</div></div>`;
-  }
-  function renderIntegratedNoteFrame(notes = filterIntegratedNotes(document.getElementById('searchInput')?.value || '')) {
-    ensureIntegratedNoteShell();
-    invalidateNoteLinkContext();
-    ['termList', 'drugFrame', 'formulaFrame', 'microbeFrame'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = '';
-    });
-    const empty = document.getElementById('emptyState');
-    if (empty) empty.style.display = 'none';
-    const frame = document.getElementById('noteFrame');
-    if (!frame) return;
-    const rows = Array.isArray(notes) ? notes.filter(n => !n.deletedAt) : [];
-    if (!rows.length) {
-      frame.innerHTML = `
-        <section class="note-frame">
-          <div class="note-frame-title">
-            <strong>🧠 단권화 노트 · 0개</strong>
-          </div>
-          <div class="note-empty-card">
-            <div class="icon">🧠</div>
-            <h3>단권화 노트가 없습니다</h3>
-            <p>개념, 오답, 비교표, 관련 용어·약물·미생물·공식을 한 카드에 묶어보세요.</p>
-          </div>
-        </section>`;
-    } else {
-      frame.innerHTML = `
-        <section class="note-frame">
-          <div class="note-frame-title">
-            <strong>🧠 단권화 노트 · ${rows.length}개</strong>
-            <span>개념과 오답을 기존 학습자료에 연결</span>
-          </div>
-          ${rows.map(n => `
-            <article class="note-card" id="note-card-${Number(n.id)}">
-              <div class="note-card-head">
-                <div>
-                  <div class="note-title">${escapeHtml(n.title || '제목 없음')}</div>
-                  <div class="note-meta">${escapeHtml(n.system || 'General')} · ${n.noteType === 'wrong' ? '오답노트' : '개념노트'} · ${escapeHtml((n.tags || []).slice(0, 3).join(', '))}</div>
-                </div>
-                <div class="note-actions">
-                  <button class="bookmark-btn" onclick="openIntegratedNoteModal(${Number(n.id)})" title="단권화 노트 편집" aria-label="단권화 노트 편집">✏️</button>
-                  <button class="bookmark-btn danger" onclick="deleteIntegratedNote(${Number(n.id)})" title="단권화 노트 삭제" aria-label="단권화 노트 삭제">×</button>
-                </div>
-              </div>
-              ${n.summary ? `<div class="note-summary">${escapeHtml(n.summary)}</div>` : ''}
-              ${n.keyPoint ? `<div class="note-keyline"><span>핵심</span>${escapeHtml(n.keyPoint)}</div>` : ''}
-              ${n.bodyHtml ? `<div class="note-body-render">${linkifyNoteBodyHtml(n.bodyHtml)}</div>` : ''}
-              ${n.comparison ? `<div class="note-comparison">${escapeHtml(n.comparison)}</div>` : ''}
-              ${n.wrongStem || n.wrongReason || n.trap || n.nextCue ? `
-                <div class="note-wrong-box">
-                  <div class="note-wrong-label">오답노트</div>
-                  ${n.wrongStem ? `<div><b>문항:</b> ${escapeHtml(n.wrongStem)}</div>` : ''}
-                  ${n.myAnswer || n.correctAnswer ? `<div><b>내 답/정답:</b> ${escapeHtml([n.myAnswer, n.correctAnswer].filter(Boolean).join(' → '))}</div>` : ''}
-                  ${n.wrongReason ? `<div><b>틀린 이유:</b> ${escapeHtml(n.wrongReason)}</div>` : ''}
-                  ${n.trap ? `<div><b>함정:</b> ${escapeHtml(n.trap)}</div>` : ''}
-                  ${n.nextCue ? `<div><b>다음 단서:</b> ${escapeHtml(n.nextCue)}</div>` : ''}
-                </div>` : ''}
-              <div class="note-links">
-                ${noteLinkGroup('용어', 'terms', n.linkedTerms)}
-                ${noteLinkGroup('약물', 'drugs', n.linkedDrugs)}
-                ${noteLinkGroup('미생물', 'microbes', n.linkedMicrobes)}
-                ${noteLinkGroup('공식', 'formulas', n.linkedFormulas)}
-              </div>
-            </article>
-          `).join('')}
-        </section>`;
-    }
-    const sectionLabel = document.getElementById('sectionLabel');
-    if (sectionLabel) sectionLabel.innerHTML = `<div class="section-label-row"><span class="section-label-spacer">전체 단권화 노트 · ${rows.length}개</span></div>`;
-    updateCounts(rows.length, rows.length, 'notes');
   }
   function noteOriginalMcqViewHtml(n) {
     const mcq = normalizeNoteMcq(n?.originalMcq || {});
@@ -18458,6 +18560,10 @@ initApp();
             <button type="button" class="note-tool-warning" onclick="insertNoteEditorHtml('<div class=&quot;note-warning&quot;><strong>주의:</strong><br></div>')">주의박스</button>
             <button type="button" onclick="insertNoteTable()">표</button>
             <span class="note-tool-sep" aria-hidden="true"></span>
+            <button type="button" onclick="runLocalNoteAssistant('summary')">요약</button>
+            <button type="button" onclick="runLocalNoteAssistant('analysis')">분석</button>
+            <button type="button" onclick="runLocalNoteAssistant('compare')">비교표</button>
+            <span class="note-tool-sep" aria-hidden="true"></span>
             <button type="button" onclick="applyNoteTypeTemplateFromSelect(true)">템플릿 다시 적용</button>
           </div>
           <div class="note-editor-helper-grid">
@@ -18721,6 +18827,9 @@ initApp();
     if (idx >= 0) NOTEBOOK[idx] = next;
     else NOTEBOOK.unshift(next);
     const saved = saveIntegratedNotes();
+    if (typeof window.saveIntegratedNoteToCloud === 'function') {
+      window.saveIntegratedNoteToCloud(next).catch(e => console.warn('note immediate cloud save failed', e));
+    }
     closeIntegratedNoteModal();
     setLibraryMode('notes');
     showToast(saved === false
@@ -18735,6 +18844,9 @@ initApp();
     NOTEBOOK[idx] = { ...NOTEBOOK[idx], deletedAt, updatedAt: deletedAt };
     saveIntegratedNotes();
     saveIntegratedNoteTombstones([...loadIntegratedNoteTombstones(), NOTEBOOK[idx]]);
+    if (typeof window.deleteIntegratedNoteFromCloud === 'function') {
+      window.deleteIntegratedNoteFromCloud(id, deletedAt).catch(e => console.warn('note immediate cloud delete failed', e));
+    }
     renderIntegratedNoteFrame();
     showToast('🗑️ 단권화 노트 삭제 완료');
   };
@@ -19148,8 +19260,8 @@ initApp();
   };
 
   const originalApplyPendingDataImport = applyPendingDataImport;
-  // ═══════════ 단권화 노트 클라우드 동기화 (용어·약물·미생물·공식과 동일 방식) ═══════════
   const NOTES_TABLE = 'medical_notes';
+  // ═══════════ 단권화 노트 클라우드 동기화 (용어·약물·미생물·공식과 동일 방식) ═══════════
   function noteSyncTime(n) {
     return Date.parse(n?.updatedAt || n?.deletedAt || n?.createdAt || 0) || 0;
   }
@@ -19221,6 +19333,89 @@ initApp();
     } catch (e) { console.warn('Supabase note delete failed:', e); }
     return false;
   }
+  function canonicalNoteHashPayload(notes) {
+    return dedupeNotesById(notes)
+      .filter(n => !n.deletedAt)
+      .sort((a, b) => String(a.id).localeCompare(String(b.id), 'en', { numeric: true }))
+      .map(n => stableForHash({
+        id: String(n.id),
+        title: n.title || '',
+        noteType: n.noteType || '',
+        system: n.system || '',
+        tags: Array.isArray(n.tags) ? n.tags : [],
+        usmleSource: n.usmleSource || '',
+        kmleSource: n.kmleSource || '',
+        summary: n.summary || '',
+        keyPoint: n.keyPoint || '',
+        bodyHtml: n.bodyHtml || '',
+        comparison: n.comparison || '',
+        linkedTerms: Array.isArray(n.linkedTerms) ? n.linkedTerms : [],
+        linkedDrugs: Array.isArray(n.linkedDrugs) ? n.linkedDrugs : [],
+        linkedMicrobes: Array.isArray(n.linkedMicrobes) ? n.linkedMicrobes : [],
+        linkedFormulas: Array.isArray(n.linkedFormulas) ? n.linkedFormulas : [],
+        originalMcq: n.originalMcq || {},
+        createdAt: n.createdAt || '',
+        updatedAt: n.updatedAt || '',
+      }));
+  }
+  function computeNoteRecordIdsHash(notes) {
+    const ids = dedupeNotesById(notes)
+      .filter(n => !n.deletedAt)
+      .map(n => String(n.id))
+      .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+    return simpleHashText(ids.join('|'));
+  }
+  function computeNoteSnapshotHash(notes) {
+    return simpleHashText(JSON.stringify(canonicalNoteHashPayload(notes)));
+  }
+  async function setIntegratedNoteCanonicalMetaFromLocal(version = getLocalSyncMeta().canonicalVersion) {
+    if (!version) return null;
+    const now = new Date().toISOString();
+    const cleanNotes = dedupeNotesById(NOTEBOOK).filter(n => !n.deletedAt);
+    const cloudNotes = await sbLoadAllNotes();
+    if (cloudNotes === null) return null;
+    const deletedCount = cloudNotes.filter(n => n.deletedAt).length;
+    const recordIdsHash = computeNoteRecordIdsHash(cleanNotes);
+    const snapshotHash = computeNoteSnapshotHash(cleanNotes);
+    await sbSetSyncMetaRows([
+      { key: NOTE_CANONICAL_META_KEY, value: version, updated_at: now },
+      { key: NOTE_CANONICAL_ACTIVE_COUNT_META_KEY, value: String(cleanNotes.length), updated_at: now },
+      { key: NOTE_CANONICAL_DELETED_COUNT_META_KEY, value: String(deletedCount), updated_at: now },
+      { key: NOTE_CANONICAL_RECORD_IDS_HASH_META_KEY, value: recordIdsHash, updated_at: now },
+      { key: NOTE_CANONICAL_SNAPSHOT_HASH_META_KEY, value: snapshotHash, updated_at: now },
+    ]);
+    return { activeCount: cleanNotes.length, deletedCount, recordIdsHash, snapshotHash, updatedAt: now };
+  }
+  window.saveIntegratedNoteToCloud = async function saveIntegratedNoteToCloud(note) {
+    if (!getSupabaseConfig()) return false;
+    await sbBatchUpsertNoteRows([noteToRow(note)]);
+    return true;
+  };
+  window.deleteIntegratedNoteFromCloud = async function deleteIntegratedNoteFromCloud(id, deletedAt = noteNow()) {
+    return sbDeleteNote(id, deletedAt);
+  };
+  window.appendIntegratedNoteVersionInfo = async function appendIntegratedNoteVersionInfo(overlay, metaMap = {}) {
+    const grid = overlay?.querySelector?.('.developer-grid');
+    if (!grid) return;
+    const cloudNotes = await sbLoadAllNotes();
+    if (cloudNotes === null) return;
+    const cloudActiveNotes = dedupeNotesById(cloudNotes).filter(n => !n.deletedAt);
+    const cloudDeletedNotes = dedupeNotesById(cloudNotes).filter(n => n.deletedAt);
+    const localActiveNotes = dedupeNotesById(NOTEBOOK).filter(n => !n.deletedAt);
+    const storedNoteSnapshotHash = metaMap[NOTE_CANONICAL_SNAPSHOT_HASH_META_KEY]?.value || '';
+    const storedNoteRecordIdsHash = metaMap[NOTE_CANONICAL_RECORD_IDS_HASH_META_KEY]?.value || '';
+    const cloudNoteSnapshotHash = computeNoteSnapshotHash(cloudActiveNotes);
+    const cloudNoteRecordIdsHash = computeNoteRecordIdsHash(cloudActiveNotes);
+    const localNoteSnapshotHash = computeNoteSnapshotHash(localActiveNotes);
+    const noteSnapshotOk = storedNoteSnapshotHash && storedNoteSnapshotHash === cloudNoteSnapshotHash;
+    const noteIdsOk = storedNoteRecordIdsHash && storedNoteRecordIdsHash === cloudNoteRecordIdsHash;
+    const localNotesMatchCloud = localActiveNotes.length === cloudActiveNotes.length && localNoteSnapshotHash === cloudNoteSnapshotHash;
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="developer-field"><div class="developer-field-label">단권화 노트 저장본</div><div class="developer-field-value">클라우드 ${cloudActiveNotes.length}개 · 삭제 표시 ${cloudDeletedNotes.length}개<br>저장메타 ${escapeHtml(metaMap[NOTE_CANONICAL_ACTIVE_COUNT_META_KEY]?.value || '없음')}개</div></div>
+      <div class="developer-field"><div class="developer-field-label">단권화 노트 hash</div><div class="developer-field-value" style="color:${noteSnapshotOk && noteIdsOk ? '#4ade80' : '#fbbf24'}">ids ${escapeHtml(compactHash(cloudNoteRecordIdsHash))}${storedNoteRecordIdsHash ? `<br><span>저장메타 ${escapeHtml(compactHash(storedNoteRecordIdsHash))}</span>` : ''}<br>snapshot ${escapeHtml(compactHash(cloudNoteSnapshotHash))}${storedNoteSnapshotHash ? `<br><span>저장메타 ${escapeHtml(compactHash(storedNoteSnapshotHash))}</span>` : ''}</div></div>
+      <div class="developer-field"><div class="developer-field-label">단권화 노트 로컬 캐시</div><div class="developer-field-value" style="color:${localNotesMatchCloud ? '#4ade80' : '#fbbf24'}">${localActiveNotes.length}개 · ${localNotesMatchCloud ? '일치' : '다름'}<br>note ids ${escapeHtml(compactHash(computeNoteRecordIdsHash(localActiveNotes)))}</div></div>
+    `);
+  };
   function mergeIntegratedNotesForSync(cloudNotes, localNotes, localTombstones = []) {
     const merged = new Map();
     [
@@ -19309,6 +19504,7 @@ initApp();
     if (ok) {
       try {
         const count = await pushNotesToCloud();
+        await setIntegratedNoteCanonicalMetaFromLocal();
         if (currentLibraryMode === 'notes') renderIntegratedNoteFrame();
         showToast(`☁️ 단권화 노트 ${count}개도 클라우드 최종본에 저장했습니다`);
       } catch (e) {
