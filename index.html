@@ -5055,6 +5055,7 @@ document.addEventListener('keydown', e => {
     <button class="category-stats-header-btn" onclick="showCategoryStats()" title="분류별 용어 통계 보기">📊 통계</button>
     <button class="final-save-header-btn" onclick="saveCurrentStateToCloud()" title="현재 화면의 용어·미생물·약물·공식 데이터를 클라우드 최종본으로 저장">💾 최종상태 저장</button>
     <button class="version-check-header-btn" onclick="showSavedVersionInfo()" title="클라우드 저장본 버전과 현재 로컬 캐시 상태 확인">🔎 저장본 버전 확인</button>
+    <button class="settings-header-btn txt-converter-header-btn" onclick="openAssystTxtConverter()" title="객관식 문제를 Assyst TXT 양식으로 변환">TXT 변환</button>
     <button class="developer-header-btn" onclick="showDeveloperInfo()" title="개발자 정보와 업데이트 내역 보기">👨‍💻 개발자</button>
   </div>
   <div class="search-wrap autocomplete-wrap">
@@ -14265,14 +14266,22 @@ async function confirmDangerousFormulaDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.39',
+  version: '4.40',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 18:24',
+  updatedAt: '2026년 6월 24일 18:16',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · Assyst TXT 변환 모듈 이식',
+    items: [
+      '상단 헤더 우측 버튼군에 TXT 변환 버튼을 추가',
+      'Assyst 양식 변환기를 Medical Note 내부 모듈로 이식해 별도 창에서 로딩되도록 구성',
+      '객관식 원문 입력, 굵게 정답 표시, 변환, 결과 복사, TXT 다운로드 기능을 Medical Note 안에서 바로 사용할 수 있도록 연결',
+    ]
+  },
   {
     title: '최신 · 노트 검색 결과와 자동 관련 목록 보정',
     items: [
@@ -20388,6 +20397,567 @@ initApp();
     syncIntegratedNoteModeUi();
     bootstrapIntegratedNotes();
   }
+})();
+</script>
+
+<script>
+(() => {
+  function assystTxtConverterHtml() {
+    return `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dr. Bugeon의 Medical Note · TXT 변환</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --surface2: #f8fafc;
+      --text: #111827;
+      --text2: #475569;
+      --text3: #718096;
+      --border: #d9e2ef;
+      --accent: #4f63d7;
+      --accent2: #eef2ff;
+      --shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(1480px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 24px 0 22px;
+    }
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 3vw, 38px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .sub {
+      margin: 10px 0 0;
+      color: var(--text3);
+      font-size: 16px;
+    }
+    .status {
+      color: var(--text3);
+      font-size: 15px;
+      text-align: right;
+      white-space: nowrap;
+      margin-top: 12px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 20px;
+    }
+    section,
+    .toolbar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+      overflow: hidden;
+    }
+    .section-head {
+      min-height: 56px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .counter {
+      color: var(--text3);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .editor,
+    textarea {
+      width: 100%;
+      min-height: 60vh;
+      border: 0;
+      outline: none;
+      resize: vertical;
+      padding: 24px 20px;
+      font: 17px/1.65 "Cascadia Mono", "D2Coding", Consolas, monospace;
+      color: var(--text2);
+      background: var(--surface);
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: keep-all;
+    }
+    .editor:empty::before {
+      content: attr(data-placeholder);
+      color: #9aa4b2;
+      white-space: pre-wrap;
+    }
+    .toolbar {
+      margin-top: 20px;
+      padding: 18px 20px;
+    }
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 24px;
+      margin-bottom: 16px;
+      color: var(--text2);
+      font-size: 15px;
+    }
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text2);
+      padding: 10px 16px;
+      font: 700 15px/1.2 "Noto Sans KR", system-ui, sans-serif;
+      cursor: pointer;
+    }
+    button:hover {
+      background: var(--surface2);
+      border-color: #bfcbdd;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .note {
+      margin: 18px 0 0;
+      color: var(--text3);
+      font-size: 14px;
+    }
+    @media (max-width: 860px) {
+      main { width: min(100vw - 20px, 760px); padding-top: 16px; }
+      header, .layout { grid-template-columns: 1fr; display: grid; }
+      .status { text-align: left; white-space: normal; }
+      .editor, textarea { min-height: 38vh; font-size: 15px; }
+      .actions button { flex: 1 1 140px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Dr. Bugeon의 TXT 변환도구</h1>
+        <p class="sub">붙여넣은 객관식 문제를 Assyst 고정 TXT 양식으로 변환합니다.</p>
+      </div>
+      <div id="assystStatus" class="status">브라우저 내부에서만 처리</div>
+    </header>
+    <div class="layout">
+      <section>
+        <div class="section-head">
+          <h2>원문 입력</h2>
+          <span id="assystInputCount" class="counter">0자</span>
+        </div>
+        <div id="assystSource" class="editor" contenteditable="true" spellcheck="false" data-placeholder="예)
+Q. 다음 중 이 앱의 개발자는 누구인가요?
+A. 김부건 정답
+B. 박근혜
+C. 박정희 오답
+D. 이승만
+E. 대중씨
+
+2. HTML의 의미는?
+A) Hyper Text Markup Language correct
+B) High Transfer Machine Language wrong
+C) Home Tool Markup Language incorrect
+D) Hyperlink Text Making Logic wrong"></div>
+      </section>
+      <section>
+        <div class="section-head">
+          <h2>Assyst 결과</h2>
+          <span id="assystOutputCount" class="counter">0문제</span>
+        </div>
+        <textarea id="assystResult" spellcheck="false" placeholder="# 문제 문장
++ 정답 보기
+- 오답 보기
+- 오답 보기
+- 오답 보기"></textarea>
+      </section>
+    </div>
+    <div class="toolbar">
+      <div class="options">
+        <label><input type="checkbox" id="assystUnknownAsWrong" checked> 정답 표시 없는 보기를 오답(-)으로 처리</label>
+        <label><input type="checkbox" id="assystRemoveMarkers" checked> 정답 표시 단어 제거</label>
+        <label><input type="checkbox" id="assystRemoveQuestionNumber" checked> 문제 번호 제거</label>
+        <label><input type="checkbox" id="assystCleanBlankLines" checked> 빈 줄 정리</label>
+      </div>
+      <div class="actions">
+        <button id="assystSampleBtn" type="button">예시 넣기</button>
+        <button id="assystBoldBtn" type="button">굵게</button>
+        <button id="assystPlainBtn" type="button">서식 제거</button>
+        <button id="assystConvertBtn" class="primary" type="button">변환</button>
+        <button id="assystCopyBtn" type="button">결과 전체 복사</button>
+        <button id="assystDownloadBtn" type="button">TXT 다운로드</button>
+      </div>
+    </div>
+    <p class="note">원문 서식은 자동으로 정리됩니다. 정답은 +, 굵게, 또는 correct/answer/정답 같은 표시 단어로 잡을 수 있습니다.</p>
+  </main>
+</body>
+</html>`;
+  }
+
+  function initAssystTxtConverterWindow(win) {
+    const doc = win.document;
+    const source = doc.getElementById('assystSource');
+    const result = doc.getElementById('assystResult');
+    const status = doc.getElementById('assystStatus');
+    const inputCount = doc.getElementById('assystInputCount');
+    const outputCount = doc.getElementById('assystOutputCount');
+    const unknownAsWrong = doc.getElementById('assystUnknownAsWrong');
+    const removeMarkers = doc.getElementById('assystRemoveMarkers');
+    const removeQuestionNumber = doc.getElementById('assystRemoveQuestionNumber');
+    const cleanBlankLines = doc.getElementById('assystCleanBlankLines');
+    const BOLD_START = '\uE000';
+    const BOLD_END = '\uE001';
+    const sampleText = `Q. 다음 중 이 앱의 개발자는 누구인가요?
+A. 김부건 정답
+B. 박근혜
+C. 박정희 오답
+D. 이승만
+E. 대중씨
+
+2. HTML의 의미는?
+A) Hyper Text Markup Language correct
+B) High Transfer Machine Language wrong
+C) Home Tool Markup Language incorrect
+D) Hyperlink Text Making Logic wrong
+
+Question: Choose the right one.
+A) Apple answer
+B) Banana incorrect
+C) Cherry
+D) Date`;
+    const questionPatterns = [
+      /^\s*#+\s*(.+)$/i,
+      /^\s*(?:Question|Q)\b\s*[\.:>\-]?\s*(.+)$/i,
+      /^\s*(?:문제|문항)\s*[\.:>\-]?\s*(.+)$/i,
+      /^\s*\d+\s*[.)]\s*(.+)$/
+    ];
+    const questionLabelPattern = /^\s*(?:(?:문제|문항)\s*\d+|(?:Question|Q)\s*\d+|\d+\.?)\s*$/i;
+    const explicitQuestionPatterns = [
+      /^\s*#+\s*(.+)$/i,
+      /^\s*(?:Question|Q)\b\s*[\.:>\-]?\s*(.+)$/i,
+      /^\s*(?:문제|문항)\s*[\.:>\-]?\s*(.+)$/i
+    ];
+    const optionPattern = /^\s*([+\-]|✅|✔|☑)?\s*(?:(?:[A-PR-Za-pr-z]\s*[\.)])|(?:\d+\s*\))|(?:[АаБбВвГг]\s*\)))\s*(.*)$/u;
+    const qOptionPattern = /^\s*([+\-]|✅|✔|☑)\s*[Qq]\s*[\.)]\s*(.*)$/u;
+    const signedOptionPattern = /^\s*([+\-])\s*(.+)$/u;
+    const positiveWords = ['correct', 'answer', 'ans', '정답', '답', '맞음', '맞다', 'javob', "to'g'ri", 'to‘g‘ri', 'toʻgʻri', 'правильный', 'правильная', 'правильное'];
+    const negativeWords = ['wrong', 'incorrect', '오답', '틀림', '틀리다', "noto'g'ri", 'noto‘g‘ri', 'notoʻgʻri', 'неправильный', 'неправильная', 'неправильное'];
+    function normalizeApostrophes(text) {
+      return String(text || '').replace(/[’‘`´ʻʼ]/g, "'");
+    }
+    function squeezeSpaces(text) {
+      return String(text || '').replace(/[ \t]+/g, ' ').trim();
+    }
+    function stripBoldMarkers(text) {
+      return String(text || '').replaceAll(BOLD_START, '').replaceAll(BOLD_END, '');
+    }
+    function hasBoldMarker(text) {
+      return String(text || '').includes(BOLD_START);
+    }
+    function isPositiveSign(sign) {
+      return ['+', '✅', '✔', '☑'].includes(sign);
+    }
+    function isQuestionLabelLine(line) {
+      return questionLabelPattern.test(stripBoldMarkers(line));
+    }
+    function getSourcePlainText() {
+      return (source.innerText || source.textContent || '').replace(/\u00a0/g, ' ');
+    }
+    function setSourcePlainText(text) {
+      source.textContent = text;
+    }
+    function isBoldElement(element) {
+      const tag = element.tagName ? element.tagName.toLowerCase() : '';
+      if (tag === 'b' || tag === 'strong') return true;
+      const inlineWeight = element.style && element.style.fontWeight;
+      if (inlineWeight === 'bold' || Number.parseInt(inlineWeight, 10) >= 600) return true;
+      const computedWeight = win.getComputedStyle(element).fontWeight;
+      return computedWeight === 'bold' || Number.parseInt(computedWeight, 10) >= 600;
+    }
+    function getMarkedTextFromNode(node, inheritedBold = false) {
+      if (node.nodeType === win.Node.TEXT_NODE) {
+        const text = node.nodeValue || '';
+        return inheritedBold && text ? `${BOLD_START}${text}${BOLD_END}` : text;
+      }
+      if (node.nodeType !== win.Node.ELEMENT_NODE) return '';
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'br') return '\n';
+      const bold = inheritedBold || isBoldElement(node);
+      let text = '';
+      node.childNodes.forEach(child => { text += getMarkedTextFromNode(child, bold); });
+      if (['div', 'p', 'li'].includes(tag) && text && !text.endsWith('\n')) text += '\n';
+      return text;
+    }
+    function getSourceMarkedText() {
+      return getMarkedTextFromNode(source).replace(/\u00a0/g, ' ');
+    }
+    function stripQuestionPrefix(line) {
+      const plainLine = stripBoldMarkers(line);
+      for (const pattern of questionPatterns) {
+        const match = plainLine.match(pattern);
+        if (match) return squeezeSpaces(match[1] || '');
+      }
+      return squeezeSpaces(plainLine);
+    }
+    function getQuestionText(line) {
+      const plainLine = stripBoldMarkers(line);
+      for (const pattern of questionPatterns) {
+        const match = plainLine.match(pattern);
+        if (match) return removeQuestionNumber.checked ? squeezeSpaces(match[1] || '') : squeezeSpaces(plainLine);
+      }
+      return squeezeSpaces(plainLine);
+    }
+    function parseOption(line) {
+      const plainLine = stripBoldMarkers(line);
+      const optionMatch = plainLine.match(optionPattern);
+      if (optionMatch) return { explicitSign: optionMatch[1] || '', text: squeezeSpaces(optionMatch[2] || ''), isBold: hasBoldMarker(line) };
+      const qMatch = plainLine.match(qOptionPattern);
+      if (qMatch) return { explicitSign: qMatch[1], text: squeezeSpaces(qMatch[2] || ''), isBold: hasBoldMarker(line) };
+      const signedMatch = plainLine.match(signedOptionPattern);
+      if (signedMatch) return { explicitSign: signedMatch[1], text: squeezeSpaces(signedMatch[2] || ''), isBold: hasBoldMarker(line) };
+      return null;
+    }
+    function isQuestionLine(line) {
+      const plainLine = stripBoldMarkers(line);
+      return questionPatterns.some(pattern => pattern.test(plainLine));
+    }
+    function markerRegex(words) {
+      const escaped = words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      return new RegExp(`(^|[\\s\\[\\](){}:;.!?\\-])(${escaped.join('|')})(?=$|[\\s\\[\\](){}:;.!?\\-])`, 'giu');
+    }
+    function hasMarker(text, words) {
+      const normalizedWords = words.map(word => normalizeApostrophes(word).toLowerCase());
+      return markerRegex(normalizedWords).test(normalizeApostrophes(text).toLowerCase());
+    }
+    function classifyOption(rawText, explicitSign, isBold = false) {
+      if (isPositiveSign(explicitSign)) return '+';
+      if (explicitSign === '-') return '-';
+      if (isBold || hasBoldMarker(rawText)) return '+';
+      const plainText = stripBoldMarkers(rawText);
+      const normalized = normalizeApostrophes(plainText).toLowerCase();
+      const hasPositive = hasMarker(plainText, positiveWords);
+      const hasNegative = hasMarker(plainText, negativeWords);
+      if (hasPositive && !hasNegative) return '+';
+      if (hasNegative && !hasPositive) return '-';
+      if (hasNegative && hasPositive) {
+        const firstPositive = Math.min(...positiveWords.map(word => normalized.indexOf(normalizeApostrophes(word).toLowerCase())).filter(index => index >= 0));
+        const firstNegative = Math.min(...negativeWords.map(word => normalized.indexOf(normalizeApostrophes(word).toLowerCase())).filter(index => index >= 0));
+        return firstPositive < firstNegative ? '+' : '-';
+      }
+      return unknownAsWrong.checked ? '-' : '[?]';
+    }
+    function removeMarkerWords(text) {
+      const plainText = stripBoldMarkers(text);
+      if (!removeMarkers.checked) return squeezeSpaces(plainText);
+      return squeezeSpaces(plainText.replace(markerRegex([...positiveWords, ...negativeWords]), '$1'));
+    }
+    function makeQuestion() {
+      return { question: '', options: [] };
+    }
+    function pushCurrent(list, current) {
+      if (!current.question && current.options.length === 0) return;
+      list.push(current);
+    }
+    function parseQuestions(text) {
+      const rawLines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+      const lines = cleanBlankLines.checked ? rawLines.map(line => line.trim()).filter(Boolean) : rawLines.map(line => line.trim());
+      const questions = [];
+      let current = makeQuestion();
+      for (const line of lines) {
+        if (!line) continue;
+        if (isQuestionLabelLine(line)) {
+          pushCurrent(questions, current);
+          current = makeQuestion();
+          continue;
+        }
+        const option = parseOption(line);
+        if (option) {
+          if (!current.question) current.question = '문제';
+          current.options.push(option);
+          continue;
+        }
+        const explicitStem = explicitQuestionPatterns.some(pattern => pattern.test(stripBoldMarkers(line)));
+        if (isQuestionLine(line) && (current.options.length === 0 || explicitStem)) {
+          pushCurrent(questions, current);
+          current = makeQuestion();
+          current.question = getQuestionText(line);
+          continue;
+        }
+        if (!current.question) {
+          current.question = stripQuestionPrefix(line);
+        } else if (current.options.length === 0) {
+          current.question = squeezeSpaces(`${current.question} ${line}`);
+        } else if (current.options.length > 0 && /[?？]\s*$/.test(stripBoldMarkers(line)) && current.options[current.options.length - 1].text) {
+          pushCurrent(questions, current);
+          current = makeQuestion();
+          current.question = stripQuestionPrefix(line);
+        } else {
+          const lastOption = current.options[current.options.length - 1];
+          lastOption.text = squeezeSpaces(`${lastOption.text} ${line}`);
+          lastOption.isBold = lastOption.isBold || hasBoldMarker(line);
+        }
+      }
+      pushCurrent(questions, current);
+      return questions;
+    }
+    function formatAssyst(questions) {
+      let noAnswerCount = 0;
+      const text = questions.map(item => {
+        const lines = [`# ${squeezeSpaces(item.question || '문제')}`];
+        let hasAnswer = false;
+        for (const option of item.options) {
+          const mark = classifyOption(option.text, option.explicitSign, option.isBold);
+          const cleanedText = removeMarkerWords(option.text);
+          if (mark === '+') hasAnswer = true;
+          lines.push(`${mark} ${cleanedText}`);
+        }
+        if (!hasAnswer && item.options.length > 0) noAnswerCount += 1;
+        return lines.join('\n');
+      }).join('\n\n');
+      return { text, noAnswerCount };
+    }
+    function updateCounts(questionCount) {
+      inputCount.textContent = `${getSourcePlainText().length.toLocaleString('ko-KR')}자`;
+      const count = typeof questionCount === 'number' ? questionCount : (result.value.match(/^# /gm) || []).length;
+      outputCount.textContent = `${count.toLocaleString('ko-KR')}문제`;
+    }
+    function convert() {
+      const questions = parseQuestions(getSourceMarkedText());
+      const formatted = formatAssyst(questions);
+      result.value = formatted.text;
+      updateCounts(questions.length);
+      if (!questions.length) status.textContent = '변환할 문제가 없습니다';
+      else if (formatted.noAnswerCount > 0) status.textContent = `${questions.length}개 문제 변환 완료 · 정답 표시 없음 ${formatted.noAnswerCount}개`;
+      else status.textContent = `${questions.length}개 문제 변환 완료`;
+    }
+    function makeSelectionBold() {
+      source.focus();
+      doc.execCommand('bold', false, null);
+      status.textContent = '선택한 입력 텍스트를 굵게 표시했습니다';
+      updateCounts();
+    }
+    function pastePlainText(event) {
+      event.preventDefault();
+      const text = (event.clipboardData || win.clipboardData).getData('text/plain');
+      doc.execCommand('insertText', false, text);
+      status.textContent = '붙여넣은 서식을 제거했습니다';
+      updateCounts();
+    }
+    function clearSourceFormatting() {
+      const text = getSourcePlainText();
+      setSourcePlainText(text);
+      status.textContent = '원문 입력의 서식을 제거했습니다';
+      updateCounts();
+      source.focus();
+    }
+    async function copyResult() {
+      if (!result.value.trim()) {
+        status.textContent = '복사할 결과가 없습니다';
+        return;
+      }
+      try {
+        await win.navigator.clipboard.writeText(result.value);
+        status.textContent = '결과를 복사했습니다';
+      } catch (error) {
+        result.focus();
+        result.select();
+        doc.execCommand('copy');
+        status.textContent = '결과를 선택해 복사했습니다';
+      }
+    }
+    function downloadTxt() {
+      const text = result.value;
+      if (!text.trim()) {
+        status.textContent = '다운로드할 결과가 없습니다';
+        return;
+      }
+      const blob = new win.Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = win.URL.createObjectURL(blob);
+      const link = doc.createElement('a');
+      link.href = url;
+      link.download = 'Dr_Bugeon_Assyst_Questions.txt';
+      doc.body.appendChild(link);
+      link.click();
+      link.remove();
+      win.URL.revokeObjectURL(url);
+      status.textContent = 'TXT 파일을 다운로드했습니다';
+    }
+    doc.getElementById('assystConvertBtn').addEventListener('click', convert);
+    doc.getElementById('assystCopyBtn').addEventListener('click', copyResult);
+    doc.getElementById('assystDownloadBtn').addEventListener('click', downloadTxt);
+    doc.getElementById('assystBoldBtn').addEventListener('click', makeSelectionBold);
+    doc.getElementById('assystPlainBtn').addEventListener('click', clearSourceFormatting);
+    doc.getElementById('assystSampleBtn').addEventListener('click', () => {
+      setSourcePlainText(sampleText);
+      convert();
+      source.focus();
+    });
+    source.addEventListener('input', () => updateCounts());
+    source.addEventListener('paste', pastePlainText);
+    result.addEventListener('input', () => updateCounts());
+    [unknownAsWrong, removeMarkers, removeQuestionNumber, cleanBlankLines].forEach(input => {
+      input.addEventListener('change', () => {
+        if (getSourcePlainText().trim()) convert();
+      });
+    });
+    updateCounts();
+    source.focus();
+  }
+
+  window.openAssystTxtConverter = function openAssystTxtConverter() {
+    const features = 'popup=yes,width=1280,height=820,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes';
+    const popup = window.open('', 'dr_bugeon_txt_converter', features);
+    if (!popup) {
+      if (typeof showToast === 'function') showToast('팝업이 차단되었습니다. 브라우저에서 팝업 허용 후 다시 눌러주세요.');
+      return;
+    }
+    popup.document.open();
+    popup.document.write(assystTxtConverterHtml());
+    popup.document.close();
+    initAssystTxtConverterWindow(popup);
+    try { popup.focus(); } catch {}
+  };
 })();
 </script>
 
