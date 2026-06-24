@@ -14442,14 +14442,22 @@ async function confirmDangerousMicrobeDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.43',
+  version: '4.44',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 19:15',
+  updatedAt: '2026년 6월 24일 19:31',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · 모바일 노트 검색 터치 열림 보정',
+    items: [
+      '모바일·태블릿에서 노트 통합검색 결과를 터치할 때 pointerdown 직후 새 overlay click이 발생해 drawer가 즉시 닫히는 문제를 보정',
+      '검색 결과 버튼은 click에서만 상세 drawer를 열고, mousedown은 입력칸 blur 방지만 처리하도록 정리',
+      '상세 drawer를 열기 전 검색 입력칸을 blur 처리해 모바일 키보드가 bottom sheet 표시를 방해하지 않도록 보강',
+    ]
+  },
   {
     title: '최신 · 노트 검색 용어 카드 열림 보정',
     items: [
@@ -18875,7 +18883,7 @@ initApp();
       return;
     }
     box.innerHTML = rows.map(row => `
-      <button type="button" class="note-inline-result" onpointerdown="openNoteSearchResource(event,${escapeHtml(JSON.stringify(row.kind))},${escapeHtml(JSON.stringify(row.id))},${escapeHtml(JSON.stringify(input.id))})" onclick="openNoteSearchResource(event,${escapeHtml(JSON.stringify(row.kind))},${escapeHtml(JSON.stringify(row.id))},${escapeHtml(JSON.stringify(input.id))})">
+      <button type="button" class="note-inline-result" onmousedown="event.preventDefault()" onclick="openNoteSearchResource(event,${escapeHtml(JSON.stringify(row.kind))},${escapeHtml(JSON.stringify(row.id))},${escapeHtml(JSON.stringify(input.id))})">
         <strong>${escapeHtml(noteSearchKindLabel(row.kind))} · ${escapeHtml(row.title)}</strong>
         <span>${escapeHtml(row.subtitle || '상세 열기')}</span>
       </button>`).join('');
@@ -18889,7 +18897,10 @@ initApp();
     if (trigger?.dataset) trigger.dataset.noteOpening = '1';
     const input = inputId ? document.getElementById(inputId) : null;
     const box = inputId ? document.getElementById(`${inputId}Results`) : null;
-    if (input) input.value = '';
+    if (input) {
+      input.value = '';
+      input.blur();
+    }
     if (box) { box.classList.remove('open'); box.innerHTML = ''; }
     window.openNoteLinkedResource(event, kind, '', id);
   };
