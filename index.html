@@ -5638,6 +5638,67 @@ function saveSupabaseConfig(url, key) {
   safeSetItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url, key }));
 }
 
+// ─── Cloudinary 이미지 저장 (Unsigned 업로드 + Edge Function 삭제) ───
+const CLOUDINARY_CONFIG_KEY = 'kma_cloudinary_config';
+function getCloudinaryConfig() {
+  return safeJsonParse(localStorage.getItem(CLOUDINARY_CONFIG_KEY), null);
+}
+function saveCloudinaryConfig(cloudName, uploadPreset, folder = 'drbugeon_notes') {
+  safeSetItem(CLOUDINARY_CONFIG_KEY, JSON.stringify({ cloudName, uploadPreset, folder }));
+}
+// 브라우저에서 직접 Cloudinary로 업로드 (서버 불필요). 성공 시 URL/publicId 반환.
+async function uploadImageToCloudinary(file) {
+  const cfg = getCloudinaryConfig();
+  if (!cfg || !cfg.cloudName || !cfg.uploadPreset) {
+    throw new Error('Cloudinary 설정(cloud name + upload preset)을 먼저 저장하세요.');
+  }
+  if (!/^image\//.test(file.type)) throw new Error('이미지 파일만 업로드할 수 있습니다.');
+  if (file.size > 10 * 1024 * 1024) throw new Error('이미지가 너무 큽니다(최대 10MB).');
+  const form = new FormData();
+  form.append('file', file);
+  form.append('upload_preset', cfg.uploadPreset);
+  if (cfg.folder) form.append('folder', cfg.folder);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`, { method: 'POST', body: form });
+  if (!res.ok) throw new Error(`Cloudinary 업로드 실패: ${res.status} ${await res.text()}`);
+  const j = await res.json();
+  return { url: j.secure_url, publicId: j.public_id, width: j.width, height: j.height, addedAt: new Date().toISOString() };
+}
+// CDN 변환 URL (자동 리사이즈 + WebP + 품질 자동). 원본은 그대로 유지됨.
+function cloudinaryThumb(url, w = 280) {
+  return String(url || '').replace('/upload/', `/upload/c_fill,w_${w},q_auto,f_auto/`);
+}
+// 완전 삭제: API Secret 서명이 필요하므로 Supabase Edge Function(delete-cloudinary-image)을 호출.
+async function deleteImageFromCloudinary(publicId) {
+  if (!publicId) return false;
+  const cfg = getSupabaseConfig();
+  if (!cfg) { console.warn('Supabase 설정이 없어 Cloudinary 삭제를 건너뜀'); return false; }
+  try {
+    const res = await fetch(`${cfg.url}/functions/v1/delete-cloudinary-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key },
+      body: JSON.stringify({ publicId }),
+    });
+    if (!res.ok) { console.warn('Cloudinary destroy 실패:', res.status, await res.text()); return false; }
+    return true;
+  } catch (e) { console.warn('Cloudinary destroy 예외:', e); return false; }
+}
+// 노트 이미지 관련 최소 스타일 주입(중복 방지)
+(function injectNoteImageStyles() {
+  if (typeof document === 'undefined' || document.getElementById('note-image-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'note-image-styles';
+  s.textContent = `
+    .note-image-tray { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0; }
+    .note-image-thumb { position:relative; width:84px; height:84px; }
+    .note-image-thumb img { width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--border); }
+    .note-image-thumb button { position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%; border:none; background:#ef4444; color:#fff; cursor:pointer; line-height:18px; font-size:13px; padding:0; }
+    .note-image-empty { color:var(--text2); font-size:12px; padding:6px 0; }
+    .note-gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; margin:10px 0; }
+    .note-gallery img { width:100%; border-radius:10px; display:block; cursor:zoom-in; }
+  `;
+  (document.head || document.documentElement).appendChild(s);
+})();
+
 function sbHeaders() {
   const cfg = getSupabaseConfig();
   if (!cfg) return null;
@@ -6972,11 +7033,13 @@ function pruneOldLocalTombstones(days = TOMBSTONE_PRUNE_DAYS) {
   return rows.length;
 }
 
-function pruneAllProtectedRecords() {
+async function pruneAllProtectedRecords() {
   pruneOldLocalTombstones(TOMBSTONE_PRUNE_DAYS);
   if (typeof window.pruneIntegratedNoteTombstones === 'function') {
-    window.pruneIntegratedNoteTombstones(TOMBSTONE_PRUNE_DAYS);
+    const notePruneOk = await Promise.resolve(window.pruneIntegratedNoteTombstones(TOMBSTONE_PRUNE_DAYS, { deleteImages: true }));
+    if (notePruneOk === false) return false;
   }
+  return true;
 }
 
 function getProtectedRecordCounts() {
@@ -6993,14 +7056,17 @@ function confirmClearAllProtectedRecords() {
   const counts = getProtectedRecordCounts();
   const total = counts.terms + counts.drugs + counts.formulas + counts.microbes + counts.notes;
   if (!total) { showToast('삭제 보호 기록이 비어 있습니다'); return; }
-  showConfirm(`삭제 보호 기록 ${total}개를 완전히 지울까요?<br><span style="font-size:11px;color:var(--text3)">이 작업은 휴지통 목록 숨김이 아니라 tombstone 보호기록 자체를 삭제합니다. 오래된 기기나 클라우드에 남은 항목이 다시 나타날 수 있습니다.</span>`, () => {
+  showConfirm(`삭제 보호 기록 ${total}개를 완전히 지울까요?<br><span style="font-size:11px;color:var(--text3)">이 작업은 휴지통 목록 숨김이 아니라 tombstone 보호기록 자체를 삭제합니다. 오래된 기기나 클라우드에 남은 항목이 다시 나타날 수 있습니다.</span>`, async () => {
     const typed = window.prompt('정말 보호기록을 모두 삭제하려면 "보호기록 삭제"를 입력하세요.');
     if (typed !== '보호기록 삭제') { showToast('보호기록 전체 삭제가 취소되었습니다'); return; }
+    if (typeof window.clearIntegratedNoteTombstones === 'function') {
+      const noteClearOk = await Promise.resolve(window.clearIntegratedNoteTombstones({ deleteImages: true }));
+      if (noteClearOk === false) return;
+    }
     saveLocalTombstones([]);
     saveLocalDrugTombstones([]);
     saveLocalFormulaTombstones([]);
     saveLocalMicrobeTombstones([]);
-    if (typeof window.clearIntegratedNoteTombstones === 'function') window.clearIntegratedNoteTombstones();
     showToast(`삭제 보호 기록 ${total}개를 정리했습니다`);
     showExportMenu();
   });
@@ -10601,6 +10667,29 @@ function showAISettings() {
           🔌 동기화 연결 해제
         </button>` : ''}
       </div>
+
+      <!-- Cloudinary 이미지 저장 설정 -->
+      <div style="background:var(--surface);border:1px solid rgba(59,130,246,0.4);border-radius:12px;padding:16px;margin-bottom:10px">
+        <div style="font-size:13px;color:#60a5fa;font-weight:600;margin-bottom:4px">🖼️ Cloudinary 이미지 저장</div>
+        <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:12px">
+          노트 이미지는 Cloudinary에 저장되고, URL만 Supabase 노트에 동기화됩니다.<br>
+          Cloudinary → Settings → Upload → <b>Unsigned</b> upload preset을 먼저 만들어 주세요.<br>
+          현재 상태: <span id="cldStatus" style="color:var(--accent2)">${getCloudinaryConfig() ? '✅ 설정됨' : '❌ 미설정'}</span>
+        </div>
+        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">Cloud name</label>
+        <input id="cld_name" type="text" placeholder="예: dxxxxxx" value="${getCloudinaryConfig()?.cloudName || ''}" style="${inputStyle()}">
+        <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">Unsigned upload preset</label>
+        <input id="cld_preset" type="text" placeholder="예: drbugeon_unsigned" value="${getCloudinaryConfig()?.uploadPreset || ''}" style="${inputStyle()}">
+        <label style="font-size:11px;color:var(--text3);display:block;margin:10px 0 5px">폴더(선택)</label>
+        <input id="cld_folder" type="text" placeholder="drbugeon_notes" value="${getCloudinaryConfig()?.folder || 'drbugeon_notes'}" style="${inputStyle()}">
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button onclick="saveCloudinaryFromForm()" style="flex:1;background:#1e3a8a;border:none;border-radius:8px;padding:10px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💾 저장</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);line-height:1.6;margin-top:8px">
+          ※ 이미지 <b>완전 삭제</b>는 Supabase Edge Function(<code>delete-cloudinary-image</code>) 배포가 필요합니다. 동봉한 배포 가이드를 참고하세요.
+        </div>
+      </div>
+
       <button onclick="closeSettingsModal()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">닫기</button>
     </div>`;
   setTimeout(() => { onModelPresetChange('openai'); onModelPresetChange('anthropic'); onAIRouteChange(); }, 0);
@@ -10622,6 +10711,18 @@ function saveSupabaseFromForm() {
   showToast('✅ Supabase 설정 저장됨');
   const el = document.getElementById('sbStatus');
   if (el) el.textContent = '✅ 연결됨';
+  return true;
+}
+
+function saveCloudinaryFromForm() {
+  const cloudName = document.getElementById('cld_name')?.value.trim();
+  const preset = document.getElementById('cld_preset')?.value.trim();
+  const folder = document.getElementById('cld_folder')?.value.trim() || 'drbugeon_notes';
+  if (!cloudName || !preset) { showToast('⚠️ Cloud name과 upload preset을 모두 입력해주세요'); return false; }
+  saveCloudinaryConfig(cloudName, preset, folder);
+  showToast('✅ Cloudinary 설정 저장됨');
+  const el = document.getElementById('cldStatus');
+  if (el) el.textContent = '✅ 설정됨';
   return true;
 }
 
@@ -12990,7 +13091,7 @@ function showExportMenu() {
                 <button class="data-action-btn red" onclick="confirmEmptyDrugTrash()">약물 휴지통</button>
                 <button class="data-action-btn red" onclick="confirmEmptyFormulaTrash()">공식 휴지통</button>
                 <button class="data-action-btn red" onclick="confirmEmptyIntegratedNoteTrash()">노트 휴지통</button>
-                <button class="data-action-btn outline" onclick="pruneAllProtectedRecords();showToast('🧹 90일 지난 삭제 보호 기록 정리 완료');showExportMenu()">90일 지난 보호 기록</button>
+                <button class="data-action-btn outline" onclick="pruneAllProtectedRecords().then(ok => { if (ok !== false) { showToast('🧹 90일 지난 삭제 보호 기록 정리 완료'); showExportMenu(); } })">90일 지난 보호 기록</button>
                 <button class="data-action-btn outline" onclick="confirmClearAllProtectedRecords()">보호기록 전체 삭제</button>
               </div>
             </div>
@@ -14442,14 +14543,23 @@ async function confirmDangerousMicrobeDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.44',
+  version: '4.45',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 24일 19:31',
+  updatedAt: '2026년 6월 26일 11:10',
 };
 
 const UPDATE_HISTORY = [
+  {
+    title: '최신 · Cloudinary 이미지 수명주기 보강',
+    items: [
+      '단권화 노트에서 새 이미지를 업로드한 뒤 저장하지 않고 닫으면 Cloudinary 원본도 함께 정리되도록 보강',
+      '기존 이미지를 본문에서 제거한 경우 로컬 저장과 클라우드 메타 저장이 성공한 뒤에만 원본 삭제를 실행하도록 변경',
+      '단권화 노트 보호기록 전체 삭제와 90일 정리 시 이미지 삭제 실패가 있으면 보호기록을 유지하도록 보강',
+      '단권화 노트 CSV/Excel 내보내기에 이미지 URL, publicId, 원본 JSON 필드를 포함',
+    ]
+  },
   {
     title: '최신 · 모바일 노트 검색 터치 열림 보정',
     items: [
@@ -18669,6 +18779,16 @@ initApp();
       shuffleOnRetry: src.shuffleOnRetry !== false && src.shuffle_on_retry !== false,
     };
   }
+  function normalizeNoteImages(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.map(x => ({
+      url: String(x?.url || '').trim(),
+      publicId: String(x?.publicId || x?.public_id || '').trim(),
+      width: Number(x?.width) || 0,
+      height: Number(x?.height) || 0,
+      addedAt: x?.addedAt || x?.added_at || noteNow(),
+    })).filter(x => x.url);
+  }
   function normalizeIntegratedNote(raw = {}) {
     const now = noteNow();
     return {
@@ -18694,6 +18814,7 @@ initApp();
       usmleSource: String(raw.usmleSource || raw.usmle_source || '').trim(),
       kmleSource: String(raw.kmleSource || raw.kmle_source || '').trim(),
       tags: noteListFromText(raw.tags),
+      images: normalizeNoteImages(raw.images),
       favorite: Boolean(raw.favorite || raw.bookmarked),
       createdAt: raw.createdAt || raw.created_at || now,
       updatedAt: raw.updatedAt || raw.updated_at || now,
@@ -18912,6 +19033,10 @@ initApp();
         ${noteSourceBadges(n) ? `<section class="note-links">${noteSourceBadges(n)}</section>` : ''}
         ${noteOriginalMcqViewHtml(n)}
         ${n.bodyHtml ? `<section class="note-body-render">${linkifyNoteBodyHtml(n.bodyHtml)}</section>` : ''}
+        ${Array.isArray(n.images) && n.images.length ? `
+          <section class="note-gallery">
+            ${n.images.map(im => `<a href="${escapeHtml(im.url)}" target="_blank" rel="noopener"><img src="${escapeHtml(cloudinaryThumb(im.url, 360))}" alt="" loading="lazy"></a>`).join('')}
+          </section>` : ''}
         ${n.comparison ? `<section class="note-comparison">${escapeHtml(n.comparison)}</section>` : ''}
         ${n.wrongStem || n.wrongReason || n.trap || n.nextCue ? `
           <section class="note-wrong-box">
@@ -19673,9 +19798,43 @@ initApp();
     if (parsed.options.length) setNoteMcqChoices(parsed.options, parsed.answerIndexes.length ? parsed.answerIndexes : [0]);
     showToast(parsed.options.length ? `원문 객관식을 적용했습니다. 정답 ${Math.max(parsed.answerIndexes.length, 1)}개` : '적용할 보기를 찾지 못했습니다.');
   };
+  function noteImagePublicIds(images = []) {
+    return [...new Set((Array.isArray(images) ? images : [])
+      .map(im => String(im?.publicId || im?.public_id || '').trim())
+      .filter(Boolean))];
+  }
+  function noteImagePublicIdsFromNotes(notes = []) {
+    const ids = [];
+    (Array.isArray(notes) ? notes : []).forEach(note => ids.push(...noteImagePublicIds(note?.images || [])));
+    return [...new Set(ids)];
+  }
+  async function deleteCloudinaryPublicIds(publicIds = [], { keepOnFailure = false } = {}) {
+    const ids = [...new Set((Array.isArray(publicIds) ? publicIds : []).map(id => String(id || '').trim()).filter(Boolean))];
+    if (!ids.length) return { total: 0, failed: 0 };
+    let failed = 0;
+    for (const publicId of ids) {
+      const ok = await deleteImageFromCloudinary(publicId);
+      if (!ok) failed += 1;
+    }
+    if (failed && keepOnFailure) {
+      showToast(`⚠️ Cloudinary 이미지 ${failed}개 삭제 실패 · 보호기록을 유지했습니다`);
+    } else if (failed) {
+      showToast(`⚠️ Cloudinary 이미지 ${failed}개 삭제 실패 · 원본이 남아 있을 수 있습니다`);
+    }
+    return { total: ids.length, failed };
+  }
+  async function cleanupUnsavedNoteDraftImages() {
+    const uploaded = window._noteDraftUploadedPublicIds;
+    if (!(uploaded instanceof Set) || !uploaded.size) return;
+    await deleteCloudinaryPublicIds([...uploaded]);
+    uploaded.clear();
+  }
   window.openIntegratedNoteModal = function openIntegratedNoteModal(id = null) {
     const existing = id ? NOTEBOOK.find(n => Number(n.id) === Number(id)) : null;
     const n = existing || normalizeIntegratedNote({ id: Date.now(), noteType: 'concept' });
+    window._noteDraftImages = Array.isArray(n.images) ? n.images.map(x => ({ ...x })) : [];
+    window._noteDraftUploadedPublicIds = new Set();
+    window._noteModalSaving = false;
     document.getElementById('integratedNoteModal')?.remove();
     document.body.insertAdjacentHTML('beforeend', `
       <div class="note-modal-overlay" id="integratedNoteModal">
@@ -19699,6 +19858,10 @@ initApp();
             ${modalField('noteKeyPoint', '한 줄 핵심', n.keyPoint, 2, '시험장에서 떠올릴 한 문장', noteFieldActionButton('keyPoint', '한 줄 생성'))}
             ${noteEditorHtml(n.bodyHtml, n.noteType, !existing)}
             ${modalField('noteComparison', '비교/표/정리', n.comparison, 4, '약물 비교, 병원체 비교, 공식 비교 등')}
+            <div class="note-modal-section-title">📷 이미지</div>
+            <div id="noteImageTray" class="note-image-tray"></div>
+            <input id="noteImageInput" type="file" accept="image/*" multiple style="display:none" onchange="handleNoteImageUpload(event)">
+            <button type="button" class="data-action-btn outline" onclick="document.getElementById('noteImageInput').click()">이미지 추가</button>
             <div class="note-modal-section-title">연결 자료</div>
             <div class="note-modal-grid">
               ${modalField('noteLinkedTerms', '관련 용어', noteCsv(n.linkedTerms), 1, 'Type 2 inflammation, IgE')}
@@ -19713,15 +19876,59 @@ initApp();
           </div>
         </div>
       </div>`);
+    renderNoteImageTray();
   };
-  window.closeIntegratedNoteModal = function closeIntegratedNoteModal() {
+  window.closeIntegratedNoteModal = function closeIntegratedNoteModal(skipDraftCleanup = false) {
     document.body.classList.remove('note-linked-resource-front');
     document.getElementById('integratedNoteModal')?.remove();
+    if (!skipDraftCleanup && !window._noteModalSaving) {
+      cleanupUnsavedNoteDraftImages().catch(e => console.warn('unsaved note image cleanup failed', e));
+    }
+    window._noteDraftImages = [];
+    window._noteDraftUploadedPublicIds = new Set();
+    window._noteModalSaving = false;
   };
-  window.saveIntegratedNoteFromModal = function saveIntegratedNoteFromModal(id = null) {
+  window.handleNoteImageUpload = async function handleNoteImageUpload(event) {
+    const files = [...(event.target.files || [])];
+    event.target.value = '';
+    if (!files.length) return;
+    window._noteDraftImages = window._noteDraftImages || [];
+    for (const file of files) {
+      try {
+        showToast('⏳ 이미지 업로드 중…');
+        const img = await uploadImageToCloudinary(file);
+        window._noteDraftImages.push(img);
+        if (img.publicId) {
+          if (!(window._noteDraftUploadedPublicIds instanceof Set)) window._noteDraftUploadedPublicIds = new Set();
+          window._noteDraftUploadedPublicIds.add(img.publicId);
+        }
+        renderNoteImageTray();
+      } catch (e) {
+        showToast('⚠️ ' + (e.message || '업로드 실패'));
+      }
+    }
+    showToast('📷 이미지 추가 완료');
+  };
+  window.removeNoteDraftImage = function removeNoteDraftImage(idx) {
+    if (!Array.isArray(window._noteDraftImages)) return;
+    // 편집 중 제거는 목록에서만 빼고, Cloudinary 완전 삭제는 "저장" 시 일괄 처리(취소하면 삭제 안 됨)
+    window._noteDraftImages.splice(idx, 1);
+    renderNoteImageTray();
+  };
+  function renderNoteImageTray() {
+    const tray = document.getElementById('noteImageTray');
+    if (!tray) return;
+    const imgs = window._noteDraftImages || [];
+    tray.innerHTML = imgs.length ? imgs.map((im, i) => `
+      <div class="note-image-thumb">
+        <img src="${escapeHtml(cloudinaryThumb(im.url, 168))}" alt="">
+        <button type="button" title="삭제" onclick="removeNoteDraftImage(${i})">×</button>
+      </div>`).join('') : '<div class="note-image-empty">첨부된 이미지 없음</div>';
+  }
+  window.saveIntegratedNoteFromModal = async function saveIntegratedNoteFromModal(id = null) {
     const value = fieldId => document.getElementById(fieldId)?.value?.trim() || '';
     const now = noteNow();
-    const old = id ? NOTEBOOK.find(n => Number(n.id) === Number(id)) : null;
+    const old = id ? NOTEBOOK.find(n => String(n.id) === String(id)) : null;
     const bodyHtml = sanitizeNoteHtml(document.getElementById('noteBodyEditor')?.innerHTML || '');
     const autoLinks = detectNoteResourceLinksFromText([
       value('noteTitle'),
@@ -19744,6 +19951,7 @@ initApp();
       noteType: value('noteType'),
       system: value('noteSystem') || 'General',
       tags: value('noteTags'),
+      images: Array.isArray(window._noteDraftImages) ? window._noteDraftImages : (old?.images || []),
       usmleSource: value('noteUsmleSource'),
       kmleSource: value('noteKmleSource'),
       summary: value('noteSummary'),
@@ -19765,18 +19973,39 @@ initApp();
       updatedAt: now,
     });
     if (!next.title) { showToast('⚠️ 단권화 노트 제목을 입력해주세요'); return; }
-    const idx = NOTEBOOK.findIndex(n => Number(n.id) === Number(next.id));
+    const keptIds = new Set((next.images || []).map(im => im.publicId).filter(Boolean));
+    const removedImages = (old?.images || []).filter(im => im.publicId && !keptIds.has(im.publicId));
+    const uploadedIds = window._noteDraftUploadedPublicIds instanceof Set ? [...window._noteDraftUploadedPublicIds] : [];
+    const abandonedUploadIds = uploadedIds.filter(publicId => !keptIds.has(publicId));
+    const idx = NOTEBOOK.findIndex(n => String(n.id) === String(next.id));
     if (idx >= 0) NOTEBOOK[idx] = next;
     else NOTEBOOK.unshift(next);
-    const saved = saveIntegratedNotes();
-    if (typeof window.saveIntegratedNoteToCloud === 'function') {
-      window.saveIntegratedNoteToCloud(next).catch(e => console.warn('note immediate cloud save failed', e));
+    const saved = await Promise.resolve(saveIntegratedNotes());
+    if (saved === false) {
+      showToast('⚠️ 저장공간이 부족해 노트를 저장하지 못했습니다 · 일부 노트를 정리하거나 백업 후 다시 시도해주세요');
+      return;
     }
-    closeIntegratedNoteModal();
+    let cloudSaved = true;
+    if (typeof window.saveIntegratedNoteToCloud === 'function') {
+      try {
+        const cloudResult = await window.saveIntegratedNoteToCloud(next);
+        if (cloudResult === false) cloudSaved = false;
+      } catch (e) {
+        cloudSaved = false;
+        console.warn('note immediate cloud save failed', e);
+      }
+    }
+    if (cloudSaved) {
+      await deleteCloudinaryPublicIds(removedImages.map(im => im.publicId));
+    } else if (removedImages.length) {
+      showToast('⚠️ 로컬 저장 완료 · 클라우드 저장 실패로 기존 이미지 원본 삭제를 보류했습니다');
+    }
+    await deleteCloudinaryPublicIds(abandonedUploadIds);
+    if (window._noteDraftUploadedPublicIds instanceof Set) window._noteDraftUploadedPublicIds.clear();
+    window._noteModalSaving = true;
+    window.closeIntegratedNoteModal(true);
     setLibraryMode('notes');
-    showToast(saved === false
-      ? '⚠️ 저장공간이 부족해 노트를 저장하지 못했습니다 · 일부 노트를 정리하거나 백업 후 다시 시도해주세요'
-      : '🧠 단권화 노트 저장 완료');
+    showToast(cloudSaved ? '🧠 단권화 노트 저장 완료' : '⚠️ 단권화 노트 로컬 저장 완료 · 클라우드 동기화는 나중에 다시 시도해주세요');
   };
   window.deleteIntegratedNote = function deleteIntegratedNote(id) {
     const idx = NOTEBOOK.findIndex(n => Number(n.id) === Number(id));
@@ -20017,6 +20246,9 @@ initApp();
         Linked_drugs: noteCsv(n.linkedDrugs || []),
         Linked_formulas: noteCsv(n.linkedFormulas || []),
         Favorite: n.favorite ? 'Y' : '',
+        Image_urls: (Array.isArray(n.images) ? n.images : []).map(im => im?.url || '').filter(Boolean).join(' | '),
+        Image_public_ids: noteImagePublicIds(n.images || []).join(' | '),
+        Images_json: stringifyExportJson(Array.isArray(n.images) ? n.images : []),
         MCQ_enabled: mcq.enabled ? 'Y' : '',
         MCQ_stem: mcq.stemFull || '',
         MCQ_options_json: stringifyExportJson(mcq.options || []),
@@ -20036,7 +20268,7 @@ initApp();
     if (format === 'xlsx') {
       if (!window.XLSX) { showToast('⚠️ Excel 모듈을 불러오지 못했습니다'); return; }
       const worksheet = XLSX.utils.json_to_sheet(rows);
-      worksheet['!cols'] = [10,14,28,34,34,18,28,28,28,60,60,28,28,28,28,10,12,48,48,20,24,24].map(wch => ({ wch }));
+      worksheet['!cols'] = [10,14,28,34,34,18,28,28,28,60,60,28,28,28,28,10,46,34,60,12,48,48,20,24,24].map(wch => ({ wch }));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Integrated Notes');
       XLSX.writeFile(workbook, `${prefix}.xlsx`);
@@ -20139,17 +20371,31 @@ initApp();
     return loadIntegratedNoteTombstones().filter(n => !n.hiddenAt).length;
   };
 
-  window.pruneIntegratedNoteTombstones = function pruneIntegratedNoteTombstones(days = TOMBSTONE_PRUNE_DAYS) {
+  window.pruneIntegratedNoteTombstones = async function pruneIntegratedNoteTombstones(days = TOMBSTONE_PRUNE_DAYS, options = {}) {
     const cutoff = Date.now() - days * 86400000;
-    const rows = loadIntegratedNoteTombstones().filter(n => {
+    const rows = [];
+    const removedRows = [];
+    loadIntegratedNoteTombstones().forEach(n => {
       const deletedAt = Date.parse(n.deletedAt || n.updatedAt || '');
-      return !Number.isFinite(deletedAt) || deletedAt >= cutoff;
+      if (!Number.isFinite(deletedAt) || deletedAt >= cutoff) rows.push(n);
+      else removedRows.push(n);
     });
+    if (options?.deleteImages) {
+      const result = await deleteCloudinaryPublicIds(noteImagePublicIdsFromNotes(removedRows), { keepOnFailure: true });
+      if (result.failed) return false;
+    }
     saveIntegratedNoteTombstones(rows);
+    return true;
   };
 
-  window.clearIntegratedNoteTombstones = function clearIntegratedNoteTombstones() {
+  window.clearIntegratedNoteTombstones = async function clearIntegratedNoteTombstones(options = {}) {
+    const rows = loadIntegratedNoteTombstones();
+    if (options?.deleteImages) {
+      const result = await deleteCloudinaryPublicIds(noteImagePublicIdsFromNotes(rows), { keepOnFailure: true });
+      if (result.failed) return false;
+    }
     saveIntegratedNoteTombstones([]);
+    return true;
   };
 
   window.confirmEmptyIntegratedNoteTrash = function confirmEmptyIntegratedNoteTrash() {
@@ -20554,6 +20800,7 @@ initApp();
     if (JSON.stringify(a.tags || []) !== JSON.stringify(b.tags || [])) return true;
     if (JSON.stringify(a.linkedTerms || []) !== JSON.stringify(b.linkedTerms || [])) return true;
     if (JSON.stringify(a.originalMcq || {}) !== JSON.stringify(b.originalMcq || {})) return true;
+    if (JSON.stringify(a.images || []) !== JSON.stringify(b.images || [])) return true;
     return false;
   }
   async function pushNotesToCloud() {
