@@ -5596,8 +5596,6 @@ function canonicalTermHashPayload(terms) {
       fdaDrug: t.fdaDrug || null,
       rxclassATC: t.rxclassATC || null,
       trials: t.trials || null,
-      createdAt: t.createdAt || '',
-      updatedAt: t.updatedAt || '',
     }));
 }
 
@@ -5645,8 +5643,6 @@ function canonicalDrugHashPayload(drugs) {
       usmle_strategy: d.usmle_strategy || '',
       memory_line: d.memory_line || '',
       refs: Array.isArray(d.refs) ? d.refs : [],
-      createdAt: d.createdAt || '',
-      updatedAt: d.updatedAt || '',
     }));
 }
 
@@ -5680,8 +5676,6 @@ function canonicalFormulaHashPayload(formulas) {
       memory_tip: f.memory_tip || '',
       usmle_trap: f.usmle_trap || '',
       variables: f.variables || '',
-      createdAt: f.createdAt || '',
-      updatedAt: f.updatedAt || '',
     }));
 }
 
@@ -5721,8 +5715,6 @@ function canonicalMicrobeHashPayload(microbes) {
       memory_line: m.memory_line || '',
       category: m.category || '',
       system_tags: Array.isArray(m.system_tags) ? m.system_tags : [],
-      createdAt: m.createdAt || '',
-      updatedAt: m.updatedAt || '',
     }));
 }
 
@@ -21336,8 +21328,6 @@ initApp();
         linkedMicrobes: Array.isArray(n.linkedMicrobes) ? n.linkedMicrobes : [],
         linkedFormulas: Array.isArray(n.linkedFormulas) ? n.linkedFormulas : [],
         originalMcq: n.originalMcq || {},
-        createdAt: n.createdAt || '',
-        updatedAt: n.updatedAt || '',
       }));
   }
   function computeNoteRecordIdsHash(notes) {
