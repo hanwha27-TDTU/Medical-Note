@@ -1530,6 +1530,17 @@ function _renderDiseaseDrawerContent(d) {
     ...(profileSec ? profileSec.fields.map(f => diseaseDetailLine(f.label, d.body?.profile?.[f.k])) : []),
   ].filter(Boolean).join('');
   const accordion = DISEASE_SECTIONS.filter(s => s.key !== 'profile').map(sec => {
+    if (sec.type === 'rows') {
+      const rowArr = Array.isArray(d.body && d.body[sec.key]) ? d.body[sec.key] : [];
+      if (!rowArr.length) return '';
+      const head = sec.rowFields.map(f => `<th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3);font-weight:600">${escapeHtml(f.label)}</th>`).join('');
+      const trs = rowArr.map(r => `<tr style="border-top:1px solid var(--border)">${sec.rowFields.map(f => `<td style="padding:7px 8px;font-size:12px;color:var(--text2);vertical-align:top">${escapeHtml(r[f.k] || '')}</td>`).join('')}</tr>`).join('');
+      return `
+      <details class="disease-acc" open>
+        <summary>${sec.icon} ${escapeHtml(sec.title)} <span style="color:var(--text3);font-weight:500">· ${rowArr.length}건</span></summary>
+        <div style="padding:8px 12px;overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>${head}</tr></thead><tbody>${trs}</tbody></table></div>
+      </details>`;
+    }
     const secObj = (d.body && d.body[sec.key]) || {};
     const rows = sec.fields.map(f => diseaseDetailLine(f.label, secObj[f.k])).filter(Boolean).join('');
     if (!rows) return '';
@@ -2684,6 +2695,36 @@ document.addEventListener('keydown', e => {
   .disease-acc > summary::-webkit-details-marker { display: none; }
   .disease-acc[open] > summary { border-bottom: 1px solid var(--border); }
   .disease-acc .microbe-info-grid { padding: 12px; }
+  .disease-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1.1fr 1.7fr 0.9fr 28px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .disease-row-head {
+    margin-bottom: 4px;
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 700;
+    padding: 0 2px;
+  }
+  .disease-row-del {
+    width: 28px; height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface2);
+    color: var(--text3);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .disease-row-del:hover { color: #f87171; border-color: #991b1b; }
+  @media (max-width: 640px) {
+    .disease-row { grid-template-columns: 1fr 1fr; }
+    .disease-row > [data-rowk]:nth-child(3) { grid-column: 1 / -1; }
+    .disease-row-head { display: none; }
+    .disease-row-del { width: 100%; }
+  }
 
   html[data-theme="light"] .library-mode-switch {
     background: var(--surface);
@@ -7297,6 +7338,11 @@ const DISEASE_ACUITY_OPTIONS = ['', '급성', '아급성', '만성'];
 const DISEASE_EMERGENCY_OPTIONS = ['', 'Emergency', 'Urgent', 'Non-urgent / Outpatient'];
 const DISEASE_PROGRESSION_OPTIONS = ['', 'Progressive', 'Episodic', 'Relapsing-remitting', 'Self-limited', 'Latent / Silent'];
 const DISEASE_CONTAGIOUS_OPTIONS = ['', '전염성 있음', '전염성 없음', '조건부 전염'];
+const DISEASE_CAUSE_CATEGORIES = ['선천성', '유전성', '감염성', '자가면역성', '대사성', '내분비/대사성', '혈관성', '종양성', '약물성/독성', '의인성', '생활습관', '생리/스트레스', '영양', '환경/직업', '특발성', '기타'];
+const DISEASE_CAUSE_ROLES = ['직접 원인', '주요 위험인자', '악화·유발인자', '병태생리 축', '보호인자', '연관'];
+const DISEASE_YIELD_OPTIONS = ['', 'High-yield', 'Medium', 'Low'];
+// 구버전 평면 원인 필드 → 행 분류 라벨 매핑 (하위호환 마이그레이션용)
+const DISEASE_OLD_CAUSE_LABEL = { congenital: '선천성', genetic: '유전성', infectious: '감염성', autoimmune: '자가면역성', metabolic: '대사성', vascular: '혈관성', neoplastic: '종양성', drug_toxic: '약물성/독성', idiopathic: '특발성' };
 const DISEASE_SECTIONS = [
   { key: 'profile', title: '질환 기본 프로필', icon: '🧬', fields: [
     { k: 'age_group', label: '주요 연령대' },
@@ -7308,16 +7354,11 @@ const DISEASE_SECTIONS = [
     { k: 'en', label: 'English definition', area: true },
     { k: 'uz', label: 'Oʻzbekcha definition', area: true },
   ]},
-  { key: 'cause', title: '원인', icon: '🧩', fields: [
-    { k: 'congenital', label: '선천성' },
-    { k: 'genetic', label: '유전성' },
-    { k: 'infectious', label: '감염성' },
-    { k: 'autoimmune', label: '자가면역성' },
-    { k: 'metabolic', label: '대사성' },
-    { k: 'vascular', label: '혈관성' },
-    { k: 'neoplastic', label: '종양성' },
-    { k: 'drug_toxic', label: '약물성 / 독성' },
-    { k: 'idiopathic', label: '특발성' },
+  { key: 'cause', title: '원인 · 위험인자', icon: '🧩', type: 'rows', addLabel: '원인 · 위험인자 추가', rowFields: [
+    { k: 'category', label: '분류', type: 'select', options: DISEASE_CAUSE_CATEGORIES },
+    { k: 'role', label: '역할', type: 'select', options: DISEASE_CAUSE_ROLES },
+    { k: 'item', label: '세부 항목', type: 'text' },
+    { k: 'yield', label: '중요도', type: 'select', options: DISEASE_YIELD_OPTIONS },
   ]},
   { key: 'pathophysiology', title: '병태생리', icon: '⚙️', fields: [
     { k: 'core_mechanism', label: '핵심 기전', area: true },
@@ -7398,14 +7439,43 @@ function nextDiseaseId() {
   return ++_idCounter;
 }
 
+function normalizeDiseaseRow(sec, raw) {
+  const r = (raw && typeof raw === 'object') ? raw : {};
+  const out = {};
+  sec.rowFields.forEach(f => { out[f.k] = cleanTermString(r[f.k]); });
+  return out;
+}
+function migrateLegacyCauseToRows(secSrc) {
+  // 구버전 평면 원인 객체 {congenital, genetic, ...} → 행 배열로 변환
+  const rows = [];
+  Object.keys(DISEASE_OLD_CAUSE_LABEL).forEach(k => {
+    const val = cleanTermString(secSrc[k]);
+    if (val) rows.push({ category: DISEASE_OLD_CAUSE_LABEL[k], role: '', item: val, yield: '' });
+  });
+  return rows;
+}
 function normalizeDiseaseBody(rawBody) {
   const src = (rawBody && typeof rawBody === 'object') ? rawBody : {};
   const body = {};
   DISEASE_SECTIONS.forEach(sec => {
-    const secSrc = (src[sec.key] && typeof src[sec.key] === 'object') ? src[sec.key] : {};
-    const out = {};
-    sec.fields.forEach(f => { out[f.k] = cleanTermString(secSrc[f.k]); });
-    body[sec.key] = out;
+    if (sec.type === 'rows') {
+      let rows;
+      if (Array.isArray(src[sec.key])) {
+        rows = src[sec.key];
+      } else if (sec.key === 'cause' && src[sec.key] && typeof src[sec.key] === 'object') {
+        rows = migrateLegacyCauseToRows(src[sec.key]);
+      } else {
+        rows = [];
+      }
+      body[sec.key] = rows
+        .map(r => normalizeDiseaseRow(sec, r))
+        .filter(r => sec.rowFields.some(f => r[f.k]));
+    } else {
+      const secSrc = (src[sec.key] && typeof src[sec.key] === 'object') ? src[sec.key] : {};
+      const out = {};
+      sec.fields.forEach(f => { out[f.k] = cleanTermString(secSrc[f.k]); });
+      body[sec.key] = out;
+    }
   });
   return body;
 }
@@ -8744,8 +8814,14 @@ function diseaseBodyText(d) {
   const body = (d && d.body && typeof d.body === 'object') ? d.body : {};
   const parts = [];
   DISEASE_SECTIONS.forEach(sec => {
-    const secObj = body[sec.key] || {};
-    sec.fields.forEach(f => { if (secObj[f.k]) parts.push(secObj[f.k]); });
+    if (sec.type === 'rows') {
+      (Array.isArray(body[sec.key]) ? body[sec.key] : []).forEach(r => {
+        sec.rowFields.forEach(f => { if (r[f.k]) parts.push(r[f.k]); });
+      });
+    } else {
+      const secObj = body[sec.key] || {};
+      sec.fields.forEach(f => { if (secObj[f.k]) parts.push(secObj[f.k]); });
+    }
   });
   return parts.join(' ');
 }
@@ -8995,6 +9071,36 @@ function deleteDiseaseFromCloud(id, deletedAt) {
 function diseaseFieldValue(id) {
   return document.getElementById(id)?.value?.trim() || '';
 }
+function diseaseRowCtrlStyle() {
+  return `width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 8px;color:var(--text);font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none;box-sizing:border-box;`;
+}
+function diseaseRowHtml(sec, row = {}) {
+  const ctrl = diseaseRowCtrlStyle();
+  const cells = sec.rowFields.map(f => {
+    if (f.type === 'select') {
+      const cur = row[f.k] || '';
+      const opts = f.options.map(o => `<option value="${escapeHtml(o)}"${o === cur ? ' selected' : ''}>${escapeHtml(o || '—')}</option>`).join('');
+      return `<select data-rowk="${escapeHtml(f.k)}" title="${escapeHtml(f.label)}" style="${ctrl}">${opts}</select>`;
+    }
+    return `<input data-rowk="${escapeHtml(f.k)}" value="${escapeHtml(String(row[f.k] || '').replace(/"/g, '&quot;'))}" placeholder="${escapeHtml(f.label)}" style="${ctrl}">`;
+  }).join('');
+  return `<div class="disease-row">${cells}<button type="button" class="disease-row-del" title="행 삭제" aria-label="행 삭제" onclick="this.closest('.disease-row').remove()">✕</button></div>`;
+}
+function addDiseaseRow(prefix, secKey) {
+  const sec = DISEASE_SECTIONS.find(s => s.key === secKey);
+  const container = document.getElementById(`${prefix}_rowsbody_${secKey}`);
+  if (!sec || !container) return;
+  container.insertAdjacentHTML('beforeend', diseaseRowHtml(sec, {}));
+}
+function readDiseaseRowSection(prefix, secKey) {
+  const container = document.getElementById(`${prefix}_rowsbody_${secKey}`);
+  if (!container) return [];
+  return [...container.querySelectorAll('.disease-row')].map(rowEl => {
+    const obj = {};
+    rowEl.querySelectorAll('[data-rowk]').forEach(ctrl => { obj[ctrl.getAttribute('data-rowk')] = String(ctrl.value || '').trim(); });
+    return obj;
+  }).filter(o => Object.values(o).some(v => String(v || '').trim()));
+}
 function diseaseSelectHtml(id, label, options, current, IS) {
   const opts = options.map(o => `<option value="${escapeHtml(o)}"${o === current ? ' selected' : ''}>${escapeHtml(o || '— 선택 —')}</option>`).join('');
   return `<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">${escapeHtml(label)}</label><select id="${id}" style="${IS}">${opts}</select></div>`;
@@ -9003,6 +9109,18 @@ function diseaseFormFieldsHtml(prefix, d = {}, IS = inputStyle(), TA = inputStyl
   const escVal = v => escapeHtml(String(v || '').replace(/"/g, '&quot;'));
   const body = (d && d.body && typeof d.body === 'object') ? d.body : {};
   const sectionHtml = sec => {
+    if (sec.type === 'rows') {
+      const initial = Array.isArray(body[sec.key]) ? body[sec.key] : [];
+      const rowsHtml = initial.map(r => diseaseRowHtml(sec, r)).join('');
+      const headCols = sec.rowFields.map(f => `<span>${escapeHtml(f.label)}</span>`).join('');
+      return `<details class="disease-acc" open><summary>${sec.icon} ${escapeHtml(sec.title)}</summary>
+        <div style="padding:12px">
+          <div class="disease-row disease-row-head">${headCols}<span></span></div>
+          <div id="${prefix}_rowsbody_${sec.key}">${rowsHtml}</div>
+          <button type="button" class="speak-btn" style="margin-top:8px;justify-content:center;width:100%" onclick="addDiseaseRow('${prefix}','${sec.key}')">+ ${escapeHtml(sec.addLabel || '행 추가')}</button>
+        </div>
+      </details>`;
+    }
     const secObj = body[sec.key] || {};
     const fields = sec.fields.map(f => {
       const fid = `${prefix}_body_${sec.key}_${f.k}`;
@@ -9046,8 +9164,12 @@ function upsertDiseaseFromForm(id = null) {
   const existing = isEdit ? DISEASES.find(d => Number(d.id) === Number(id)) : null;
   const body = {};
   DISEASE_SECTIONS.forEach(sec => {
-    body[sec.key] = {};
-    sec.fields.forEach(f => { body[sec.key][f.k] = diseaseFieldValue(`${prefix}_body_${sec.key}_${f.k}`); });
+    if (sec.type === 'rows') {
+      body[sec.key] = readDiseaseRowSection(prefix, sec.key);
+    } else {
+      body[sec.key] = {};
+      sec.fields.forEach(f => { body[sec.key][f.k] = diseaseFieldValue(`${prefix}_body_${sec.key}_${f.k}`); });
+    }
   });
   const next = normalizeDiseaseForStorage({
     ...(existing || {}),
@@ -14768,8 +14890,13 @@ function diseaseExportRows(diseases) {
       contagious: d.contagious || '',
     };
     DISEASE_SECTIONS.forEach(sec => {
-      const secObj = (d.body && d.body[sec.key]) || {};
-      sec.fields.forEach(f => { row[`${sec.key}.${f.k}`] = secObj[f.k] || ''; });
+      if (sec.type === 'rows') {
+        const arr = Array.isArray(d.body && d.body[sec.key]) ? d.body[sec.key] : [];
+        row[`${sec.key}`] = arr.map(r => sec.rowFields.map(f => r[f.k] || '').filter(Boolean).join(':')).filter(Boolean).join(' | ');
+      } else {
+        const secObj = (d.body && d.body[sec.key]) || {};
+        sec.fields.forEach(f => { row[`${sec.key}.${f.k}`] = secObj[f.k] || ''; });
+      }
     });
     row.updated_at = d.updatedAt || '';
     return row;
@@ -16005,7 +16132,7 @@ async function confirmDangerousDiseaseDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.56',
+  version: '4.57',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
@@ -16014,7 +16141,16 @@ const APP_INFO = {
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · v4.56 주요 질환 → 단권화 노트 자동링크 연결',
+    title: '최신 · v4.57 주요 질환 "원인" 섹션을 반복 행(분류·역할·세부·중요도) 구조로 개편',
+    items: [
+      '고정 9칸(선천성/유전성/…) 대신 "원인 · 위험인자 추가" 버튼으로 행을 추가하는 구조로 변경 — 행마다 분류(드롭다운)·역할(직접원인/위험인자/악화·유발인자/병태생리축/보호인자/연관)·세부 항목(자유입력)·중요도(High-yield/Med/Low)',
+      'H. pylori(감염성·직접원인)·NSAIDs(약물성·직접원인)·smoking(생활습관·위험인자)처럼 분류와 역할을 분리해 정확히 표현. 분류는 행 단위(여러 분류는 행을 나눠 추가)',
+      '재사용 가능한 섹션 type:"rows"로 구현 — normalize·추가/편집 폼·드로어 표 렌더·CSV·통합검색·노트 자동링크가 동일 스키마 공유. 구버전 평면 원인 데이터는 자동으로 행으로 변환',
+      '저장 구조는 body jsonb 내부 변경뿐 · Supabase SQL 변경 없음',
+    ]
+  },
+  {
+    title: 'v4.56 주요 질환 → 단권화 노트 자동링크 연결',
     items: [
       '단권화 노트 본문에서 주요 질환명(한/영/우즈·약어·별칭)이 자동으로 링크되고, 클릭하면 해당 질환 상세 카드(드로어)가 열리도록 연결 — 용어·약물·미생물·공식과 동일한 본문 자동링크 동작',
       '노트 보기/편집 모달의 통합검색에도 주요 질환을 포함해 결과를 누르면 질환 카드가 바로 열림',
