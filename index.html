@@ -947,7 +947,7 @@ function closeDrawer() {
 }
 
 function drawerNavigate(dir) {
-  const idx = _drawerTermList.findIndex(x => x.id === _drawerTermId);
+  const idx = _drawerTermList.findIndex(x => String(x.id) === String(_drawerTermId));
   if (idx === -1) return;
   const next = _drawerTermList[idx + dir];
   if (!next) return;
@@ -960,7 +960,7 @@ function drawerNavigate(dir) {
 }
 
 function _updateDrawerNav() {
-  const idx   = _drawerTermList.findIndex(x => x.id === _drawerTermId);
+  const idx   = _drawerTermList.findIndex(x => String(x.id) === String(_drawerTermId));
   const total = _drawerTermList.length;
   document.getElementById('drawerNavCount').textContent = total ? `${idx + 1} / ${total}` : '';
   document.getElementById('drawerPrevBtn').disabled = idx <= 0;
@@ -7625,7 +7625,7 @@ const AppState = Object.freeze({
   get drawer() {
     return {
       termId: _drawerTermId,
-      index: _drawerTermList.findIndex(x => x.id === _drawerTermId),
+      index: _drawerTermList.findIndex(x => String(x.id) === String(_drawerTermId)),
       total: _drawerTermList.length,
     };
   },
@@ -12771,148 +12771,7 @@ function deleteTerm(id) {
   });
 }
 
-function showGuide() {
-  const main = document.getElementById('mainContent');
-  if (!main) return;
-
-  const sections = [
-    {
-      icon: '🧭', title: '앱 구조와 하단 버튼',
-      color: '#58a6ff',
-      items: [
-        '하단 버튼은 모바일에서 가장 손이 닿기 쉬운 핵심 이동 경로입니다',
-        '검색: 일반용어와 약물명 및 정보를 전환해 찾고, 분류 버튼으로 좁혀 봅니다',
-        '즐겨찾기: 자주 보는 일반용어를 빠르게 모아 복습합니다',
-        '퀴즈: 일반용어를 학습상태와 함께 반복 확인합니다',
-        '데이터: 가져오기, 전체 백업, 복원, 동기화, 일괄삭제, 휴지통을 관리합니다',
-        '가이드: 최신 기능 기준 사용법과 안전 원칙을 확인합니다',
-        '상단 라이트모드/다크모드 버튼으로 화면 밝기를 전환하고, 선택값은 이 브라우저에 저장됩니다',
-      ]
-    },
-    {
-      icon: '🔍', title: '검색 화면',
-      color: '#74b0ff',
-      items: [
-        '상단 전환 버튼으로 일반용어와 약물명 및 정보를 바꿔 봅니다',
-        '일반용어는 개념분류와 대표 장기계 필터로 좁힙니다',
-        '약물명 및 정보는 USMLE 계열과 관련 장기계 기준으로 필터가 전환됩니다',
-        '검색은 한국어, 영어, 우즈베크어, IPA, 정의, USMLE 메모까지 함께 봅니다',
-        '카드를 누르면 오른쪽 드로어에서 상세 내용을 확인합니다',
-        '영어 발음 듣기 버튼은 일반용어와 약물명(영어)에 모두 사용할 수 있습니다',
-        '목록은 처음 100개를 표시하고 더보기로 추가 표시해 모바일 성능을 지킵니다',
-      ]
-    },
-    {
-      icon: '💊', title: '약물명 및 정보',
-      color: '#3fb950',
-      items: [
-        '약물 기본 정보 입력 순서는 USMLE 계열, 약물명(영어), 약물명(한국어), 같은 계열 약물명, 약물형태, Target, 투여방법입니다',
-        '상품명은 기본 입력 화면에서 제외했지만 기존 brand_name 데이터와 백업 호환성은 유지합니다',
-        '비어있는 칸만 AI로 보강을 켜면 직접 입력값은 보존하고 빈 필드만 채웁니다',
-        'RxNorm/RxClass 무료 API 보강은 표준 약물명과 ATC 분류를 확인하는 보조 기능입니다',
-        '약물 카드는 목록에서는 compact하게 보이고, 클릭하면 기본 카드와 접힌 고급 정보로 나뉘어 표시됩니다',
-        '약물 삭제는 hard delete가 아니라 deleted_at tombstone을 남겨 다른 기기에서 되살아나지 않게 합니다',
-        '데이터 관리에서 약물과 공식의 전체/장기계별 일괄삭제, 삭제 항목 복원, 휴지통 목록 숨김을 처리합니다',
-      ]
-    },
-    {
-      icon: '➕', title: '추가와 AI 보강',
-      color: '#a78bfa',
-      items: [
-        '용어 추가에서 일반용어와 약물명 및 정보 중 저장 위치를 먼저 선택합니다',
-        '일반용어는 한국어, 영어, 우즈베크어, IPA, 정의, USMLE 포인트를 저장합니다',
-        '약물명 및 정보는 약물 기본 정보와 본문 구조를 별도로 저장합니다',
-        '중복 용어 또는 중복 약물은 조용히 실패하지 않고 안내 문구를 표시합니다',
-        'AI 설정이 있으면 빈칸 자동 보강을 사용할 수 있고, 없으면 직접 입력값만 저장됩니다',
-        'UMLS API 키가 있으면 공식 의학 용어 검색 기반으로 일반용어를 추가할 수 있습니다',
-      ]
-    },
-    {
-      icon: '⭐', title: '즐겨찾기와 퀴즈',
-      color: '#4ade80',
-      items: [
-        '별표로 중요한 일반용어를 즐겨찾기에 모읍니다',
-        '퀴즈는 전체, 즐겨찾기, 분류별 범위로 진행합니다',
-        '문제는 한국어 확인, 우즈베크어 확인, 의미 확인 흐름으로 학습합니다',
-        '정답 보기 후 맞음/틀림을 기록하면 학습상태와 다음 복습일이 갱신됩니다',
-        '발음 듣기와 자동 발음 옵션으로 영어 발음까지 함께 연습합니다',
-      ]
-    },
-    {
-      icon: '📁', title: '데이터 관리와 백업',
-      color: '#f87171',
-      items: [
-        '전체 JSON 백업에는 일반용어, 미생물, 약물명 및 정보, 주요 의학계산공식, 단권화 노트, 학습상태, 삭제 보호 기록, 동기화 메타가 포함됩니다',
-        '구형 JSON처럼 약물 배열이 없는 백업을 복원해도 현재 약물 데이터는 보존됩니다',
-        '일반용어 Excel/CSV/Anki와 미생물, 약물명 및 정보, 주요 의학계산공식 Excel/CSV를 구분해 내보냅니다',
-        '가져오기는 미리보기 후 최신 병합, 신규만 추가, 현재 데이터 교체 중에서 선택합니다',
-        '현재 데이터 교체 전에는 자동으로 전체 JSON 백업을 내려받습니다',
-        '삭제된 일반용어, 약물명 및 정보, 주요 의학계산공식은 각각 휴지통에서 복원할 수 있습니다',
-        '휴지통 목록을 비워도 내부 tombstone은 보존되어 다른 기기에서 오래된 항목이 되살아나는 것을 막습니다',
-        '대용량 로컬 캐시는 IndexedDB를 우선 사용하고 localStorage는 설정과 작은 메타 중심으로 둡니다',
-      ]
-    },
-    {
-      icon: '☁️', title: 'Supabase 동기화 원칙',
-      color: '#fbbf24',
-      items: [
-        'Supabase가 기준 원본이고, IndexedDB/localStorage는 빠른 화면 복원용 로컬 캐시입니다',
-        '일반 양방향 동기화는 로컬과 클라우드를 updated_at 기준으로 병합합니다',
-        '상단 최종상태 저장은 현재 기기 데이터를 클라우드 기준본으로 지정하는 별도 작업입니다',
-        '저장본 버전 확인에서 클라우드 용어·약물·공식 항목 수, 삭제 표시 수, hash 일치 여부를 확인합니다',
-        '최종본 기준값을 확인하지 못하면 오래된 로컬 항목 부활을 막기 위해 일반 병합을 중단합니다',
-        '최종본 생성 시각보다 오래된 로컬 전용 항목은 새 항목으로 보지 않고 동기화에서 제외합니다',
-        '한 기기 데이터가 가장 정확하다고 확신할 때만 최종상태 저장을 사용합니다',
-      ]
-    },
-    {
-      icon: '✅', title: '추천 사용 흐름',
-      color: '#fbbf24',
-      items: [
-        '평소에는 검색 화면에서 일반용어와 약물명 및 정보를 전환해 학습합니다',
-        '새 자료를 넣기 전 데이터 관리에서 전체 JSON 백업을 먼저 저장합니다',
-        '용어, 약물, 공식을 추가한 뒤에는 일반 양방향 동기화로 다른 기기에 전파합니다',
-        '분류나 내용이 부족하면 통계와 미완성 용어 AI 보강을 이용합니다',
-        '대량 삭제나 복원 후에는 저장본 버전 확인으로 클라우드/로컬 개수 차이를 확인합니다',
-        'PC나 특정 기기를 최종본으로 확정해야 할 때만 상단 최종상태 저장을 실행합니다',
-      ]
-    },
-  ];
-
-  const html = sections.map(s => `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div style="font-size:24px">${s.icon}</div>
-        <div style="font-size:15px;font-weight:700;color:${s.color}">${s.title}</div>
-      </div>
-      <ul style="margin:0;padding-left:16px;list-style:none">
-        ${s.items.map(item => `
-          <li style="font-size:12px;color:var(--text2);line-height:1.8;padding:2px 0;padding-left:4px;border-left:2px solid ${s.color}22;margin-bottom:3px">
-            <span style="margin-left:6px">${item}</span>
-          </li>`).join('')}
-      </ul>
-    </div>`).join('');
-
-  main.innerHTML = `
-    <div style="padding:16px 0 80px">
-      <div style="text-align:center;margin-bottom:24px">
-        <div style="font-size:40px;margin-bottom:8px">📖</div>
-        <div style="font-size:20px;font-weight:700;color:var(--text)">Bugeon Medical Terms Guide</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:6px">v${APP_INFO.version} · 최신 구조 기준 가이드</div>
-        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">
-          <span style="background:rgba(88,166,255,0.1);border:1px solid #1d4ed8;border-radius:10px;padding:3px 10px;font-size:10px;color:#74b0ff">일반용어 · 약물 · 공식 전환</span>
-          <span style="background:rgba(63,185,80,0.1);border:1px solid #166534;border-radius:10px;padding:3px 10px;font-size:10px;color:#4ade80">전체 JSON 백업</span>
-          <span style="background:rgba(167,139,250,0.1);border:1px solid #5b21b6;border-radius:10px;padding:3px 10px;font-size:10px;color:#a78bfa">약물/공식 복원 · 일괄삭제</span>
-          <span style="background:rgba(248,81,73,0.1);border:1px solid #991b1b;border-radius:10px;padding:3px 10px;font-size:10px;color:#f87171">저장본 버전 검증</span>
-        </div>
-      </div>
-      ${html}
-      <button onclick="switchTab('search', document.querySelector('.nav-btn'))" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:4px">
-        ← 돌아가기
-      </button>
-    </div>`;
-}
-
+// [v4.53] 구버전 showGuide() 정의(약 140줄)를 제거함. 아래 최신 정의 하나만 사용한다.
 function showGuide() {
   const main = document.getElementById('mainContent');
   if (!main) return;
@@ -14878,16 +14737,24 @@ async function confirmDangerousMicrobeDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.52',
+  version: '4.53',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
-  updatedAt: '2026년 6월 26일',
+  updatedAt: '2026년 6월 27일',
 };
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · v4.52 개발자 정보 창 재설계 & 스크롤 최소화',
+    title: '최신 · v4.53 코드 정리(중복 showGuide 제거 · 드로어 ID 비교 통일)',
+    items: [
+      '전역에 중복 정의돼 있던 구버전 showGuide() 함수(약 140줄, 한 번도 실행되지 않던 죽은 코드)를 제거해 가이드 문구 수정 시 화면 미반영 함정을 없앰',
+      '용어 드로어 이전/다음 네비게이션과 카운트(drawerNavigate · _updateDrawerNav · 디버그 drawer getter)의 ID 비교를 String() 정규화로 통일해, import/JSON/Supabase 경로로 id 타입(숫자↔문자열)이 달라져도 네비가 깨지지 않도록 보강',
+      '약물·미생물 드로어는 Number() 기준으로 내부 일관성이 이미 확보돼 있어 변경하지 않음 · 저장 구조 변경 없음(Supabase SQL 변경 없음)',
+    ]
+  },
+  {
+    title: 'v4.52 개발자 정보 창 재설계 & 스크롤 최소화',
     items: [
       '개발자 정보 창을 좌우로 넓히고 높이를 화면에 맞춰 고정(내부 스크롤)해 작은 윈도우에서도 스크롤을 최소화',
       '메타 정보를 얇은 구분선 그리드로 조밀하게 정리하고 타이포·여백을 다듬어 세련되게 개편',
