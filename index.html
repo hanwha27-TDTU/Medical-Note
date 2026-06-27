@@ -2696,21 +2696,15 @@ document.addEventListener('keydown', e => {
   .disease-acc[open] > summary { border-bottom: 1px solid var(--border); }
   .disease-acc .microbe-info-grid { padding: 12px; }
   .disease-row {
-    display: grid;
-    grid-template-columns: 1.1fr 1.1fr 1.7fr 0.9fr 28px;
+    display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     align-items: center;
     margin-bottom: 6px;
   }
-  .disease-row-head {
-    margin-bottom: 4px;
-    font-size: 10px;
-    color: var(--text3);
-    font-weight: 700;
-    padding: 0 2px;
-  }
   .disease-row-del {
-    width: 28px; height: 30px;
+    flex: 0 0 28px;
+    width: 28px; height: 32px;
     border: 1px solid var(--border);
     border-radius: 7px;
     background: var(--surface2);
@@ -2719,12 +2713,6 @@ document.addEventListener('keydown', e => {
     cursor: pointer;
   }
   .disease-row-del:hover { color: #f87171; border-color: #991b1b; }
-  @media (max-width: 640px) {
-    .disease-row { grid-template-columns: 1fr 1fr; }
-    .disease-row > [data-rowk]:nth-child(3) { grid-column: 1 / -1; }
-    .disease-row-head { display: none; }
-    .disease-row-del { width: 100%; }
-  }
 
   html[data-theme="light"] .library-mode-switch {
     background: var(--surface);
@@ -7343,6 +7331,8 @@ const DISEASE_CAUSE_ROLES = ['직접 원인', '주요 위험인자', '악화·�
 const DISEASE_YIELD_OPTIONS = ['', 'High-yield', 'Medium', 'Low'];
 // 구버전 평면 원인 필드 → 행 분류 라벨 매핑 (하위호환 마이그레이션용)
 const DISEASE_OLD_CAUSE_LABEL = { congenital: '선천성', genetic: '유전성', infectious: '감염성', autoimmune: '자가면역성', metabolic: '대사성', vascular: '혈관성', neoplastic: '종양성', drug_toxic: '약물성/독성', idiopathic: '특발성' };
+const DISEASE_ASYMPTOMATIC_OPTIONS = ['', '불가능 / 매우 드묾', '가능 (우연히 발견)', '흔함 (상당수 무증상)', '초기 무증상', '선별검사로 발견', '우연 발견(영상 등)'];
+const DISEASE_REDFLAG_CATEGORIES = ['응급', '감염/패혈증', '출혈/허혈', '신경학적 위험', '암 의심', '소아/임신 위험', '즉시 검사 필요', '기타'];
 const DISEASE_SECTIONS = [
   { key: 'profile', title: '질환 기본 프로필', icon: '🧬', fields: [
     { k: 'age_group', label: '주요 연령대' },
@@ -7370,9 +7360,13 @@ const DISEASE_SECTIONS = [
   { key: 'symptoms', title: '증상 · 징후', icon: '🩹', fields: [
     { k: 'main_symptoms', label: '주요 증상', area: true },
     { k: 'exam_findings', label: '주요 신체진찰 소견', area: true },
-    { k: 'red_flags', label: 'Red flags', area: true },
     { k: 'vignette', label: '전형적 환자 vignette', area: true },
-    { k: 'asymptomatic', label: '무증상 가능 여부' },
+    { k: 'asymptomatic', label: '무증상 가능 여부', type: 'select', options: DISEASE_ASYMPTOMATIC_OPTIONS },
+  ]},
+  { key: 'red_flags', title: 'Red flags · 즉시 행동', icon: '🚨', type: 'rows', addLabel: 'Red flag 추가', rowFields: [
+    { k: 'sign', label: '위험 신호', type: 'text' },
+    { k: 'category', label: '분류', type: 'select', options: DISEASE_REDFLAG_CATEGORIES },
+    { k: 'action', label: '즉시 행동', type: 'text' },
   ]},
   { key: 'diagnosis', title: '검사 / 진단', icon: '🔬', fields: [
     { k: 'initial_tests', label: '초기 검사', area: true },
@@ -7464,6 +7458,9 @@ function normalizeDiseaseBody(rawBody) {
         rows = src[sec.key];
       } else if (sec.key === 'cause' && src[sec.key] && typeof src[sec.key] === 'object') {
         rows = migrateLegacyCauseToRows(src[sec.key]);
+      } else if (sec.key === 'red_flags' && src.symptoms && cleanTermString(src.symptoms.red_flags)) {
+        // 구버전: 증상 섹션의 red_flags 자유텍스트 → 한 행으로 이관
+        rows = [{ sign: cleanTermString(src.symptoms.red_flags), category: '', action: '' }];
       } else {
         rows = [];
       }
@@ -9071,18 +9068,24 @@ function deleteDiseaseFromCloud(id, deletedAt) {
 function diseaseFieldValue(id) {
   return document.getElementById(id)?.value?.trim() || '';
 }
-function diseaseRowCtrlStyle() {
-  return `width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 8px;color:var(--text);font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none;box-sizing:border-box;`;
+function diseaseRowCtrlStyle(type) {
+  const flex = type === 'text' ? 'flex:2 1 150px;' : 'flex:1 1 120px;';
+  return `${flex}min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 8px;color:var(--text);font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none;box-sizing:border-box;`;
+}
+function diseaseOptionsHtml(options, cur, placeholderLabel) {
+  const out = [];
+  const hasEmpty = options.includes('');
+  if (!hasEmpty) out.push(`<option value=""${cur ? '' : ' selected'}>${escapeHtml(placeholderLabel)}</option>`);
+  options.forEach(o => out.push(`<option value="${escapeHtml(o)}"${o === cur ? ' selected' : ''}>${escapeHtml(o === '' ? placeholderLabel : o)}</option>`));
+  return out.join('');
 }
 function diseaseRowHtml(sec, row = {}) {
-  const ctrl = diseaseRowCtrlStyle();
   const cells = sec.rowFields.map(f => {
+    const cur = row[f.k] || '';
     if (f.type === 'select') {
-      const cur = row[f.k] || '';
-      const opts = f.options.map(o => `<option value="${escapeHtml(o)}"${o === cur ? ' selected' : ''}>${escapeHtml(o || '—')}</option>`).join('');
-      return `<select data-rowk="${escapeHtml(f.k)}" title="${escapeHtml(f.label)}" style="${ctrl}">${opts}</select>`;
+      return `<select data-rowk="${escapeHtml(f.k)}" title="${escapeHtml(f.label)}" style="${diseaseRowCtrlStyle('select')}">${diseaseOptionsHtml(f.options, cur, f.label)}</select>`;
     }
-    return `<input data-rowk="${escapeHtml(f.k)}" value="${escapeHtml(String(row[f.k] || '').replace(/"/g, '&quot;'))}" placeholder="${escapeHtml(f.label)}" style="${ctrl}">`;
+    return `<input data-rowk="${escapeHtml(f.k)}" value="${escapeHtml(String(cur).replace(/"/g, '&quot;'))}" placeholder="${escapeHtml(f.label)}" style="${diseaseRowCtrlStyle('text')}">`;
   }).join('');
   return `<div class="disease-row">${cells}<button type="button" class="disease-row-del" title="행 삭제" aria-label="행 삭제" onclick="this.closest('.disease-row').remove()">✕</button></div>`;
 }
@@ -9112,10 +9115,8 @@ function diseaseFormFieldsHtml(prefix, d = {}, IS = inputStyle(), TA = inputStyl
     if (sec.type === 'rows') {
       const initial = Array.isArray(body[sec.key]) ? body[sec.key] : [];
       const rowsHtml = initial.map(r => diseaseRowHtml(sec, r)).join('');
-      const headCols = sec.rowFields.map(f => `<span>${escapeHtml(f.label)}</span>`).join('');
       return `<details class="disease-acc" open><summary>${sec.icon} ${escapeHtml(sec.title)}</summary>
         <div style="padding:12px">
-          <div class="disease-row disease-row-head">${headCols}<span></span></div>
           <div id="${prefix}_rowsbody_${sec.key}">${rowsHtml}</div>
           <button type="button" class="speak-btn" style="margin-top:8px;justify-content:center;width:100%" onclick="addDiseaseRow('${prefix}','${sec.key}')">+ ${escapeHtml(sec.addLabel || '행 추가')}</button>
         </div>
@@ -9125,6 +9126,9 @@ function diseaseFormFieldsHtml(prefix, d = {}, IS = inputStyle(), TA = inputStyl
     const fields = sec.fields.map(f => {
       const fid = `${prefix}_body_${sec.key}_${f.k}`;
       const val = secObj[f.k] || '';
+      if (f.type === 'select') {
+        return `<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">${escapeHtml(f.label)}</label><select id="${fid}" style="${IS}">${diseaseOptionsHtml(f.options, val, '— 선택 —')}</select></div>`;
+      }
       return f.area
         ? `<div style="grid-column:1/-1"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">${escapeHtml(f.label)}</label><textarea id="${fid}" rows="2" style="${TA}">${escapeHtml(val)}</textarea></div>`
         : `<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">${escapeHtml(f.label)}</label><input id="${fid}" value="${escVal(val)}" style="${IS}"></div>`;
@@ -16136,7 +16140,7 @@ async function confirmDangerousDiseaseDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.58',
+  version: '4.59',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
@@ -16145,7 +16149,16 @@ const APP_INFO = {
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · v4.58 동기화 완료 안내문구에 단권화 노트 개수 추가',
+    title: '최신 · v4.59 주요 질환 증상·징후: 무증상=드롭다운, Red flags=행 구조',
+    items: [
+      '"무증상 가능 여부"를 자유입력 → 드롭다운(불가능/가능/흔함/초기무증상/선별검사발견/우연발견)으로 변경',
+      '"Red flags"를 별도 섹션으로 분리하고 행 구조로 개편 — 행마다 위험 신호 + 분류(응급/감염·패혈증/출혈·허혈/신경학적/암의심/소아·임신/즉시검사) + 즉시 행동(next action). "신호 → 다음 행동" 페어로 정리',
+      '재사용 rows 타입 + fields 섹션의 select 지원 추가 · 구버전 red_flags 자유텍스트는 자동으로 한 행으로 이관',
+      '나머지(주요 증상·신체진찰·vignette)는 서술형이라 자유입력 유지 · Supabase SQL 변경 없음(body jsonb)',
+    ]
+  },
+  {
+    title: 'v4.58 동기화 완료 안내문구에 단권화 노트 개수 추가',
     items: [
       '"양방향 동기화 완료 / 새 최종본 적용 / 클라우드 기준본 불러옴" 토스트에 노트 개수를 추가 — 노트도 같은 일반 동기화 동작에서 함께 동기화되는데(별도 syncNotesWithCloud) 안내에서 빠져 오해를 주던 부분 보완',
       '노트 개수는 window.NOTEBOOK 활성 개수 기준(activeNoteCountForToast)으로 표시',
