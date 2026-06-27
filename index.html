@@ -7532,7 +7532,7 @@ function normalizeDiseaseForStorage(d) {
     en_name: cleanTermString(d.en_name || d.enName || d.en || d.english_name || d.name),
     uz_name: cleanTermString(d.uz_name || d.uzName || d.uz),
     ipa: cleanTermString(d.ipa || d.ipa_text || d.pronunciation),
-    concept_category: cleanTermString(d.concept_category || d.conceptCategory) || 'Disease / Syndrome',
+    concept_category: (function(c){ return (!c || c === 'Disease / Syndrome') ? 'Diseases' : c; })(cleanTermString(d.concept_category || d.conceptCategory)),
     category: normalizeSystemCategory(d.category || d.system || 'General'),
     system_tags: normalizeSystemTags(d.system_tags || d.systemTags || d.tags),
     one_line_summary: cleanTermString(d.one_line_summary || d.oneLineSummary || d.summary),
@@ -9166,7 +9166,8 @@ function applyDiseaseTypeTemplate(prefix) {
   showToast(filled ? `🧩 "${type}" 출발 템플릿을 빈 칸 ${filled}곳에 채웠습니다 · 검수·수정하세요` : '채울 빈 칸이 없습니다(이미 입력되어 보존됨)');
 }
 function diseaseSelectHtml(id, label, options, current, IS) {
-  const opts = options.map(o => `<option value="${escapeHtml(o)}"${o === current ? ' selected' : ''}>${escapeHtml(o || '— 선택 —')}</option>`).join('');
+  let opts = options.map(o => `<option value="${escapeHtml(o)}"${o === current ? ' selected' : ''}>${escapeHtml(o || '— 선택 —')}</option>`).join('');
+  if (current && !options.includes(current)) opts = `<option value="${escapeHtml(current)}" selected>${escapeHtml(current)}</option>` + opts;
   return `<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">${escapeHtml(label)}</label><select id="${id}" style="${IS}">${opts}</select></div>`;
 }
 function diseaseFormFieldsHtml(prefix, d = {}, IS = inputStyle(), TA = inputStyle(true)) {
@@ -9220,8 +9221,8 @@ function diseaseFormFieldsHtml(prefix, d = {}, IS = inputStyle(), TA = inputStyl
       <button type="button" class="speak-btn" onclick="speakDiseaseField(event, '${prefix}')" title="질환명 영어 발음 듣기" style="height:42px;justify-content:center">발음 듣기</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">
-      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">Concept Category</label><input id="${prefix}_concept_category" value="${escVal(d.concept_category || 'Disease / Syndrome')}" style="${IS}"></div>
-      <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">System (대표 장기계)</label><input id="${prefix}_category" value="${escVal(d.category)}" placeholder="예: Cardiology" style="${IS}"></div>
+      ${diseaseSelectHtml(`${prefix}_concept_category`, 'Concept Category', CONCEPT_CATEGORIES, d.concept_category || 'Diseases', IS)}
+      ${diseaseSelectHtml(`${prefix}_category`, 'System (대표 장기계)', VALID_CATS, d.category || 'General', IS)}
       <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:5px">System Tags (쉼표 구분)</label><input id="${prefix}_system_tags" value="${escVal(Array.isArray(d.system_tags) ? d.system_tags.join(', ') : '')}" placeholder="Cardiology, Emergency" style="${IS}"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">
@@ -16213,7 +16214,7 @@ async function confirmDangerousDiseaseDelete() {
 
 const APP_INFO = {
   name: 'Dr. Bugeon의 Medical Note',
-  version: '4.64',
+  version: '4.66',
   developer: '김부건 (Kim Bugeon)',
   organization: 'Tashkent State Medical University',
   firstDeveloped: '2026년 6월 4일',
@@ -16222,7 +16223,22 @@ const APP_INFO = {
 
 const UPDATE_HISTORY = [
   {
-    title: '최신 · v4.64 주요 질환 추가/편집 폼에도 "편집 중 참고용 통합검색" 추가',
+    title: '최신 · v4.66 질환 폼 Concept Category·System을 드롭다운으로(일반용어 분류 재사용)',
+    items: [
+      '질환 추가/편집에서 Concept Category는 일반용어 개념분류(CONCEPT_CATEGORIES), System(대표 장기계)은 일반용어 장기계(VALID_CATS) 드롭다운으로 변경 — 자유입력 오타로 필터·그룹이 깨지던 혼선 방지',
+      '질환 Concept Category 기본값을 표준 분류 "Diseases"로 통일(구버전 "Disease / Syndrome"은 자동 변환). diseaseSelectHtml은 목록에 없는 기존 값도 보존하도록 보강',
+      'System Tags는 자유입력 유지 · 데이터/Supabase SQL 변경 없음(body 외 기존 컬럼)',
+    ]
+  },
+  {
+    title: 'v4.65 통합검색 결과에 종류별 색 배지 추가',
+    items: [
+      '통합검색 결과 카드에 종류 배지(용어=파랑·미생물=초록·약물=황색·공식=보라·주요 질환=청록)를 색으로 입혀 한눈에 구분되게 함',
+      '노트/질환 폼의 모든 인라인 통합검색에 공통 적용(noteSearchKindBadge) · 동작·데이터 변경 없음 · Supabase SQL 변경 없음',
+    ]
+  },
+  {
+    title: 'v4.64 주요 질환 추가/편집 폼에도 "편집 중 참고용 통합검색" 추가',
     items: [
       '질환 카드를 추가·편집할 때도 노트 모달처럼 상단에 통합검색(용어·미생물·약물·공식·주요 질환)을 넣어, 질환을 채우면서 다른 카드를 바로 찾아 참고할 수 있게 함',
       '검색 결과를 누르면 해당 상세 카드(드로어)가 질환 추가/편집 모달 위(z-index 1801)에 떠서 열람 후 닫으면 작성으로 복귀 — 노트 모달과 동일한 layering 재사용(추가모달 999·편집모달 1600 모두 드로어보다 아래)',
@@ -21049,6 +21065,17 @@ initApp();
   function noteSearchKindLabel(kind) {
     return kind === 'terms' ? '용어' : (kind === 'drugs' ? '약물' : (kind === 'microbes' ? '미생물' : (kind === 'diseases' ? '주요 질환' : '공식')));
   }
+  const NOTE_KIND_COLORS = {
+    terms:    { fg: '#74b0ff', bg: 'rgba(88,166,255,0.14)', bd: 'rgba(88,166,255,0.45)' },
+    microbes: { fg: '#4ade80', bg: 'rgba(34,197,94,0.14)',  bd: 'rgba(34,197,94,0.45)' },
+    drugs:    { fg: '#fbbf24', bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.45)' },
+    formulas: { fg: '#c084fc', bg: 'rgba(167,139,250,0.16)', bd: 'rgba(167,139,250,0.45)' },
+    diseases: { fg: '#5eead4', bg: 'rgba(45,212,191,0.14)', bd: 'rgba(45,212,191,0.45)' },
+  };
+  function noteSearchKindBadge(kind) {
+    const c = NOTE_KIND_COLORS[kind] || { fg: 'var(--text2)', bg: 'var(--surface2)', bd: 'var(--border)' };
+    return `<span style="display:inline-block;flex:0 0 auto;font-size:10px;font-weight:800;line-height:1;padding:3px 7px;border-radius:999px;color:${c.fg};background:${c.bg};border:1px solid ${c.bd}">${escapeHtml(noteSearchKindLabel(kind))}</span>`;
+  }
   function noteInlineSearchRows(query = '') {
     const q = normalizeNoteResourceLookup(query);
     if (q.length < 1) return [];
@@ -21081,7 +21108,7 @@ initApp();
     }
     box.innerHTML = rows.map(row => `
       <button type="button" class="note-inline-result" onmousedown="event.preventDefault()" onclick="openNoteSearchResource(event,${escapeHtml(JSON.stringify(row.kind))},${escapeHtml(JSON.stringify(row.id))},${escapeHtml(JSON.stringify(input.id))})">
-        <strong>${escapeHtml(noteSearchKindLabel(row.kind))} · ${escapeHtml(row.title)}</strong>
+        <strong style="display:flex;align-items:center;gap:7px">${noteSearchKindBadge(row.kind)}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${escapeHtml(row.title)}</span></strong>
         <span>${escapeHtml(row.subtitle || '상세 열기')}</span>
       </button>`).join('');
     box.classList.add('open');
